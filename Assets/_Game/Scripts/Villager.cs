@@ -424,6 +424,27 @@ namespace Komur
             else animator.SetInteger("Direction", velocity.y > 0f ? 1 : 0);
         }
 
+#if UNITY_EDITOR
+        // Test helpers for the ending buttons (editor only).
+        public void DebugSetFriendly(bool friendly)
+        {
+            if (State == VillagerState.Dead) return;
+            if (State == VillagerState.Sick)
+            {
+                State = VillagerState.Healthy;
+                if (sickBar != null) sickBar.SetVisible(false);
+                SetTint(Color.white);
+            }
+            Friendly = friendly;
+            shownAnger = -1f;
+        }
+
+        public void DebugKill()
+        {
+            if (State != VillagerState.Dead) Die();
+        }
+#endif
+
         // Someone died: the town blames the black cat again, even those it saved.
         public void LoseTrust()
         {

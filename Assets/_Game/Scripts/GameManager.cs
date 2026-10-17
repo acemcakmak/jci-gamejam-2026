@@ -319,6 +319,31 @@ namespace Komur
             IsCinematic = false;
         }
 
+#if UNITY_EDITOR
+        // Editor-only test: jump straight to an ending (starts the game first if on the title screen).
+        public void DebugEnding(Ending ending)
+        {
+            if (State == GameState.Intro) StartGame();
+            if (State != GameState.Playing) return;
+            if (IsPaused) SetPaused(false);
+            switch (ending)
+            {
+                case Ending.Loved:
+                    foreach (var v in villagers) v.DebugSetFriendly(true);
+                    End(true);
+                    break;
+                case Ending.UnknownHero:
+                    foreach (var v in villagers) v.DebugSetFriendly(false);
+                    End(true);
+                    break;
+                case Ending.AllDead:
+                    // The real thing: each death plays out, and the last one ends the game.
+                    foreach (var v in villagers.ToArray()) v.DebugKill();
+                    break;
+            }
+        }
+#endif
+
         // Like a hole reveal: pan to the apothecary, the boss bursts out of it and roars, pan back.
         private IEnumerator RevealBoss(float speed)
         {
