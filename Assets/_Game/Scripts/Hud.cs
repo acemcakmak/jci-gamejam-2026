@@ -87,47 +87,119 @@ namespace Komur
             var button = pauseButton.AddComponent<UnityEngine.UI.Button>();
             button.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.TogglePause(); });
 
-            // Overlay: dim the screen, a framed card with the title and two buttons.
+            // Overlay in the title screen's style: a light dark backdrop, PAUSED as the big title,
+            // the key strip ([ESC] OR [P] TO CONTINUE) and two buttons where PLAY sits.
             pauseOverlay = new GameObject("Pause Overlay", typeof(RectTransform), typeof(UnityEngine.UI.Image));
             var ort = (RectTransform)pauseOverlay.transform;
             ort.SetParent(canvas.transform, false);
             ort.anchorMin = Vector2.zero;
             ort.anchorMax = Vector2.one;
             ort.offsetMin = ort.offsetMax = Vector2.zero;
-            pauseOverlay.GetComponent<UnityEngine.UI.Image>().color = new Color(0.05f, 0.04f, 0.08f, 0.6f);
+            pauseOverlay.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.4f);
 
-            // A roomy card: title, key hint, then three buttons stacked inside it.
-            var card = NewPanel("Card", pauseOverlay.transform, frame);
-            var crt = (RectTransform)card.transform;
-            crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
-            crt.anchoredPosition = Vector2.zero;
-            crt.sizeDelta = new Vector2(620f, 520f);
-            var title = NewText("Title", card.transform, "PAUSED", endTitle != null ? endTitle.font : font, 80f, waveText.color);
-            var trt = title.rectTransform;
-            trt.anchorMin = new Vector2(0f, 0.76f);
-            trt.anchorMax = new Vector2(1f, 0.94f);
-            var hint = NewText("Hint", card.transform, "ESC OR P TO RESUME", font, 30f, waveText.color);
-            var hrt = hint.rectTransform;
-            hrt.anchorMin = new Vector2(0f, 0.63f);
-            hrt.anchorMax = new Vector2(1f, 0.76f);
+            if (endTitle != null)
+            {
+                var title = Instantiate(endTitle.gameObject, pauseOverlay.transform, false);
+                title.name = "Title";
+                title.SetActive(true);
+                title.GetComponent<TextMeshProUGUI>().text = "PAUSED";
+            }
+
+            BuildPauseKeys(font);
 
             if (againButton != null)
             {
-                PauseMenuButton(card.transform, "Resume", new Vector2(0f, -10f), () => GameManager.I?.SetPaused(false));
-                PauseMenuButton(card.transform, "Main Menu", new Vector2(0f, -130f), () => GameManager.I?.ReturnToMenu());
+                var anchorFrom = playButton != null ? (RectTransform)playButton.transform : (RectTransform)againButton.transform;
+                PauseMenuButton(pauseOverlay.transform, "Resume", anchorFrom, new Vector2(-190f, 0f), () => GameManager.I?.SetPaused(false));
+                PauseMenuButton(pauseOverlay.transform, "Main Menu", anchorFrom, new Vector2(190f, 0f), () => GameManager.I?.ReturnToMenu());
             }
             pauseOverlay.transform.SetAsLastSibling();
             pauseOverlay.SetActive(false);
         }
 
-        private void PauseMenuButton(Transform parent, string label, Vector2 position, UnityEngine.Events.UnityAction onClick)
+        // [ESC] OR [P] TO CONTINUE on a dark strip, using the title screen's key sheets and placement.
+        private void BuildPauseKeys(TMP_FontAsset font)
+        {
+            Texture letters = null, symbols = null;
+            RectTransform titleStrip = null;
+            if (introPanel != null)
+            {
+                foreach (var raw in introPanel.GetComponentsInChildren<UnityEngine.UI.RawImage>(true))
+                {
+                    if (raw.texture == null) continue;
+                    if (raw.texture.name.Contains("alphanumeric")) letters = raw.texture;
+                    else if (raw.texture.name.Contains("symbols")) symbols = raw.texture;
+                }
+                var controls = introPanel.transform.Find("Controls");
+                if (controls != null) titleStrip = (RectTransform)controls;
+            }
+
+            var strip = new GameObject("Keys", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+            var srt = (RectTransform)strip.transform;
+            srt.SetParent(pauseOverlay.transform, false);
+            if (titleStrip != null)
+            {
+                srt.anchorMin = titleStrip.anchorMin;
+                srt.anchorMax = titleStrip.anchorMax;
+                srt.pivot = titleStrip.pivot;
+                srt.anchoredPosition = titleStrip.anchoredPosition;
+            }
+            else
+            {
+                srt.anchorMin = srt.anchorMax = srt.pivot = new Vector2(0.5f, 0.5f);
+            }
+            srt.sizeDelta = new Vector2(760f, 110f);
+            strip.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.5f);
+            var row = strip.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.spacing = 12f;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+
+            const float keyHeight = 64f;
+            if (symbols != null) PauseKey(srt, symbols, 0, new RectInt(2, 2, 12, 11), keyHeight, 0f);      // ESC
+            PauseLabel(srt, "OR", font, 28f);
+            if (letters != null) PauseKey(srt, letters, 'P' - 'A', new RectInt(3, 2, 9, 11), keyHeight, 0.8f);
+            PauseLabel(srt, "TO CONTINUE", font, 36f);
+        }
+
+        private static void PauseKey(Transform row, Texture sheet, int sheetRow, RectInt art, float height, float phase)
+        {
+            const int cell = 16;
+            var go = new GameObject("Key", typeof(RectTransform));
+            go.transform.SetParent(row, false);
+            var raw = go.AddComponent<UnityEngine.UI.RawImage>();
+            raw.texture = sheet;
+            raw.raycastTarget = false;
+            Rect Uv(int col) => new Rect((col * cell + art.x) / (float)sheet.width, 1f - (sheetRow * cell + art.y + art.height) / (float)sheet.height,
+                art.width / (float)sheet.width, art.height / (float)sheet.height);
+            var press = go.AddComponent<KeyPress>();
+            press.normalUv = Uv(0);
+            press.pressedUv = Uv(2);
+            press.phase = phase;
+            press.period = 1.6f;
+            raw.uvRect = press.normalUv;
+            var le = go.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.preferredHeight = height;
+            le.preferredWidth = height * art.width / art.height;
+        }
+
+        private static void PauseLabel(Transform row, string text, TMP_FontAsset font, float size)
+        {
+            var label = NewText(text, row, text, font, size, Color.white);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+        }
+
+        private void PauseMenuButton(Transform parent, string label, RectTransform placeLike, Vector2 offset, UnityEngine.Events.UnityAction onClick)
         {
             var go = Instantiate(againButton.gameObject, parent, false);
             go.name = label + " Button";
             go.SetActive(true);
             var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = position;
+            rt.anchorMin = placeLike.anchorMin;
+            rt.anchorMax = placeLike.anchorMax;
+            rt.pivot = placeLike.pivot;
+            rt.anchoredPosition = placeLike.anchoredPosition + offset;
             rt.sizeDelta = new Vector2(340f, 87f);
             var b = go.GetComponent<UnityEngine.UI.Button>();
             b.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
