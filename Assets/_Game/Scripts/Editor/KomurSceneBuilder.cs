@@ -180,6 +180,7 @@ namespace Komur.EditorTools
                 komurController = komurGo.GetComponent<KomurController>();
             }
 
+            EnsureCamera();
             var cam = Camera.main;
             if (cam != null)
             {

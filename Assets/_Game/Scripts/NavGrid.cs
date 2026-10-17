@@ -109,6 +109,7 @@ namespace Komur
             origin = bounds.min;
             width = Mathf.CeilToInt(bounds.size.x / cellSize);
             height = Mathf.CeilToInt(bounds.size.y / cellSize);
+            if (width <= 0 || height <= 0) return; // floor has tilemaps but no tiles
             int count = width * height;
             ground = new bool[count];
             walkable = new bool[count];

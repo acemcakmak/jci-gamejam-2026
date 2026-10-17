@@ -103,31 +103,49 @@ namespace Komur.EditorTools
         // Keeps camera, lights and the tilemap grid (cleared); removes demo props, plants, stairs and the player.
         private static Dictionary<string, Tilemap> StripDemoScene(UnityEngine.SceneManagement.Scene scene)
         {
-            var maps = new Dictionary<string, Tilemap>();
+            // Lift the things we keep to the scene root, wherever the demo nested them.
+            var keepers = new List<Transform>();
             foreach (var root in scene.GetRootGameObjects())
             {
-                bool keep = root.GetComponent<Camera>() != null
-                            || root.GetComponentInChildren<Grid>(true) != null
-                            || root.GetComponents<Component>().Any(c => c != null && c.GetType().Name.Contains("Light2D"));
-                if (!keep)
-                {
-                    Object.DestroyImmediate(root);
-                    continue;
-                }
+                foreach (var cam in root.GetComponentsInChildren<Camera>(true)) keepers.Add(cam.transform);
+                foreach (var grid in root.GetComponentsInChildren<Grid>(true)) keepers.Add(grid.transform);
+                foreach (var c in root.GetComponentsInChildren<Component>(true))
+                    if (c != null && c.GetType().Name.Contains("Light2D")) keepers.Add(c.transform);
+            }
+            foreach (var k in keepers.Distinct()) k.SetParent(null, true);
+            foreach (var root in scene.GetRootGameObjects())
+                if (!keepers.Contains(root.transform)) Object.DestroyImmediate(root);
 
-                foreach (var tm in root.GetComponentsInChildren<Tilemap>(true))
+            var maps = new Dictionary<string, Tilemap>();
+            foreach (var grid in Object.FindObjectsByType<Grid>(FindObjectsSortMode.None))
+            {
+                foreach (Transform child in grid.transform.Cast<Transform>().ToArray())
+                    if (child.GetComponent<Tilemap>() == null) Object.DestroyImmediate(child.gameObject);
+                foreach (var tm in grid.GetComponentsInChildren<Tilemap>(true))
                 {
                     tm.ClearAllTiles();
                     maps[tm.gameObject.name] = tm;
                 }
-
-                // Under the grid, drop anything that is not a tilemap (props parented there).
-                var grid = root.GetComponentInChildren<Grid>(true);
-                if (grid == null) continue;
-                foreach (Transform child in grid.transform.Cast<Transform>().ToArray())
-                    if (child.GetComponent<Tilemap>() == null) Object.DestroyImmediate(child.gameObject);
             }
+            // Cameras and lights should not carry demo children either.
+            foreach (var k in keepers.Where(k => k != null && k.GetComponent<Grid>() == null))
+                foreach (Transform child in k.Cast<Transform>().ToArray())
+                    Object.DestroyImmediate(child.gameObject);
+
+            EnsureCamera();
             return maps;
+        }
+
+        private static void EnsureCamera()
+        {
+            if (Camera.main != null) return;
+            var go = new GameObject("Main Camera") { tag = "MainCamera" };
+            var cam = go.AddComponent<Camera>();
+            cam.orthographic = true;
+            cam.orthographicSize = 6f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.1f, 0.1f, 0.12f);
+            go.transform.position = new Vector3(0f, 0f, -10f);
         }
 
         // ---------- Tiles ----------
