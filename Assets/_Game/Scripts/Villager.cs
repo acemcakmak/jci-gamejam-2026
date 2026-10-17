@@ -78,6 +78,7 @@ namespace Komur
                 if (looks != null && visualRoot.TryGetComponent(out flipbook))
                 {
                     var look = looks.Draw();
+                    portraits = looks.Portraits(look);
                     if (look != null)
                     {
                         flipbook.clips = looks.Clips(look);
@@ -401,6 +402,11 @@ namespace Komur
             angerBlock.SetFloat(HitBlendId, washAmount);
             visualSprite.SetPropertyBlock(angerBlock);
         }
+
+        // For the HUD roster.
+        private Sprite[] portraits;
+        public Sprite[] Portraits => portraits;
+        public bool Angry => State == VillagerState.Healthy && !Friendly && !inEnding && (Time.time < fleeUntil || fear > 0.05f);
 
         private SpriteFlipbook flipbook;
         private SpriteRenderer visualSprite;

@@ -43,6 +43,9 @@ namespace Komur
             if (bannerText != null) BannerObject.SetActive(false);
             if (endPanel != null) endPanel.SetActive(false);
             BuildPauseUi();
+            // The town panel shows a portrait per villager instead of the three counters.
+            var townPanel = aliveText != null ? aliveText.transform.parent as RectTransform : null;
+            if (townPanel != null) TownRoster.Install(townPanel);
         }
 
         // ---------- Pause ----------

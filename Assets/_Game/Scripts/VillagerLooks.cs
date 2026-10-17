@@ -36,6 +36,7 @@ namespace Komur
         {
             deck.Clear();
             cache.Clear();
+            portraitCache.Clear();
         }
 
         // Next look from the deck: every character once (random palette) before any repeats.
@@ -102,6 +103,29 @@ namespace Komur
                 frames[i].name = $"{look.sheet.name}_{row}_{i}";
             }
             cache[key] = frames;
+            return frames;
+        }
+
+        private static readonly Dictionary<Texture2D, Sprite[]> portraitCache = new Dictionary<Texture2D, Sprite[]>();
+
+        // Idle frames cropped tight around the character (20x20 px from the feet up), for HUD portraits.
+        public Sprite[] Portraits(Look look)
+        {
+            if (look == null || look.sheet == null) return null;
+            if (portraitCache.TryGetValue(look.sheet, out var cached)) return cached;
+            int c = look.cell, count = Mathf.Min(look.idleFrames, look.sheet.width / c);
+            if (count <= 0) return null;
+            const int size = 20;
+            float feet = look.pivot.y * c, centre = look.pivot.x * c;
+            float y0 = look.sheet.height - (look.idleRow + 1) * c + Mathf.Clamp(feet - 1f, 0f, c - size);
+            var frames = new Sprite[count];
+            for (int i = 0; i < count; i++)
+            {
+                float x0 = i * c + Mathf.Clamp(Mathf.Round(centre - size / 2f), 0f, c - size);
+                frames[i] = Sprite.Create(look.sheet, new Rect(x0, y0, size, size), new Vector2(0.5f, 0f), pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                frames[i].name = $"{look.sheet.name}_portrait_{i}";
+            }
+            portraitCache[look.sheet] = frames;
             return frames;
         }
 
