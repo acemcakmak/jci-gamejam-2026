@@ -20,13 +20,15 @@ namespace Komur
         [Header("Boss: plague stones")]
         [Tooltip("Thrown at Kömür; empty = borrow the villagers' stone.")]
         public ThrownStone stonePrefab;
+        [Tooltip("Seconds before the first throw, counted from the end of the boss cutscene.")]
+        public float firstThrowDelay = 1f;
         public float throwInterval = 3f;
         public float throwMinRange = 2.5f;
         public float throwMaxRange = 9f;
         public float throwStun = 1.3f;
         public Color plagueStoneTint = new Color(0.55f, 1f, 0.35f, 1f);
         public Color plagueStoneRim = new Color(0.08f, 0.25f, 0.04f, 1f);
-        private float nextThrowAt;
+        private float nextThrowAt = -1f;     // -1: not armed yet (armed on the first playable frame)
         [Tooltip("Seconds a rat waits for a reachable target before giving up and leaving.")]
         public float giveUpAfter = 4f;
 
@@ -99,8 +101,6 @@ namespace Komur
             speed = moveSpeed;
             Kind = kind;
             floorAgent.SetFloor(floor);
-
-            nextThrowAt = Time.time + 4.5f;     // after the boss reveal, plus a moment to react
 
             switch (kind)
             {
@@ -321,6 +321,8 @@ namespace Komur
         // The boss lobs plague stones at Kömür whenever it can see the cat from a distance.
         private void TryThrowAtKomur(GameManager gm)
         {
+            // Only runs while the game is playing, so this is the first frame after the cutscene.
+            if (nextThrowAt < 0f) { nextThrowAt = Time.time + firstThrowDelay; return; }
             var komur = gm.komur;
             if (komur == null || Time.time < nextThrowAt || komur.Floor != Floor) return;
             Vector3 from = transform.position + Vector3.up * 0.8f;
