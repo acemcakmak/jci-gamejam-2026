@@ -163,7 +163,23 @@ namespace Komur
                 mapImage.texture = painted;
                 var fitter = mapImage.GetComponent<UnityEngine.UI.AspectRatioFitter>();
                 if (fitter != null) fitter.aspectRatio = (float)texW / texH;
+                FitPanelToMap((float)texW / texH);
             }
+        }
+
+        // Reshapes the minimap panel to the map's proportions (same screen area), so a tall map isn't
+        // squeezed into a wide frame.
+        private void FitPanelToMap(float aspect)
+        {
+            var panel = transform as RectTransform;
+            var area = mapImage.rectTransform.parent as RectTransform;
+            if (panel == null || area == null || panel.anchorMin != panel.anchorMax) return;
+            Vector2 border = area.offsetMin - area.offsetMax;          // inset on both sides
+            Vector2 inner = panel.sizeDelta - border;
+            float a = inner.x * inner.y;
+            if (a <= 0f) return;
+            var size = new Vector2(Mathf.Sqrt(a * aspect), Mathf.Sqrt(a / aspect));
+            panel.sizeDelta = size + border;
         }
 
         private static string TileName(Tilemap tm, Vector3 world)

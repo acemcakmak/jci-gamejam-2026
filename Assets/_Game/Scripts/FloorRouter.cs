@@ -8,8 +8,9 @@ namespace Komur
     // with NavGrid A* for the walking legs on each floor.
     //
     // A StairsLayerTrigger is a line across the foot of its stairs: crossing it from the 'direction' side
-    // puts you on the upper floor, and the stairs rise away from that side (South: north, East: west,
-    // West: east), ending ~2.6-2.9 units further on.
+    // puts you on the upper floor, and the stairs rise away from that side. South stairs go straight up
+    // (~2.9 units); the side stairs (E 02 / W 02) are a diagonal band rising ~2.55 units sideways and
+    // ~1.15 up, walled on both sides by edge colliders, so climbs follow that band exactly.
     public static class FloorRouter
     {
         private class Node
@@ -17,7 +18,8 @@ namespace Komur
             public Vector2 pos;
             public int floor;
             public int partner = -1;     // the other end of the same staircase
-            public Vector2 stairTop;     // where the stairs themselves end (climbs go foot -> stairTop -> top cell)
+            public Vector2 stairFoot;    // the trigger line's centre
+            public Vector2 stairTop;     // where the stairs themselves end (climbs: foot cell -> stairFoot -> stairTop -> top cell)
         }
 
         private static readonly List<Node> nodes = new List<Node>();
@@ -59,16 +61,16 @@ namespace Komur
 
                 // enum Direction { North, South, West, East }
                 int direction = System.Convert.ToInt32(type.GetField("direction")?.GetValue(mb) ?? 1);
-                Vector2 up; float length;
+                Vector2 up, rise;   // 'up' = the way you step off the stairs at the top; 'rise' = trigger -> stairs' end
                 switch (direction)
                 {
-                    case 2: up = Vector2.right; length = 2.6f; break;   // West: foot on the west side
-                    case 3: up = Vector2.left; length = 2.6f; break;    // East: foot on the east side
-                    case 0: up = Vector2.down; length = 2.9f; break;
-                    default: up = Vector2.up; length = 2.9f; break;     // South
+                    case 2: up = Vector2.right; rise = new Vector2(2.55f, 1.15f); break;   // West: foot on the west side
+                    case 3: up = Vector2.left; rise = new Vector2(-2.55f, 1.15f); break;   // East: foot on the east side
+                    case 0: up = Vector2.down; rise = new Vector2(0f, -2.9f); break;
+                    default: up = Vector2.up; rise = new Vector2(0f, 2.9f); break;         // South
                 }
                 Vector2 trigger = mb.transform.position;
-                Vector2 stairTop = trigger + up * length;
+                Vector2 stairTop = trigger + rise;
                 if (!gl.TryNearestWalkable(trigger - up * 0.6f, 4, out var foot))
                 {
                     Debug.LogWarning($"[FloorRouter] {mb.transform.parent?.name}: no floor {fl} cell at the foot of the stairs");
@@ -81,8 +83,8 @@ namespace Komur
                 }
 
                 int a = nodes.Count;
-                nodes.Add(new Node { pos = foot, floor = fl, partner = a + 1, stairTop = stairTop });
-                nodes.Add(new Node { pos = top, floor = fu, partner = a, stairTop = stairTop });
+                nodes.Add(new Node { pos = foot, floor = fl, partner = a + 1, stairFoot = trigger, stairTop = stairTop });
+                nodes.Add(new Node { pos = top, floor = fu, partner = a, stairFoot = trigger, stairTop = stairTop });
             }
             Debug.Log($"[FloorRouter] {nodes.Count / 2} staircases linked");
 
@@ -182,9 +184,13 @@ namespace Komur
                 }
                 else
                 {
-                    // Climb along the stairs' own axis: foot <-> end of the stairs <-> top cell.
+                    // Climb along the stairs' own axis: foot cell <-> trigger <-> end of the stairs <-> top cell.
+                    var stairs = nodes[a - 2];
+                    bool goingUp = Floor(b) > Floor(a);
                     climbIndices?.Add(result.Count);
-                    result.Add(nodes[a - 2].stairTop);
+                    result.Add(goingUp ? stairs.stairFoot : stairs.stairTop);
+                    climbIndices?.Add(result.Count);
+                    result.Add(goingUp ? stairs.stairTop : stairs.stairFoot);
                     climbIndices?.Add(result.Count);
                     result.Add(Pos(b));
                 }
@@ -210,7 +216,8 @@ namespace Komur
             for (int i = 0; i + 1 < nodes.Count; i += 2)
             {
                 Gizmos.color = Color.magenta;
-                Gizmos.DrawLine(nodes[i].pos, nodes[i].stairTop);
+                Gizmos.DrawLine(nodes[i].pos, nodes[i].stairFoot);
+                Gizmos.DrawLine(nodes[i].stairFoot, nodes[i].stairTop);
                 Gizmos.DrawLine(nodes[i].stairTop, nodes[i + 1].pos);
                 Gizmos.DrawWireSphere(nodes[i].pos, 0.2f);
                 Gizmos.color = Color.yellow;

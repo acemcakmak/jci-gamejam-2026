@@ -82,11 +82,12 @@ namespace Komur
             stairsFilter.SetLayerMask(Physics2D.AllLayers);
             walkable = null;
 
-            // Floor = tilemaps on the ground sorting layer that have no collider (walls have one).
+            // Floor = every tilemap on this floor's sorting layer, wall tiles included: the tops of walls and
+            // ledges can be walked on, and the solid parts are blocked by their colliders below.
             var floors = FindObjectsByType<Tilemap>(FindObjectsSortMode.None)
                 .Where(tm => tm.GetComponent<TilemapRenderer>() is TilemapRenderer r
                              && r.sortingLayerName == floorLayer
-                             && tm.GetComponent<TilemapCollider2D>() == null)
+                             && !tm.name.Contains("Shadow"))
                 .ToArray();
 
             if (floors.Length == 0)
