@@ -62,11 +62,18 @@ namespace Komur.EditorTools
                 apothecary.potionSprites = potions;
                 apothecary.potionGlowMaterial = glow;
                 apothecary.potionOffset = Vector2.zero;
+                EnsurePotionPlaceholder(apothecary, potions.Length > 0 ? potions[0] : null);
                 EditorUtility.SetDirty(apothecary);
             }
 
             var feedbacks = Object.FindFirstObjectByType<GameFeedbacks>();
-            if (feedbacks != null) AssignDefaultSounds(feedbacks);
+            if (feedbacks != null)
+            {
+                AssignDefaultSounds(feedbacks);
+                // The stun already shows OUCH! and the cat flashing; the star burst was redundant.
+                var stunned = feedbacks.entries.FirstOrDefault(e => e.id == FeedbackId.Stunned);
+                if (stunned != null) stunned.vfxPrefab = null;
+            }
 
             var music = Object.FindFirstObjectByType<MusicPlayer>();
             if (music == null)
@@ -83,7 +90,70 @@ namespace Komur.EditorTools
             EditorUtility.SetDirty(music);
         }
 
+        // ---------- Spirits ----------
+
+        // All In 1 Sprite Shader "Ghost" (see-through, brightened) with a pale cyan glowing rim.
+        private static Material GhostMaterial()
+        {
+            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
+            if (shader == null) return null;
+            string dir = GameRoot + "/Art/Materials";
+            Directory.CreateDirectory(dir);
+            string path = dir + "/Spirit.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = shader;
+            foreach (var k in new[] { "GHOST_ON", "OUTBASE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
+            mat.SetFloat("_GhostColorBoost", 1.6f);
+            mat.SetFloat("_GhostTransparency", 0.15f);
+            mat.SetFloat("_GhostBlend", 1f);
+            mat.SetColor("_OutlineColor", new Color(0.6f, 0.95f, 1f, 1f));
+            mat.SetFloat("_OutlineAlpha", 0.7f);
+            mat.SetFloat("_OutlineGlow", 2f);
+            mat.SetInt("_OutlinePixelWidth", 1);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
         // ---------- Potions ----------
+
+        // A sprite under the Apothecary to place and size the potion by hand (hidden in play). Created once,
+        // a little above the middle of the altar; after that your edits are kept.
+        private static void EnsurePotionPlaceholder(Apothecary apothecary, Sprite sprite)
+        {
+            if (apothecary.potionPlaceholder != null) return;
+            var existing = apothecary.transform.Find("Potion Placeholder");
+            var sr = existing != null ? existing.GetComponent<SpriteRenderer>() : null;
+            if (sr == null)
+            {
+                Bounds altar = new Bounds(apothecary.transform.position, Vector3.zero);
+                bool any = false;
+                int layer = 0, order = 0;
+                foreach (var r in apothecary.GetComponentsInChildren<SpriteRenderer>())
+                {
+                    if (r.sprite == null || r.name.Contains("Shadow")) continue;
+                    if (!any) { altar = r.bounds; any = true; } else altar.Encapsulate(r.bounds);
+                    layer = r.sortingLayerID;
+                    order = Mathf.Max(order, r.sortingOrder);
+                }
+                var go = new GameObject("Potion Placeholder");
+                go.transform.SetParent(apothecary.transform, false);
+                go.transform.position = altar.center + Vector3.up * 0.45f;
+                sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = sprite;
+                sr.sortingLayerID = layer;
+                sr.sortingOrder = order + 1;
+                sr.color = new Color(1f, 1f, 1f, 0.8f);
+                float h = sprite != null ? Mathf.Max(0.01f, sprite.bounds.size.y) : 1f;
+                go.transform.localScale = Vector3.one * (0.6f / h / Mathf.Max(0.01f, apothecary.transform.lossyScale.y));
+            }
+            apothecary.potionPlaceholder = sr;
+            EditorUtility.SetDirty(apothecary);
+        }
 
         // All In 1 Sprite Shader: pixel-perfect golden rim (8 directions) plus a shine sweep; the Potion
         // script animates the shine and the rim's glow.

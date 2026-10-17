@@ -15,8 +15,12 @@ namespace Komur
         [Header("Potion")]
         [Tooltip("One is picked at random for every dose (looks only; they all cure the same).")]
         public Sprite[] potionSprites;
-        [Tooltip("Where the potion floats, relative to the centre of the altar sprite.")]
+        [Tooltip("Placeholder sprite: move and scale it in the scene to place the potion. Hidden in play.")]
+        public SpriteRenderer potionPlaceholder;
+        [Tooltip("Used only without a placeholder: where the potion floats, relative to the altar sprite's centre.")]
         public Vector2 potionOffset = Vector2.zero;
+        private float potionSize = 0.6f;
+        private Vector3 placeholderCentre;     // local to this object
         [Tooltip("All In 1 Sprite Shader material for the potion's glowing rim and shine (optional).")]
         public Material potionGlowMaterial;
 
@@ -30,6 +34,13 @@ namespace Komur
 
         private void Awake()
         {
+            if (potionPlaceholder != null)
+            {
+                if (potionPlaceholder.sprite != null)
+                    potionSize = potionPlaceholder.sprite.bounds.size.y * Mathf.Abs(potionPlaceholder.transform.lossyScale.y);
+                placeholderCentre = transform.InverseTransformPoint(potionPlaceholder.bounds.center);
+                potionPlaceholder.enabled = false;
+            }
             if (statusText == null)
             {
                 var cross = transform.Find("Cross");
@@ -93,17 +104,19 @@ namespace Komur
             bool any = false;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
             {
-                if (sr.sprite == null || sr.name.Contains("Shadow")) continue;
+                if (sr.sprite == null || sr.name.Contains("Shadow") || sr == potionPlaceholder) continue;
                 layer = sr.sortingLayerID;
                 order = Mathf.Max(order, sr.sortingOrder);
                 if (!any) { altar = sr.bounds; any = true; }
                 else altar.Encapsulate(sr.bounds);
             }
             const float lift = 0.3f;     // ground point just below the bottle, so it sorts with the altar
-            Vector3 centre = altar.center + (Vector3)potionOffset;
+            Vector3 centre = potionPlaceholder != null
+                ? transform.TransformPoint(placeholderCentre)
+                : altar.center + (Vector3)potionOffset;
             var gm = GameManager.I;
             Material material = gm != null && gm.komur != null && gm.komur.visual != null ? gm.komur.visual.sharedMaterial : null;
-            potion = Potion.Create(sprite, material, potionGlowMaterial, centre + Vector3.down * lift, layer, order + 1, lift);
+            potion = Potion.Create(sprite, material, potionGlowMaterial, centre + Vector3.down * lift, layer, order + 1, lift, potionSize);
         }
 
         private void OnDrawGizmosSelected()

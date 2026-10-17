@@ -35,7 +35,9 @@ namespace Komur
         private void Awake()
         {
             if (playButton != null) playButton.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.StartGame(); });
-            if (againButton != null) againButton.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.Restart(); });
+            if (againButton != null) againButton.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.ReturnToMenu(); });
+            // The hint line at the bottom was hard to read and the banners already say it.
+            if (hintText != null) hintText.gameObject.SetActive(false);
             if (bannerText != null) BannerObject.SetActive(false);
             if (endPanel != null) endPanel.SetActive(false);
             BuildPauseUi();
@@ -60,9 +62,9 @@ namespace Komur
             var frame = waveText.GetComponentInParent<UnityEngine.UI.Image>();
             var font = waveText.font;
 
-            // Small pause button to the right of the wave panel.
-            var buttonParent = frame != null ? frame.transform.parent : canvas.transform;
-            pauseButton = NewPanel("Pause Button", buttonParent, frame);
+            // Small pause button to the right of the wave panel. It lives on the canvas itself: the
+            // gameplay group doesn't take clicks (so the HUD never steals them from the game).
+            pauseButton = NewPanel("Pause Button", canvas.transform, frame);
             var brt = (RectTransform)pauseButton.transform;
             brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(0f, 1f);
             var frameRt = frame != null ? frame.rectTransform : null;
@@ -84,37 +86,40 @@ namespace Komur
             ort.offsetMin = ort.offsetMax = Vector2.zero;
             pauseOverlay.GetComponent<UnityEngine.UI.Image>().color = new Color(0.05f, 0.04f, 0.08f, 0.6f);
 
+            // A roomy card: title, key hint, then three buttons stacked inside it.
             var card = NewPanel("Card", pauseOverlay.transform, frame);
             var crt = (RectTransform)card.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
-            crt.anchoredPosition = new Vector2(0f, 40f);
-            crt.sizeDelta = new Vector2(520f, 300f);
-            var title = NewText("Title", card.transform, "PAUSED", endTitle != null ? endTitle.font : font, 64f, waveText.color);
+            crt.anchoredPosition = Vector2.zero;
+            crt.sizeDelta = new Vector2(620f, 640f);
+            var title = NewText("Title", card.transform, "PAUSED", endTitle != null ? endTitle.font : font, 80f, waveText.color);
             var trt = title.rectTransform;
-            trt.anchorMin = new Vector2(0f, 0.55f);
-            trt.anchorMax = new Vector2(1f, 1f);
-            var hint = NewText("Hint", card.transform, "ESC / P TO RESUME   -   R TO RESTART", font, 22f, waveText.color);
+            trt.anchorMin = new Vector2(0f, 0.8f);
+            trt.anchorMax = new Vector2(1f, 0.95f);
+            var hint = NewText("Hint", card.transform, "ESC OR P TO RESUME", font, 30f, waveText.color);
             var hrt = hint.rectTransform;
-            hrt.anchorMin = new Vector2(0f, 0.38f);
-            hrt.anchorMax = new Vector2(1f, 0.55f);
+            hrt.anchorMin = new Vector2(0f, 0.7f);
+            hrt.anchorMax = new Vector2(1f, 0.8f);
 
             if (againButton != null)
             {
-                PauseMenuButton("Resume", new Vector2(-150f, -150f), () => GameManager.I?.SetPaused(false));
-                PauseMenuButton("Restart", new Vector2(150f, -150f), () => GameManager.I?.Restart());
+                PauseMenuButton(card.transform, "Resume", new Vector2(0f, 60f), () => GameManager.I?.SetPaused(false));
+                PauseMenuButton(card.transform, "Restart", new Vector2(0f, -55f), () => GameManager.I?.Restart());
+                PauseMenuButton(card.transform, "Main Menu", new Vector2(0f, -170f), () => GameManager.I?.ReturnToMenu());
             }
             pauseOverlay.transform.SetAsLastSibling();
             pauseOverlay.SetActive(false);
         }
 
-        private void PauseMenuButton(string label, Vector2 position, UnityEngine.Events.UnityAction onClick)
+        private void PauseMenuButton(Transform parent, string label, Vector2 position, UnityEngine.Events.UnityAction onClick)
         {
-            var go = Instantiate(againButton.gameObject, pauseOverlay.transform, false);
+            var go = Instantiate(againButton.gameObject, parent, false);
             go.name = label + " Button";
             go.SetActive(true);
             var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = position;
+            rt.sizeDelta = new Vector2(340f, 87f);
             var b = go.GetComponent<UnityEngine.UI.Button>();
             b.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
             b.onClick.AddListener(onClick);
@@ -159,6 +164,7 @@ namespace Komur
         {
             var gm = GameManager.I;
             if (gm == null) return;
+            if (pauseButton != null) pauseButton.SetActive(gm.State == GameState.Playing);
 
             if (waveText != null)
                 waveText.text = gm.WaveNumber > 0 ? $"WAVE {gm.WaveNumber}/{gm.WaveCount}" : "GET READY";

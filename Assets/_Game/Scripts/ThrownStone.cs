@@ -6,17 +6,17 @@ namespace Komur
     // shadow and can be dodged.
     public class ThrownStone : MonoBehaviour
     {
-        public float speed = 6f;
+        public float speed = 3.6f;
         public float hitRadius = 0.45f;
         public float spinSpeed = 540f;
-        public float arcHeight = 0.9f;
+        public float arcHeight = 1.4f;
         [Tooltip("The rock sprite; lifted along the arc while the root slides along the ground.")]
         public Transform visual;
         public Transform shadow;
         [Header("Readability")]
-        public float rockSize = 1.0f;                       // scale of the rock sprite
-        public Vector2 shadowSize = new Vector2(0.24f, 0.12f);
-        public Color rim = new Color(1f, 1f, 1f, 0.9f);     // outline so it reads against the ground
+        public float rockSize = 1.9f;                       // scale of the rock sprite
+        public Vector2 shadowSize = new Vector2(0.3f, 0.15f);
+        public Color rim = new Color(0.12f, 0.09f, 0.07f, 1f);   // dark pixel rim so it reads on grass and stone
 
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
 

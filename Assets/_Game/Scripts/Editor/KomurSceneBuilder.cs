@@ -636,6 +636,7 @@ namespace Komur.EditorTools
             AddHiddenOutline(go, villagerSr, new Color(0.95f, 0.95f, 0.85f));
             villager.animator = visual.GetComponent<Animator>();
             villager.looks = minifolk ? looks : null;
+            villager.ghostMaterial = GhostMaterial();
             villager.sickBar = bar;
             villager.icon = icon;
             villager.visualRoot = visual;
@@ -708,6 +709,7 @@ namespace Komur.EditorTools
             SetFeedback(feedbacks, FeedbackId.Cured, "Interactive/Hearts/HeartPoof.prefab", 0.4f, 0f);
             SetFeedback(feedbacks, FeedbackId.VillagerDied, "Environment/Smoke/Dark/SmokeBurstDark.prefab", 0.5f, 0.15f);
             SetFeedback(feedbacks, FeedbackId.Stunned, "Interactive/Stars/StarPoof.prefab", 0.35f, 0.1f);
+            feedbacks.entries.First(e => e.id == FeedbackId.Stunned).vfxPrefab = null;     // shake only, no star
             SetFeedback(feedbacks, FeedbackId.MedicinePicked, "Interactive/Sparkle/SparkleSolo/SparkleSoloGreen.prefab", 0.5f, 0f);
             ConfigureEnemyFeedbacks(feedbacks);
             ConfigureBattleTexts(feedbacks);

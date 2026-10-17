@@ -39,6 +39,8 @@ namespace Komur
         public WorldBar sickBar;
         public TextMeshPro icon;
         public GameObject gravestonePrefab;
+        [Tooltip("Ghost look for the villager's spirit (All In 1 'Ghost'); without it a gravestone is left.")]
+        public Material ghostMaterial;
         public GameObject visualRoot;
 
         public VillagerState State { get; private set; } = VillagerState.Healthy;
@@ -392,12 +394,16 @@ namespace Komur
         private System.Collections.IEnumerator BecomeGrave(float delay)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay + 0.6f);
+            bool flip = visualSprite != null && visualSprite.flipX;
             if (visualRoot != null) visualRoot.SetActive(false);
-            if (gravestonePrefab != null)
+            var idle = flipbook != null && flipbook.clips != null && flipbook.clips.Length > 0 ? flipbook.clips[0].frames : null;
+            if (ghostMaterial != null && idle != null)
+            {
+                VillagerGhost.Spawn(idle, flip, transform.position, ghostMaterial, Floor);
+            }
+            else if (gravestonePrefab != null)
             {
                 var grave = Instantiate(gravestonePrefab, transform.position, Quaternion.identity);
-                // A marker, not a wall: a grave in a narrow passage must never cut the map in two.
-                foreach (var col in grave.GetComponentsInChildren<Collider2D>(true)) Destroy(col);
                 int layer = LayerMask.NameToLayer(FloorAgent.LayerName(Floor));
                 foreach (var t in grave.GetComponentsInChildren<Transform>(true)) if (layer >= 0) t.gameObject.layer = layer;
                 foreach (var r in grave.GetComponentsInChildren<Renderer>(true)) r.sortingLayerName = FloorAgent.LayerName(Floor);

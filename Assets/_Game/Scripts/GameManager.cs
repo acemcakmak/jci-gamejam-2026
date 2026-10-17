@@ -161,9 +161,19 @@ namespace Komur
         private void Start()
         {
             ApplySceneryMaterial();
+            if (skipIntro)
+            {
+                skipIntro = false;
+                CameraFollow2D.ZoomTo(CameraFollow2D.GameplaySize, 0f);
+                StartGame();
+                return;
+            }
             if (hud != null) hud.ShowIntro(true);
             CameraFollow2D.ZoomTo(titleCameraSize, 0f);
         }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => skipIntro = false;
 
         // Scenery (props, plants, tilemaps) clears the stencil wherever it draws, so a character covered by it
         // shows its silhouette. Ground shadows are left alone (they are see-through).
@@ -191,7 +201,23 @@ namespace Komur
             StartCoroutine(RunWaves());
         }
 
+        // Restart straight into a new game (skips the title screen once).
+        private static bool skipIntro;
+
         public void Restart()
+        {
+            skipIntro = true;
+            Reload();
+        }
+
+        // Back to the title screen.
+        public void ReturnToMenu()
+        {
+            skipIntro = false;
+            Reload();
+        }
+
+        private void Reload()
         {
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);

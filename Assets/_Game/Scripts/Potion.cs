@@ -44,11 +44,12 @@ namespace Komur
 
         // glowMaterial: an All In 1 Sprite Shader material (outline glow + shine). Without it the potion
         // falls back to a soft halo sprite.
-        public static Potion Create(Sprite sprite, Material material, Material glowMaterial, Vector3 groundPosition, int sortingLayerId, int sortingOrder, float height)
+        public static Potion Create(Sprite sprite, Material material, Material glowMaterial, Vector3 groundPosition, int sortingLayerId, int sortingOrder, float height, float size)
         {
             var go = new GameObject("Potion");
             go.transform.position = groundPosition;
             var potion = go.AddComponent<Potion>();
+            potion.size = size;
             potion.altarHeight = height;
             potion.glowMaterial = glowMaterial;
             potion.Build(sprite, material, sortingLayerId, sortingOrder);

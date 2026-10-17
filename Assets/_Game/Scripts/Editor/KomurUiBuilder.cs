@@ -152,11 +152,14 @@ namespace Komur.EditorTools
             var storyText = FitText(story, "Story",
                 "THE TOWN SAYS BLACK CATS BRING BAD LUCK.\nBUT THE PLAGUE RATS ARE COMING - ONLY KOMUR CAN STOP THEM.",
                 L.storyPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.storyPanel));
-            SetAnchors(storyText.rectTransform, new Vector2(0, 0.4f), Vector2.one, Inset(L.storyPanel));
+            SetAnchors(storyText.rectTransform, new Vector2(0, 0.46f), Vector2.one, Inset(L.storyPanel));
+            storyText.fontSizeMin = L.storyPanel.fontSize * 0.7f;
             var controls = FitText(story, "Controls",
-                "WASD MOVE   SPACE POUNCE   BRING MEDICINE TO THE SICK   STAY OUT OF SIGHT",
-                L.storyPanel.fontSize * 0.75f, TextAlignmentOptions.Center, ink * 0.8f, Inset(L.storyPanel));
-            SetAnchors(controls.rectTransform, Vector2.zero, new Vector2(1, 0.4f), Inset(L.storyPanel));
+                "WASD  MOVE        SPACE  POUNCE        P  PAUSE\nBRING MEDICINE TO THE SICK  -  STAY OUT OF THEIR SIGHT",
+                L.storyPanel.fontSize * 0.72f, TextAlignmentOptions.Center, new Color(ink.r, ink.g, ink.b, 0.85f), Inset(L.storyPanel));
+            controls.fontSizeMin = L.storyPanel.fontSize * 0.55f;
+            controls.lineSpacing = 10f;
+            SetAnchors(controls.rectTransform, Vector2.zero, new Vector2(1, 0.46f), Inset(L.storyPanel));
             hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, L.playButton.Anchor, L.playButton.Pos, L.playButton.Size, null, ink);
 
             // --- End screen ---
@@ -167,7 +170,7 @@ namespace Komur.EditorTools
             Outline(hud.endTitle, 0.3f);
             var endPanel = Panel(end, "Panel", tan, L.endPanel);
             hud.endBody = FitText(endPanel, "Body", "", L.endPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.endPanel));
-            hud.againButton = UIButton(end, "Again Button", blankButton, blankPressed, L.againButton.Anchor, L.againButton.Pos, L.againButton.Size, "AGAIN", ink);
+            hud.againButton = UIButton(end, "Again Button", blankButton, blankPressed, L.againButton.Anchor, L.againButton.Pos, L.againButton.Size, "MAIN MENU", ink);
             hud.endPanel = end.gameObject;
             end.gameObject.SetActive(false);
 
