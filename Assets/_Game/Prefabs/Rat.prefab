@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 6155458022577310664}
   - component: {fileID: 4449557450648643530}
   - component: {fileID: 2080948871816872066}
+  - component: {fileID: 4051587280745140949}
   m_Layer: 8
   m_Name: Rat
   m_TagString: Untagged
@@ -215,6 +216,23 @@ MonoBehaviour:
   hitStunTime: 0.25
   deathFadeTime: 0.5
   plagueEffect: {fileID: 1146578962309342669}
+--- !u!114 &4051587280745140949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 726738782406342319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bea9fa6a795e84bb59983cfc3aa1e747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  source: {fileID: 2059992543873173198}
+  outlineMaterial: {fileID: 2100000, guid: 26cbf9e9e6bc54b55997ab9f01c6bf3c, type: 2}
+  color: {r: 1, g: 0.3, b: 0.25, a: 1}
+  alwaysOn: 0
+  checkInterval: 0.1
 --- !u!1 &1433419898434355843
 GameObject:
   m_ObjectHideFlags: 0

@@ -148,6 +148,13 @@ namespace Komur
                     seeds.Add(apothecary.transform.position);
             }
             ComputeReachable(seeds);
+
+            if (Application.isPlaying)
+            {
+                int walk = 0, reach = 0;
+                for (int i = 0; i < walkable.Length; i++) { if (walkable[i]) walk++; if (reachable[i]) reach++; }
+                Debug.Log($"[NavGrid] floor {floor}: {width}x{height} cells from {floors.Length} tilemaps, {walk} walkable, {reach} reachable from {seeds.Count} seeds");
+            }
         }
 
         // Flood fill from the seeds so spawns never land in walled-off areas.

@@ -53,11 +53,13 @@ namespace Komur
             foreach (var tm in FindObjectsByType<Tilemap>(FindObjectsSortMode.None))
             {
                 string n = tm.name;
+                // Only the ground of higher floors hides characters; their wall rims are thin lines.
                 for (int f = 1; f <= 3; f++)
-                    if (n.StartsWith(FloorAgent.LayerName(f) + " - ") && !n.Contains("Shadow")) floorMaps[f].Add(tm);
+                    if (n.StartsWith(FloorAgent.LayerName(f) + " - ") && !n.Contains("Shadow") && !n.Contains("Wall")) floorMaps[f].Add(tm);
             }
+            // Whole trees (trunk and leaves of both sprite halves), not their ground shadows.
             foreach (var sr in FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None))
-                if (sr.name == "Upper" && sr.transform.parent != null && sr.transform.parent.name.Contains("Tree")) crowns.Add(sr);
+                if (sr.name != "Shadow" && sr.transform.parent != null && sr.transform.parent.name.Contains("Tree")) crowns.Add(sr);
         }
 
         private void LateUpdate()
@@ -99,14 +101,17 @@ namespace Komur
                         if (tm.HasTile(tm.WorldToCell(p))) return true;
                 }
 
-            // Tree crowns in front of the character (trees lower on screen draw over it).
+            // Trees in front of the character: a tree whose trunk is lower on screen draws over it.
             float feet = transform.position.y;
             foreach (var crown in crowns)
             {
                 if (crown == null || crown.transform.parent.position.y > feet) continue;
                 if (crown.sortingLayerID != source.sortingLayerID) continue;
+                var cb = crown.bounds;
+                // Shrink the sprite box a little: its corners are transparent.
+                cb.Expand(new Vector3(-cb.size.x * 0.2f, -cb.size.y * 0.1f, 0f));
                 foreach (var p in probes)
-                    if (crown.bounds.Contains(new Vector3(p.x, p.y, crown.bounds.center.z))) return true;
+                    if (cb.Contains(new Vector3(p.x, p.y, cb.center.z))) return true;
             }
             return false;
         }

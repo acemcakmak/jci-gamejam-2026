@@ -286,6 +286,12 @@ namespace Komur
             candidateBuffer.Sort((a, b) => (a.transform.position - from).sqrMagnitude.CompareTo((b.transform.position - from).sqrMagnitude));
             for (int i = 0; i < candidateBuffer.Count && i < 3; i++)
                 if (mover.SetDestination(candidateBuffer[i].transform.position, true)) return candidateBuffer[i];
+            // Nobody reachable by path: go for the nearest anyway (straight line) so rats never stand idle.
+            if (candidateBuffer.Count > 0)
+            {
+                mover.SetDestination(candidateBuffer[0].transform.position, true);
+                return candidateBuffer[0];
+            }
             return null;
         }
 

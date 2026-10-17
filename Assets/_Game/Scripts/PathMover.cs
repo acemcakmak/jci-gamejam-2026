@@ -49,7 +49,11 @@ namespace Komur
                 path.Add(destination);
                 return true;
             }
-            return grid.FindPath(transform.position, destination, path);
+            if (grid.FindPath(transform.position, destination, path)) return true;
+            // No path on the grid: head straight for it rather than standing still (walls still block physically).
+            path.Clear();
+            path.Add(destination);
+            return false;
         }
 
         public Vector2 NextDirection()
