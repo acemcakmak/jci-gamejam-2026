@@ -3,9 +3,13 @@ using UnityEngine;
 
 namespace Komur
 {
-    // Routes across floors. Every Cainos staircase (StairsLayerTrigger) links a cell at its bottom on the
+    // Routes across floors. Every Cainos staircase (StairsLayerTrigger) links a cell at its foot on the
     // lower floor to a cell at its top on the upper floor; a route is a Dijkstra search over those links,
     // with NavGrid A* for the walking legs on each floor.
+    //
+    // A StairsLayerTrigger is a line across the foot of its stairs: crossing it from the 'direction' side
+    // puts you on the upper floor, and the stairs rise away from that side (South: north, East: west,
+    // West: east), ending ~2.6-2.9 units further on.
     public static class FloorRouter
     {
         private class Node
@@ -13,6 +17,7 @@ namespace Komur
             public Vector2 pos;
             public int floor;
             public int partner = -1;     // the other end of the same staircase
+            public Vector2 stairTop;     // where the stairs themselves end (climbs go foot -> stairTop -> top cell)
         }
 
         private static readonly List<Node> nodes = new List<Node>();
@@ -20,12 +25,22 @@ namespace Komur
         private static readonly List<Vector2> scratch = new List<Vector2>();
         private static readonly Dictionary<long, float> stairLegCache = new Dictionary<long, float>();
 
+        // Fresh links every play session, also when domain reload is off.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            builtForScene = -1;
+            nodes.Clear();
+            stairLegCache.Clear();
+        }
+
         public static int PortalCount { get { EnsureBuilt(); return nodes.Count / 2; } }
 
         private static void EnsureBuilt()
         {
             int scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().handle;
-            if (scene == builtForScene && nodes.Count > 0) return;
+            if (scene == builtForScene) return;
+            if (NavGrid.For(1) == null) return;      // grids not built yet; try again on the next request
             builtForScene = scene;
             nodes.Clear();
             stairLegCache.Clear();
@@ -42,18 +57,44 @@ namespace Komur
                 var gu = NavGrid.For(fu);
                 if (gl == null || gu == null) continue;
 
-                // Bottom: the lower-floor cell nearest the trigger (it sits at the foot of the stairs).
-                // Top: the upper-floor cell nearest the staircase root (the top of the stairs).
+                // enum Direction { North, South, West, East }
+                int direction = System.Convert.ToInt32(type.GetField("direction")?.GetValue(mb) ?? 1);
+                Vector2 up; float length;
+                switch (direction)
+                {
+                    case 2: up = Vector2.right; length = 2.6f; break;   // West: foot on the west side
+                    case 3: up = Vector2.left; length = 2.6f; break;    // East: foot on the east side
+                    case 0: up = Vector2.down; length = 2.9f; break;
+                    default: up = Vector2.up; length = 2.9f; break;     // South
+                }
                 Vector2 trigger = mb.transform.position;
-                Vector2 root = mb.transform.parent != null ? (Vector2)mb.transform.parent.position : trigger;
-                if (!gl.TryNearestWalkable(trigger, 8, out var bottom)) continue;
-                if (!gu.TryNearestWalkable(root, 10, out var top)) continue;
+                Vector2 stairTop = trigger + up * length;
+                if (!gl.TryNearestWalkable(trigger - up * 0.6f, 4, out var foot))
+                {
+                    Debug.LogWarning($"[FloorRouter] {mb.transform.parent?.name}: no floor {fl} cell at the foot of the stairs");
+                    continue;
+                }
+                if (!gu.TryNearestWalkable(stairTop + up * 0.3f, 5, out var top))
+                {
+                    Debug.LogWarning($"[FloorRouter] {mb.transform.parent?.name}: no floor {fu} cell at the top of the stairs");
+                    continue;
+                }
 
                 int a = nodes.Count;
-                nodes.Add(new Node { pos = bottom, floor = fl, partner = a + 1 });
-                nodes.Add(new Node { pos = top, floor = fu, partner = a });
+                nodes.Add(new Node { pos = foot, floor = fl, partner = a + 1, stairTop = stairTop });
+                nodes.Add(new Node { pos = top, floor = fu, partner = a, stairTop = stairTop });
             }
             Debug.Log($"[FloorRouter] {nodes.Count / 2} staircases linked");
+
+            // Only areas connected to something placed or to a staircase count as walkable goals.
+            for (int f = 1; f <= 3; f++)
+            {
+                var grid = NavGrid.For(f);
+                if (grid == null) continue;
+                var ends = new List<Vector2>();
+                foreach (var node in nodes) if (node.floor == f) ends.Add(node.pos);
+                grid.RestrictToConnected(ends);
+            }
         }
 
         private static int FloorFromName(string layer)
@@ -141,6 +182,9 @@ namespace Komur
                 }
                 else
                 {
+                    // Climb along the stairs' own axis: foot <-> end of the stairs <-> top cell.
+                    climbIndices?.Add(result.Count);
+                    result.Add(nodes[a - 2].stairTop);
                     climbIndices?.Add(result.Count);
                     result.Add(Pos(b));
                 }
@@ -166,7 +210,8 @@ namespace Komur
             for (int i = 0; i + 1 < nodes.Count; i += 2)
             {
                 Gizmos.color = Color.magenta;
-                Gizmos.DrawLine(nodes[i].pos, nodes[i + 1].pos);
+                Gizmos.DrawLine(nodes[i].pos, nodes[i].stairTop);
+                Gizmos.DrawLine(nodes[i].stairTop, nodes[i + 1].pos);
                 Gizmos.DrawWireSphere(nodes[i].pos, 0.2f);
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawWireSphere(nodes[i + 1].pos, 0.2f);

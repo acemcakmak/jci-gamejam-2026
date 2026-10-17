@@ -124,7 +124,7 @@ namespace Komur
 
         private void FixedUpdate()
         {
-            if (dying) return;
+            if (dying || tunneling) return;
             var gm = GameManager.I;
             if (gm == null || !gm.IsSimulating || Time.time < hitStunUntil)
             {
@@ -156,8 +156,13 @@ namespace Komur
                 }
                 if (target == null || !target.CanBeBitten || Time.time >= nextRetargetAt)
                 {
-                    target = gm.FindReachableTarget(this, mover);
+                    target = gm.FindReachableTarget(this, mover, out bool reachable);
                     nextRetargetAt = Time.time + retargetInterval;
+                    if (target != null && !reachable && !isBoss)
+                    {
+                        StartCoroutine(TunnelTo(target));
+                        return;
+                    }
                     if (target == null)
                     {
                         // Nobody reachable right now: wait a bit (someone may get cured or come into reach), then leave.
@@ -197,7 +202,59 @@ namespace Komur
             bool trying = dir.sqrMagnitude > 0.01f;
             stuckSeconds = trying && (transform.position - lastStuckCheckPos).sqrMagnitude < 0.04f ? stuckSeconds + 1 : 0;
             lastStuckCheckPos = transform.position;
-            if (stuckSeconds >= 4 && !isBoss) Burrow();
+            if (stuckSeconds < 4 || isBoss) return;
+            stuckSeconds = 0;
+            if (!fleeing && target != null) StartCoroutine(TunnelTo(target));
+            else Burrow();
+        }
+
+        // No walkable way to the target (or stuck): dig in, travel underground, pop up near the target
+        // on its floor - plague rats get everywhere.
+        private bool tunneling;
+
+        private IEnumerator TunnelTo(Villager victim)
+        {
+            tunneling = true;
+            body.linearVelocity = Vector2.zero;
+            GameFeedbacks.Play(FeedbackId.Pounce, transform.position);          // dust as it digs in
+            SetHidden(true);
+            yield return new WaitForSeconds(0.9f);
+
+            if (victim != null && !dying)
+            {
+                var grid = NavGrid.For(victim.Floor);
+                Vector2 spot = victim.transform.position;
+                if (grid != null)
+                {
+                    for (int i = 0; i < 12; i++)
+                    {
+                        if (!grid.TryRandomWalkableNear(victim.transform.position, 4f, out var p)) continue;
+                        spot = p;
+                        if ((p - (Vector2)victim.transform.position).sqrMagnitude > 4f) break;   // not right on top of them
+                    }
+                }
+                transform.position = spot;
+                body.position = spot;
+                floorAgent.SetFloor(victim.Floor);
+                mover.Stop();
+                target = victim;
+                nextRetargetAt = Time.time + retargetInterval;
+                GameFeedbacks.Play(FeedbackId.Pounce, transform.position);      // dust as it pops up
+            }
+            SetHidden(false);
+            tunneling = false;
+        }
+
+        private void SetHidden(bool hidden)
+        {
+            body.simulated = !hidden;
+            if (visual != null) visual.enabled = !hidden;
+            if (healthBar != null) healthBar.SetVisible(!hidden);
+            if (plagueEffect != null)
+            {
+                if (hidden) plagueEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                else plagueEffect.Play(true);
+            }
         }
 
         private void Burrow()

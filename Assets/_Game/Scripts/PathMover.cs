@@ -90,7 +90,7 @@ namespace Komur
                 if ((path[index] - pos).sqrMagnitude <= 0.3f * 0.3f)
                 {
                     index++;
-                    if (replanAfterClimb) Repath();
+                    if (replanAfterClimb && !Climbing) Repath();
                 }
                 if (index >= path.Count) return Vector2.zero;
                 return (path[index] - pos).normalized;

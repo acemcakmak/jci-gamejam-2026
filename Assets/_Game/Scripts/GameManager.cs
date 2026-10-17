@@ -294,9 +294,13 @@ namespace Komur
 
         private readonly List<Villager> candidateBuffer = new List<Villager>();
 
-        // Nearest healthy villager on the rat's floor that it can actually path to (tries the closest few).
-        public Villager FindReachableTarget(Rat rat, PathMover mover)
+        // Nearest healthy villager the rat can reach by walking (stairs included; tries the closest few).
+        // If none is reachable, returns the nearest one with reachable = false (the rat will tunnel to it).
+        public Villager FindReachableTarget(Rat rat, PathMover mover) => FindReachableTarget(rat, mover, out _);
+
+        public Villager FindReachableTarget(Rat rat, PathMover mover, out bool reachable)
         {
+            reachable = true;
             candidateBuffer.Clear();
             int floor = rat.Floor;
             foreach (var v in villagers) if (v.CanBeBitten) candidateBuffer.Add(v);
@@ -304,15 +308,10 @@ namespace Komur
             // Nearest first; villagers on other floors count as a bit further away (stairs to climb).
             float Cost(Villager v) => (v.transform.position - from).sqrMagnitude * (v.Floor == floor ? 1f : 2f);
             candidateBuffer.Sort((a, b) => Cost(a).CompareTo(Cost(b)));
-            for (int i = 0; i < candidateBuffer.Count && i < 3; i++)
+            for (int i = 0; i < candidateBuffer.Count && i < 5; i++)
                 if (mover.SetDestination(candidateBuffer[i].transform.position, true, candidateBuffer[i].Floor)) return candidateBuffer[i];
-            // Nobody reachable: go for the nearest anyway (straight line) so rats never stand idle.
-            if (candidateBuffer.Count > 0)
-            {
-                mover.SetDestination(candidateBuffer[0].transform.position, true, candidateBuffer[0].Floor);
-                return candidateBuffer[0];
-            }
-            return null;
+            reachable = false;
+            return candidateBuffer.Count > 0 ? candidateBuffer[0] : null;
         }
 
         public void OnVillagerCured()

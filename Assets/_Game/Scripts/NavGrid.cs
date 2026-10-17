@@ -33,7 +33,8 @@ namespace Komur
         private int width, height;
         private bool[] ground;
         private bool[] walkable;
-        private bool[] reachable; // connected to Kömür's start at build time; used for snapping/spawning
+        private bool[] reachable; // connected to a placed object or a staircase end; used for snapping/spawning
+        private readonly List<Vector2> buildSeeds = new List<Vector2>();
         private int refreshRow;
         private ContactFilter2D obstacleFilter;
         private ContactFilter2D stairsFilter;
@@ -136,7 +137,8 @@ namespace Komur
             for (int y = 0; y < height; y++) RefreshRow(y);
 
             // Seeds: everything placed on this floor (villagers, rat holes, apothecary) and Kömür on the ground.
-            var seeds = new List<Vector2>();
+            var seeds = buildSeeds;
+            seeds.Clear();
             foreach (var agent in FindObjectsByType<FloorAgent>(FindObjectsSortMode.None))
                 if (agent.floor == floor) seeds.Add(agent.transform.position);
             if (floor == 1)
@@ -148,8 +150,8 @@ namespace Komur
                 foreach (var apothecary in FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
                     seeds.Add(apothecary.transform.position);
             }
-            // Areas of one floor can be linked only through another floor's stairs (see FloorRouter),
-            // so every walkable cell counts as usable; the seeds just feed the log below.
+            // Until FloorRouter knows the staircases every walkable cell counts; it then calls
+            // RestrictToConnected so sealed pockets (e.g. the ground under a staircase) are never used as goals.
             System.Array.Copy(walkable, reachable, walkable.Length);
 
             if (Application.isPlaying)
@@ -198,6 +200,18 @@ namespace Komur
                     queue.Enqueue(ni);
                 }
             }
+        }
+
+        // Keeps only the areas connected to this floor's placed objects or to a staircase end.
+        public void RestrictToConnected(List<Vector2> extraSeeds)
+        {
+            var seeds = new List<Vector2>(buildSeeds);
+            seeds.AddRange(extraSeeds);
+            ComputeReachable(seeds);
+            if (!Application.isPlaying) return;
+            int reach = 0;
+            for (int i = 0; i < reachable.Length; i++) if (reachable[i]) reach++;
+            Debug.Log($"[NavGrid] floor {floor}: {reach} cells connected to {seeds.Count} seeds");
         }
 
         private bool Usable(int x, int y)
@@ -324,8 +338,8 @@ namespace Komur
         {
             result.Clear();
             if (!IsReady) return false;
-            if (!TryNearestWalkable(from, 3, out var start)) return false;
-            if (!TryNearestWalkable(to, 3, out var goal)) return false;
+            if (!TryNearestWalkable(from, 8, out var start)) return false;
+            if (!TryNearestWalkable(to, 6, out var goal)) return false;
             ToCell(start, out int sx, out int sy);
             ToCell(goal, out int gx, out int gy);
             int startIdx = sx + sy * width;
