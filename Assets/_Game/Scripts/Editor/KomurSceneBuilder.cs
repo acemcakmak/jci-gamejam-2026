@@ -25,6 +25,26 @@ namespace Komur.EditorTools
         private const int VillagerCount = 6;
         private const int RatHoleCount = 4;
 
+        // ---------- Placements on the Cainos demo map (x, y, floor) ----------
+        // Floors: 1 = courtyards and plazas, 2 = the middle terrace, 3 = the statue platform.
+        private static readonly Vector3 DemoApothecary = new Vector3(3.0f, 2.6f, 0f);   // central courtyard
+        private static readonly Vector3 DemoKomurStart = new Vector3(3.5f, -0.5f, 0f);
+        private static readonly Vector3[] DemoHoles =
+        {
+            new Vector3(-8.5f, -8.5f, 1),   // wave 1: south strip
+            new Vector3(13.5f, 2.5f, 1),    // wave 2: east column
+            new Vector3(6.5f, 15.5f, 1),    // wave 3: north plaza
+            new Vector3(9.5f, 9.5f, 2),     // wave 4: middle terrace (upper floor)
+        };
+        private static readonly Vector3[] DemoVillagers =
+        {
+            new Vector3(-3.5f, 2.5f, 1), new Vector3(6.5f, -1.5f, 1),     // central courtyard
+            new Vector3(-2.5f, -8.5f, 1), new Vector3(6.5f, -8.5f, 1),    // south strip
+            new Vector3(-10.5f, 4.5f, 1),                                // west ledge
+            new Vector3(-2.5f, 8.5f, 2), new Vector3(4.5f, 8.5f, 2),      // middle terrace
+            new Vector3(0.5f, 14.5f, 1),                                 // north plaza
+        };
+
         [MenuItem("Kömür/Build Game Scene (from Cainos demo)", priority = 0)]
         public static void BuildGameScene()
         {
@@ -39,15 +59,15 @@ namespace Komur.EditorTools
             AssetDatabase.CopyAsset(CainosRoot + "/Scene/SC Demo.unity", ScenePath);
             var scene = EditorSceneManager.OpenScene(ScenePath);
 
-            Vector3 start = RetireDemoPlayer() ?? Vector3.zero;
+            RetireDemoPlayer();
             Physics2D.SyncTransforms();
-            var apothecary = SetupScene(prefabs, start);
 
-            var used = new List<Vector3> { start, apothecary.transform.position };
-            for (int i = 0; i < VillagerCount; i++)
-                PlaceVillager(prefabs.villager, FindSpot(start, 2.5f, 7f, used, 1.5f), 1);
-            for (int i = 0; i < RatHoleCount; i++)
-                PlaceRatHole(prefabs.ratHole, FindSpot(start, 8f, 12f, used, 4f), 1, i + 1);
+            // Hand-picked spots on the Cainos demo map (world units; floors from its Layer 1/2/3 tilemaps).
+            var apothecary = BuildApothecary(DemoApothecary);
+            SetupScene(prefabs, DemoKomurStart);
+            foreach (var v in DemoVillagers) PlaceVillager(prefabs.villager, new Vector3(v.x, v.y, 0f), (int)v.z);
+            for (int i = 0; i < DemoHoles.Length; i++)
+                PlaceRatHole(prefabs.ratHole, new Vector3(DemoHoles[i].x, DemoHoles[i].y, 0f), (int)DemoHoles[i].z, i + 1);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -419,6 +439,7 @@ namespace Komur.EditorTools
         {
             var mat = PlaguedMaterial();
             if (mat != null) sr.sharedMaterial = mat;
+            AddHiddenOutline(rat.gameObject, sr, rat.isBoss ? new Color(0.75f, 0.35f, 1f) : new Color(1f, 0.3f, 0.25f));
 
             var square = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderDir + "/square.png");
             var barGo = new GameObject("Health Bar");
@@ -457,6 +478,37 @@ namespace Komur.EditorTools
                 }
                 rat.plagueEffect = cloud.GetComponentInChildren<ParticleSystem>();
             }
+        }
+
+        // Outline-only sprite drawn over everything while a character is hidden (see OcclusionOutline).
+        private static Material HiddenOutlineMaterial()
+        {
+            string path = GameRoot + "/Art/Materials/Hidden Outline.mat";
+            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
+            if (shader == null) return null;
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                Directory.CreateDirectory(GameRoot + "/Art/Materials");
+                mat = new Material(shader) { name = "Hidden Outline" };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = shader;
+            foreach (var k in new[] { "OUTBASE_ON", "ONLYOUTLINE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
+            mat.SetColor("_OutlineColor", Color.white);
+            mat.SetFloat("_OutlineAlpha", 1f);
+            mat.SetFloat("_OutlineGlow", 1.5f);
+            mat.SetFloat("_OutlinePixelWidth", 1f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        private static void AddHiddenOutline(GameObject go, SpriteRenderer source, Color color)
+        {
+            var outline = go.AddComponent<OcclusionOutline>();
+            outline.source = source;
+            outline.outlineMaterial = HiddenOutlineMaterial();
+            outline.color = color;
         }
 
         // Desaturated, green-tinted sprite with a sickly green pixel outline; also carries the hit flash
@@ -558,6 +610,7 @@ namespace Komur.EditorTools
             var icon = AddWorldText(go.transform, "Icon", "", 5f, new Vector3(0f, 2.1f, 0f), Color.white);
 
             var villager = go.AddComponent<Villager>();
+            AddHiddenOutline(go, visual.GetComponent<SpriteRenderer>(), new Color(0.95f, 0.95f, 0.85f));
             villager.animator = visual.GetComponent<Animator>();
             villager.sickBar = bar;
             villager.icon = icon;
@@ -595,6 +648,7 @@ namespace Komur.EditorTools
             var medicine = AddWorldText(go.transform, "Medicine Icon", "+", 7f, new Vector3(0f, 1.6f, 0f), new Color(0.3f, 1f, 0.4f));
 
             var komur = go.AddComponent<KomurController>();
+            AddHiddenOutline(go, sr, new Color(1f, 0.85f, 0.3f));
             komur.flipbook = flipbook;
             komur.visual = sr;
             komur.medicineIcon = medicine.gameObject;

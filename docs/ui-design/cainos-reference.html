@@ -66,6 +66,12 @@ async function main() {
     tiles(`Layer ${L} - Grass`); tiles(`Layer ${L} - Stone Ground`); tiles(`Layer ${L} - Wall Shadow`); tiles(`Layer ${L} - Wall`);
     props(L);
   }
+  // coordinate grid (world units) to pick placements
+  if (new URLSearchParams(location.search).has('grid')) {
+    g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; g.font = '11px monospace'; g.fillStyle = '#ffdf8a';
+    for (let x = minX; x <= maxX; x++) { g.beginPath(); g.moveTo(X(x), 0); g.lineTo(X(x), c.height); g.stroke(); if (x % 2 === 0) g.fillText(x, X(x) + 2, 12); }
+    for (let y = minY; y <= maxY; y++) { g.beginPath(); g.moveTo(0, Y(y)); g.lineTo(c.width, Y(y)); g.stroke(); if (y % 2 === 0) g.fillText(y, 2, Y(y) - 2); }
+  }
 
   // ---- tile sheets with labels
   const sheetView = (id, prefix) => {
