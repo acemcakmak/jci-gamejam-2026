@@ -42,13 +42,14 @@ namespace Komur
         {
             nextRepathAt = Time.time + repathInterval * Random.Range(0.8f, 1.2f);
             index = 0;
-            if (NavGrid.I == null || !NavGrid.I.IsReady)
+            var grid = NavGrid.For(FloorAgent.FloorOf(gameObject));
+            if (grid == null)
             {
                 path.Clear();
                 path.Add(destination);
                 return true;
             }
-            return NavGrid.I.FindPath(transform.position, destination, path);
+            return grid.FindPath(transform.position, destination, path);
         }
 
         public Vector2 NextDirection()

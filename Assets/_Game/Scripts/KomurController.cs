@@ -26,14 +26,8 @@ namespace Komur
         public bool IsStunned => Time.time < stunnedUntil;
 
         // Cainos stairs move Kömür between the "Layer 1/2/3" physics layers. Rats and villagers live on the ground.
-        public bool OnGroundFloor
-        {
-            get
-            {
-                int ground = LayerMask.NameToLayer("Layer 1");
-                return ground < 0 || gameObject.layer == ground;
-            }
-        }
+        public int Floor => FloorAgent.FloorOf(gameObject);
+        public bool OnGroundFloor => Floor == 1;
 
         private Rigidbody2D body;
         private Vector2 input;
@@ -76,7 +70,7 @@ namespace Komur
                 GameFeedbacks.Play(FeedbackId.Pounce, transform.position);
             }
 
-            if (gm != null && playing && HasMedicine && OnGroundFloor) TryDeliverMedicine();
+            if (gm != null && playing && HasMedicine) TryDeliverMedicine();
             UpdateVisuals();
         }
 
@@ -96,21 +90,24 @@ namespace Komur
         private void KillRatsInRange()
         {
             var gm = GameManager.I;
-            if (gm == null || !OnGroundFloor) return;
+            if (gm == null) return;
+            int floor = Floor;
             float r2 = pounceKillRadius * pounceKillRadius;
             for (int i = gm.rats.Count - 1; i >= 0; i--)
             {
                 var rat = gm.rats[i];
-                if ((rat.transform.position - transform.position).sqrMagnitude <= r2) rat.Kill();
+                if (rat.Floor != floor) continue;
+                if ((rat.transform.position - transform.position).sqrMagnitude <= r2) rat.Hit();
             }
         }
 
         private void TryDeliverMedicine()
         {
             float r2 = deliverRange * deliverRange;
+            int floor = Floor;
             foreach (var v in GameManager.I.villagers)
             {
-                if (v.State != VillagerState.Sick) continue;
+                if (v.State != VillagerState.Sick || v.Floor != floor) continue;
                 if ((v.transform.position - transform.position).sqrMagnitude > r2) continue;
                 v.Cure();
                 SetMedicine(false);

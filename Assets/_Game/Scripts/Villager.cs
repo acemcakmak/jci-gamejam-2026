@@ -37,6 +37,8 @@ namespace Komur
         public VillagerState State { get; private set; } = VillagerState.Healthy;
         public bool Friendly { get; private set; }
         public bool CanBeBitten => State == VillagerState.Healthy;
+        public int Floor => FloorAgent.FloorOf(gameObject);
+        private NavGrid Grid => NavGrid.For(Floor);
 
         private Rigidbody2D body;
         private PathMover mover;
@@ -54,6 +56,7 @@ namespace Komur
             body = GetComponent<Rigidbody2D>();
             if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
             if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
+            if (!TryGetComponent<FloorAgent>(out _)) gameObject.AddComponent<FloorAgent>();
             home = transform.position;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
             {
@@ -68,9 +71,10 @@ namespace Komur
         private void Start()
         {
             // Make sure we start on reachable ground (NavGrid builds in its Start, which runs first).
-            if (NavGrid.I != null && NavGrid.I.IsReady && !NavGrid.I.IsWalkable(transform.position))
+            var grid = Grid;
+            if (grid != null && !grid.IsWalkable(transform.position))
             {
-                transform.position = NavGrid.I.SnapToWalkable(transform.position);
+                transform.position = grid.SnapToWalkable(transform.position);
                 home = transform.position;
             }
         }
@@ -113,9 +117,10 @@ namespace Komur
             if (gm == null || gm.komur == null) return;
             Vector3 catPos = gm.komur.transform.position;
             Vector3 eyes = transform.position + Vector3.up * 0.5f;
-            bool near = (catPos - transform.position).sqrMagnitude < fearRadius * fearRadius
-                        && gm.komur.OnGroundFloor
-                        && Sight.Clear(eyes, catPos);
+            float radius = fearRadius * gm.PanicMultiplier;
+            bool near = (catPos - transform.position).sqrMagnitude < radius * radius
+                        && gm.komur.Floor == Floor
+                        && Sight.Clear(eyes, catPos, Floor);
 
             fear = Mathf.Clamp(fear + (near ? Time.deltaTime : -Time.deltaTime), 0f, fearBuildTime);
             if (Time.time >= fleeUntil && iconHideAt <= 0f)
@@ -127,7 +132,7 @@ namespace Komur
                 fleeUntil = Time.time + fleeDuration;
                 Vector2 away = (transform.position - catPos).normalized;
                 Vector2 fleeTo = (Vector2)transform.position + away * 4f;
-                if (NavGrid.I != null && NavGrid.I.TryNearestWalkable(fleeTo, 6, out var safe)) fleeTo = safe;
+                if (Grid != null && Grid.TryNearestWalkable(fleeTo, 6, out var safe)) fleeTo = safe;
                 mover.SetDestination(fleeTo, true);
                 GameFeedbacks.Play(FeedbackId.VillagerScared, transform.position);
                 ShowIconFor("!", Color.red, fleeDuration);
@@ -156,7 +161,7 @@ namespace Komur
                         mover.Stop();
                         idleUntil = Time.time + Random.Range(1f, 3f);
                     }
-                    else if (NavGrid.I != null && NavGrid.I.TryRandomWalkableNear(home, wanderRadius, out var goal))
+                    else if (Grid != null && Grid.TryRandomWalkableNear(home, wanderRadius, out var goal))
                     {
                         if (!mover.SetDestination(goal, true)) mover.Stop();
                     }
@@ -183,10 +188,11 @@ namespace Komur
             else animator.SetInteger("Direction", velocity.y > 0f ? 1 : 0);
         }
 
-        public void Infect()
+        public void Infect(float duration)
         {
             if (State != VillagerState.Healthy) return;
             State = VillagerState.Sick;
+            sickDuration = duration;
             sickTimeLeft = sickDuration;
             fear = 0f;
             fleeUntil = 0f;
@@ -214,7 +220,13 @@ namespace Komur
             if (sickBar != null) sickBar.SetVisible(false);
             SetIcon("", Color.white);
             if (visualRoot != null) visualRoot.SetActive(false);
-            if (gravestonePrefab != null) Instantiate(gravestonePrefab, transform.position, Quaternion.identity);
+            if (gravestonePrefab != null)
+            {
+                var grave = Instantiate(gravestonePrefab, transform.position, Quaternion.identity);
+                int layer = LayerMask.NameToLayer(FloorAgent.LayerName(Floor));
+                foreach (var t in grave.GetComponentsInChildren<Transform>(true)) if (layer >= 0) t.gameObject.layer = layer;
+                foreach (var r in grave.GetComponentsInChildren<Renderer>(true)) r.sortingLayerName = FloorAgent.LayerName(Floor);
+            }
             GameFeedbacks.Play(FeedbackId.VillagerDied, transform.position);
             if (GameManager.I != null) GameManager.I.OnVillagerDied();
         }

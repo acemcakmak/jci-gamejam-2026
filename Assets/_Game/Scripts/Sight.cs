@@ -6,17 +6,10 @@ namespace Komur
     public static class Sight
     {
         private static readonly RaycastHit2D[] hits = new RaycastHit2D[16];
-        private static ContactFilter2D filter;
-        private static bool initialised;
-
-        public static bool Clear(Vector2 from, Vector2 to)
+        public static bool Clear(Vector2 from, Vector2 to, int floor)
         {
-            if (!initialised)
-            {
-                filter = new ContactFilter2D { useTriggers = false };
-                filter.SetLayerMask(LayerMask.GetMask("Default", "Layer 1", "Layer 2", "Layer 3"));
-                initialised = true;
-            }
+            var filter = new ContactFilter2D { useTriggers = false };
+            filter.SetLayerMask(FloorAgent.ObstacleMask(floor));
 
             int n = Physics2D.Linecast(from, to, filter, hits);
             for (int i = 0; i < n; i++)

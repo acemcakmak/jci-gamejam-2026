@@ -5,18 +5,25 @@ using UnityEngine.Tilemaps;
 
 namespace Komur
 {
-    // Ground-floor walkability grid with A*. Rebuilds a few rows every frame so pushed
+    // Walkability grid with A* for one Cainos floor. Rebuilds a few rows every frame so pushed
     // crates/barrels and other moved obstacles are picked up continuously.
     [DefaultExecutionOrder(-90)]
     public class NavGrid : MonoBehaviour
     {
-        public static NavGrid I { get; private set; }
+        private static readonly Dictionary<int, NavGrid> grids = new Dictionary<int, NavGrid>();
 
+        // Ground-floor grid (kept for convenience).
+        public static NavGrid I => For(1);
+
+        public static NavGrid For(int floor)
+        {
+            return grids.TryGetValue(floor, out var g) && g != null && g.IsReady ? g : null;
+        }
+
+        [Range(1, 3)] public int floor = 1;
         public float cellSize = 0.5f;
         [Tooltip("Half-size of the box checked for obstacles around each cell centre.")]
         public float clearance = 0.3f;
-        public string groundSortingLayer = "Layer 1";
-        public string[] obstacleLayers = { "Default", "Layer 1" };
         public int rowsRefreshedPerFrame = 6;
         public int maxSearchNodes = 8000;
         public bool drawGizmos;
@@ -28,6 +35,7 @@ namespace Komur
         private bool[] reachable; // connected to Kömür's start at build time; used for snapping/spawning
         private int refreshRow;
         private ContactFilter2D obstacleFilter;
+        private ContactFilter2D stairsFilter;
         private readonly Collider2D[] overlapBuffer = new Collider2D[16];
 
         // A* scratch space, reused between searches.
@@ -46,9 +54,14 @@ namespace Komur
 
         public bool IsReady => walkable != null;
 
-        private void Awake()
+        private void OnEnable()
         {
-            I = this;
+            grids[floor] = this;
+        }
+
+        private void OnDisable()
+        {
+            if (grids.TryGetValue(floor, out var g) && g == this) grids.Remove(floor);
         }
 
         private void Start()
@@ -59,19 +72,24 @@ namespace Komur
         public void Build()
         {
             Physics2D.SyncTransforms();
-            obstacleFilter = new ContactFilter2D { useTriggers = true };
-            obstacleFilter.SetLayerMask(LayerMask.GetMask(obstacleLayers));
+            grids[floor] = this;
+            string floorLayer = FloorAgent.LayerName(floor);
+            obstacleFilter = new ContactFilter2D { useTriggers = false };
+            obstacleFilter.SetLayerMask(FloorAgent.ObstacleMask(floor));
+            stairsFilter = new ContactFilter2D { useTriggers = true };
+            stairsFilter.SetLayerMask(Physics2D.AllLayers);
+            walkable = null;
 
             // Floor = tilemaps on the ground sorting layer that have no collider (walls have one).
             var floors = FindObjectsByType<Tilemap>(FindObjectsSortMode.None)
                 .Where(tm => tm.GetComponent<TilemapRenderer>() is TilemapRenderer r
-                             && r.sortingLayerName == groundSortingLayer
+                             && r.sortingLayerName == floorLayer
                              && tm.GetComponent<TilemapCollider2D>() == null)
                 .ToArray();
 
             if (floors.Length == 0)
             {
-                Debug.LogWarning("[NavGrid] No floor tilemaps found on sorting layer " + groundSortingLayer);
+                if (floor == 1) Debug.LogWarning("[NavGrid] No floor tilemaps found on sorting layer " + floorLayer);
                 return;
             }
 
@@ -115,32 +133,46 @@ namespace Komur
 
             for (int y = 0; y < height; y++) RefreshRow(y);
 
-            var komur = GameManager.I != null && GameManager.I.komur != null
-                ? GameManager.I.komur
-                : FindFirstObjectByType<KomurController>();
-            ComputeReachable(komur != null ? (Vector2)komur.transform.position : (Vector2)transform.position);
+            // Seeds: everything placed on this floor (villagers, rat holes, apothecary) and Kömür on the ground.
+            var seeds = new List<Vector2>();
+            foreach (var agent in FindObjectsByType<FloorAgent>(FindObjectsSortMode.None))
+                if (agent.floor == floor) seeds.Add(agent.transform.position);
+            if (floor == 1)
+            {
+                var komur = GameManager.I != null && GameManager.I.komur != null
+                    ? GameManager.I.komur
+                    : FindFirstObjectByType<KomurController>();
+                if (komur != null) seeds.Add(komur.transform.position);
+                foreach (var apothecary in FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
+                    seeds.Add(apothecary.transform.position);
+            }
+            ComputeReachable(seeds);
         }
 
-        // Flood fill from the seed so spawns never land in walled-off areas such as raised platforms.
-        public void ComputeReachable(Vector2 seed)
+        // Flood fill from the seeds so spawns never land in walled-off areas.
+        public void ComputeReachable(List<Vector2> seeds)
         {
             System.Array.Clear(reachable, 0, reachable.Length);
-            ToCell(seed, out int sx, out int sy);
-            int start = -1;
-            for (int ring = 0; ring <= 6 && start < 0; ring++)
-            for (int dy = -ring; dy <= ring && start < 0; dy++)
-            for (int dx = -ring; dx <= ring && start < 0; dx++)
-                if (Walkable(sx + dx, sy + dy)) start = (sx + dx) + (sy + dy) * width;
+            var queue = new Queue<int>();
+            foreach (var seed in seeds)
+            {
+                ToCell(seed, out int sx, out int sy);
+                int start = -1;
+                for (int ring = 0; ring <= 6 && start < 0; ring++)
+                for (int dy = -ring; dy <= ring && start < 0; dy++)
+                for (int dx = -ring; dx <= ring && start < 0; dx++)
+                    if (Walkable(sx + dx, sy + dy)) start = (sx + dx) + (sy + dy) * width;
+                if (start < 0 || reachable[start]) continue;
+                reachable[start] = true;
+                queue.Enqueue(start);
+            }
 
-            if (start < 0)
+            if (queue.Count == 0)
             {
                 System.Array.Copy(walkable, reachable, walkable.Length);
                 return;
             }
 
-            var queue = new Queue<int>();
-            queue.Enqueue(start);
-            reachable[start] = true;
             while (queue.Count > 0)
             {
                 int c = queue.Dequeue();
@@ -183,19 +215,19 @@ namespace Komur
 
         private bool Blocked(Vector2 center)
         {
-            int n = Physics2D.OverlapBox(center, Vector2.one * (clearance * 2f), 0f, obstacleFilter, overlapBuffer);
+            Vector2 size = Vector2.one * (clearance * 2f);
+            int n = Physics2D.OverlapBox(center, size, 0f, obstacleFilter, overlapBuffer);
             for (int i = 0; i < n; i++)
             {
                 var col = overlapBuffer[i];
-                if (col.isTrigger)
-                {
-                    // Keep ground NPCs off the stairs so they never switch floors.
-                    if (col.GetComponent("StairsLayerTrigger") != null) return true;
-                    continue;
-                }
-                if (IsCharacter(col)) continue;
+                if (col.isTrigger || IsCharacter(col)) continue;
                 return true;
             }
+
+            // Keep NPCs off the stairs so they never switch floors.
+            n = Physics2D.OverlapBox(center, size, 0f, stairsFilter, overlapBuffer);
+            for (int i = 0; i < n; i++)
+                if (overlapBuffer[i].isTrigger && overlapBuffer[i].GetComponent("StairsLayerTrigger") != null) return true;
             return false;
         }
 
@@ -388,6 +420,7 @@ namespace Komur
             {
                 int i = x + y * width;
                 if (!ground[i]) continue;
+                if (floor > 1 && !walkable[i]) continue; // keep upper-floor previews readable
                 Gizmos.color = !walkable[i] ? new Color(1f, 0f, 0f, 0.35f)
                     : reachable[i] ? new Color(0f, 1f, 0f, 0.25f)
                     : new Color(1f, 0.9f, 0f, 0.35f);

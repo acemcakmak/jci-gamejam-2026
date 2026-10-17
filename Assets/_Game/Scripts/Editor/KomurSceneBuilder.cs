@@ -25,7 +25,7 @@ namespace Komur.EditorTools
         private const int VillagerCount = 6;
         private const int RatHoleCount = 4;
 
-        [MenuItem("Kömür/Build Game Scene (from Cainos demo)")]
+        [MenuItem("Kömür/Build Game Scene (from Cainos demo)", priority = 0)]
         public static void BuildGameScene()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -34,102 +34,54 @@ namespace Komur.EditorTools
                 return;
 
             var prefabs = BuildPrefabsAndSettings();
-            var circle = prefabs.circle;
-            var ratPrefab = prefabs.rat;
-            var villagerPrefab = prefabs.villager;
-            var komurPrefab = prefabs.komur;
 
             if (File.Exists(ScenePath)) AssetDatabase.DeleteAsset(ScenePath);
             AssetDatabase.CopyAsset(CainosRoot + "/Scene/SC Demo.unity", ScenePath);
             var scene = EditorSceneManager.OpenScene(ScenePath);
 
-            // Retire the demo player and its camera follow.
-            Vector3 start = Vector3.zero;
-            var demoPlayer = FindBehaviour("TopDownCharacterController");
-            if (demoPlayer != null)
-            {
-                start = demoPlayer.transform.position;
-                demoPlayer.gameObject.SetActive(false);
-            }
-
+            Vector3 start = RetireDemoPlayer() ?? Vector3.zero;
             Physics2D.SyncTransforms();
-            var used = new List<Vector3> { start };
+            var apothecary = SetupScene(prefabs, start);
 
-            var komur = (GameObject)PrefabUtility.InstantiatePrefab(komurPrefab);
-            komur.transform.position = start;
-
-            var cam = Camera.main;
-            if (cam != null)
-            {
-                foreach (var mb in cam.GetComponents<MonoBehaviour>())
-                    if (mb.GetType().Name == "CameraFollow") mb.enabled = false;
-                var follow = cam.GetComponent<CameraFollow2D>() ?? cam.gameObject.AddComponent<CameraFollow2D>();
-                follow.target = komur.transform;
-                cam.transform.position = new Vector3(start.x, start.y, cam.transform.position.z);
-            }
-
-            var villagersRoot = new GameObject("Villagers").transform;
+            var used = new List<Vector3> { start, apothecary.transform.position };
             for (int i = 0; i < VillagerCount; i++)
-            {
-                var v = (GameObject)PrefabUtility.InstantiatePrefab(villagerPrefab, villagersRoot);
-                v.transform.position = FindSpot(start, 2.5f, 7f, used, 1.5f);
-                v.name = $"Villager {i + 1}";
-            }
-
-            var apothecary = BuildApothecary(FindSpot(start, 3f, 5f, used, 2f));
-
-            var spawnsRoot = new GameObject("Rat Holes").transform;
-            var spawns = new List<Transform>();
+                PlaceVillager(prefabs.villager, FindSpot(start, 2.5f, 7f, used, 1.5f), 1);
             for (int i = 0; i < RatHoleCount; i++)
-            {
-                var hole = new GameObject($"Rat Hole {i + 1}");
-                hole.transform.SetParent(spawnsRoot);
-                hole.transform.position = FindSpot(start, 8f, 12f, used, 4f);
-                var sr = hole.AddComponent<SpriteRenderer>();
-                sr.sprite = circle;
-                sr.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
-                sr.sortingLayerName = CharacterSortingLayer;
-                sr.sortingOrder = 1;
-                hole.transform.localScale = new Vector3(0.7f, 0.4f, 1f);
-                spawns.Add(hole.transform);
-            }
-
-            var hud = BuildHud();
-
-            var feedbacksGo = new GameObject("Game Feedbacks");
-            var feedbacks = feedbacksGo.AddComponent<GameFeedbacks>();
-            ConfigureDefaultFeedbacks(feedbacks);
-
-            var gmGo = new GameObject("Game Manager");
-            var gm = gmGo.AddComponent<GameManager>();
-            gmGo.AddComponent<NavGrid>();
-            gm.ratPrefab = ratPrefab;
-            gm.ratSpawns = spawns.ToArray();
-            gm.komur = komur.GetComponent<KomurController>();
-            gm.hud = hud;
+                PlaceRatHole(prefabs.ratHole, FindSpot(start, 8f, 12f, used, 4f), 1, i + 1);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AddSceneToBuildSettings(ScenePath);
             Selection.activeObject = apothecary;
-
             Debug.Log("[Kömür] Game scene built. Move villagers, rat holes and the apothecary to taste, then press Play.");
         }
 
-        [MenuItem("Kömür/Update Prefabs and Settings (keeps scene)")]
+        [MenuItem("Kömür/Setup Open Scene (your own map)", priority = 1)]
+        public static void SetupOpenScene()
+        {
+            var prefabs = BuildPrefabsAndSettings();
+            var existing = Object.FindFirstObjectByType<KomurController>();
+            Vector3 start = existing != null ? existing.transform.position : RetireDemoPlayer() ?? PlacePosition();
+            SetupScene(prefabs, start);
+
+            var scene = EditorSceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (EditorSceneManager.SaveScene(scene) && !string.IsNullOrEmpty(scene.path)) AddSceneToBuildSettings(scene.path);
+            Debug.Log("[Kömür] Scene set up. Place villagers and rat holes with Kömür > Place, " +
+                      "and set each rat hole's 'Active From Wave'.");
+        }
+
+        [MenuItem("Kömür/Update Prefabs and Settings (keeps scene)", priority = 2)]
         public static void UpdatePrefabsAndSettings()
         {
-            BuildPrefabsAndSettings();
+            var prefabs = BuildPrefabsAndSettings();
 
-            // Patch the open game scene: nav grid and fresh wave defaults.
             var gm = Object.FindFirstObjectByType<GameManager>();
             if (gm != null)
             {
-                if (gm.GetComponent<NavGrid>() == null && Object.FindFirstObjectByType<NavGrid>() == null)
-                    gm.gameObject.AddComponent<NavGrid>();
-                var fresh = new GameObject("tmp").AddComponent<GameManager>();
-                gm.waves = fresh.waves;
-                Object.DestroyImmediate(fresh.gameObject);
+                gm.ratPrefab = prefabs.rat;
+                gm.waves = GameManager.DefaultWaves();
+                EnsureNavGrids(gm);
                 EditorUtility.SetDirty(gm);
                 EditorSceneManager.MarkSceneDirty(gm.gameObject.scene);
                 EditorSceneManager.SaveScene(gm.gameObject.scene);
@@ -137,12 +89,152 @@ namespace Komur.EditorTools
             Debug.Log("[Kömür] Prefabs and project settings updated.");
         }
 
+        [MenuItem("Kömür/Place/Villager - Ground Floor", priority = 20)]
+        private static void PlaceVillagerGround() => PlaceFromMenu(villager: true, floor: 1);
+
+        [MenuItem("Kömür/Place/Villager - Upper Floor", priority = 21)]
+        private static void PlaceVillagerUpper() => PlaceFromMenu(villager: true, floor: 2);
+
+        [MenuItem("Kömür/Place/Rat Hole - Ground Floor", priority = 40)]
+        private static void PlaceRatHoleGround() => PlaceFromMenu(villager: false, floor: 1);
+
+        [MenuItem("Kömür/Place/Rat Hole - Upper Floor", priority = 41)]
+        private static void PlaceRatHoleUpper() => PlaceFromMenu(villager: false, floor: 2);
+
+        private static void PlaceFromMenu(bool villager, int floor)
+        {
+            var villagerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabDir + "/Villager.prefab");
+            var holePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabDir + "/Rat Hole.prefab");
+            if (villagerPrefab == null || holePrefab == null)
+            {
+                var prefabs = BuildPrefabsAndSettings();
+                villagerPrefab = prefabs.villager;
+                holePrefab = prefabs.ratHole;
+            }
+
+            GameObject placed;
+            if (villager)
+            {
+                placed = PlaceVillager(villagerPrefab, PlacePosition(), floor);
+            }
+            else
+            {
+                int wave = Mathf.Min(Object.FindObjectsByType<RatHole>(FindObjectsSortMode.None).Length + 1, 5);
+                placed = PlaceRatHole(holePrefab, PlacePosition(), floor, wave);
+            }
+            Undo.RegisterCreatedObjectUndo(placed, "Place " + placed.name);
+            Selection.activeObject = placed;
+            EditorSceneManager.MarkSceneDirty(placed.scene);
+        }
+
+        private static GameObject PlaceVillager(GameObject prefab, Vector3 position, int floor)
+        {
+            var root = FindOrCreateRoot("Villagers");
+            var v = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+            v.transform.position = position;
+            v.name = $"Villager {root.childCount} (F{floor})";
+            v.GetComponent<FloorAgent>().SetFloor(floor);
+            return v;
+        }
+
+        private static GameObject PlaceRatHole(GameObject prefab, Vector3 position, int floor, int activeFromWave)
+        {
+            var root = FindOrCreateRoot("Rat Holes");
+            var h = (GameObject)PrefabUtility.InstantiatePrefab(prefab, root);
+            h.transform.position = position;
+            h.name = $"Rat Hole (wave {activeFromWave}, F{floor})";
+            h.GetComponent<FloorAgent>().SetFloor(floor);
+            h.GetComponent<RatHole>().activeFromWave = activeFromWave;
+            return h;
+        }
+
+        private static Transform FindOrCreateRoot(string name)
+        {
+            var go = GameObject.Find(name);
+            return go != null ? go.transform : new GameObject(name).transform;
+        }
+
+        private static Vector3 PlacePosition()
+        {
+            var view = SceneView.lastActiveSceneView;
+            Vector3 p = view != null ? view.pivot : Vector3.zero;
+            return new Vector3(p.x, p.y, 0f);
+        }
+
+        private static Vector3? RetireDemoPlayer()
+        {
+            var demoPlayer = FindBehaviour("TopDownCharacterController");
+            if (demoPlayer == null) return null;
+            demoPlayer.gameObject.SetActive(false);
+            return demoPlayer.transform.position;
+        }
+
+        // Adds whatever is missing: Kömür, camera follow, apothecary, HUD, feedbacks, game manager, nav grids.
+        private static GameObject SetupScene(PrefabSet prefabs, Vector3 start)
+        {
+            var komurController = Object.FindFirstObjectByType<KomurController>();
+            if (komurController == null)
+            {
+                var komurGo = (GameObject)PrefabUtility.InstantiatePrefab(prefabs.komur);
+                komurGo.transform.position = start;
+                komurController = komurGo.GetComponent<KomurController>();
+            }
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                foreach (var mb in cam.GetComponents<MonoBehaviour>())
+                    if (mb.GetType().Name == "CameraFollow") mb.enabled = false;
+                var follow = cam.GetComponent<CameraFollow2D>();
+                if (follow == null) follow = cam.gameObject.AddComponent<CameraFollow2D>();
+                follow.target = komurController.transform;
+                cam.transform.position = new Vector3(start.x, start.y, cam.transform.position.z);
+            }
+
+            var apothecary = Object.FindFirstObjectByType<Apothecary>();
+            var apothecaryGo = apothecary != null ? apothecary.gameObject : BuildApothecary(start + Vector3.right * 3f);
+
+            var hud = Object.FindFirstObjectByType<Hud>();
+            if (hud == null) hud = BuildHud();
+
+            if (Object.FindFirstObjectByType<GameFeedbacks>() == null)
+            {
+                var feedbacks = new GameObject("Game Feedbacks").AddComponent<GameFeedbacks>();
+                ConfigureDefaultFeedbacks(feedbacks);
+            }
+
+            var gm = Object.FindFirstObjectByType<GameManager>();
+            if (gm == null)
+            {
+                gm = new GameObject("Game Manager").AddComponent<GameManager>();
+                gm.waves = GameManager.DefaultWaves();
+            }
+            gm.ratPrefab = prefabs.rat;
+            gm.komur = komurController;
+            gm.hud = hud;
+            EnsureNavGrids(gm);
+            EditorUtility.SetDirty(gm);
+            return apothecaryGo;
+        }
+
+        private static void EnsureNavGrids(GameManager gm)
+        {
+            var grids = Object.FindObjectsByType<NavGrid>(FindObjectsSortMode.None);
+            for (int f = 1; f <= 3; f++)
+            {
+                if (grids.Any(g => g.floor == f)) continue;
+                var go = new GameObject($"NavGrid Floor {f}");
+                go.transform.SetParent(gm.transform, false);
+                go.AddComponent<NavGrid>().floor = f;
+            }
+        }
+
         private struct PrefabSet
         {
-            public Sprite circle;
             public Rat rat;
             public GameObject villager;
             public GameObject komur;
+            public GameObject ratHole;
         }
 
         private static PrefabSet BuildPrefabsAndSettings()
@@ -161,11 +253,25 @@ namespace Komur.EditorTools
             var stonePrefab = BuildStonePrefab(circle);
             return new PrefabSet
             {
-                circle = circle,
                 rat = BuildRatPrefab(circle, charactersLayer),
                 villager = BuildVillagerPrefab(square, stonePrefab, charactersLayer),
                 komur = BuildKomurPrefab(LayerMask.NameToLayer("Layer 1"), charactersLayer),
+                ratHole = BuildRatHolePrefab(circle),
             };
+        }
+
+        private static GameObject BuildRatHolePrefab(Sprite circle)
+        {
+            var go = new GameObject("Rat Hole");
+            go.transform.localScale = new Vector3(0.7f, 0.4f, 1f);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = circle;
+            sr.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
+            sr.sortingLayerName = CharacterSortingLayer;
+            sr.sortingOrder = 1;
+            go.AddComponent<FloorAgent>();
+            go.AddComponent<RatHole>().visual = sr;
+            return SavePrefab(go, "Rat Hole");
         }
 
         // ---------- Prefabs ----------
@@ -190,6 +296,7 @@ namespace Komur.EditorTools
             body.mass = 0.2f;
             go.AddComponent<SpriteRenderer>();
             go.AddComponent<PathMover>();
+            go.AddComponent<FloorAgent>();
 
             var visual = new GameObject("Visual");
             visual.transform.SetParent(go.transform, false);
@@ -211,6 +318,7 @@ namespace Komur.EditorTools
             AddBody(go, 0.2f);
             go.AddComponent<SpriteRenderer>();
             go.AddComponent<PathMover>();
+            go.AddComponent<FloorAgent>();
 
             var pfPlayer = AssetDatabase.LoadAssetAtPath<GameObject>(CainosRoot + "/Prefab/Player/PF Player.prefab");
             var visual = (GameObject)PrefabUtility.InstantiatePrefab(pfPlayer);
