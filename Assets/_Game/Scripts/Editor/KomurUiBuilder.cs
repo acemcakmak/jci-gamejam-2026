@@ -204,8 +204,8 @@ namespace Komur.EditorTools
         private const string KeysRoot = "Assets/ThirdPartyAssets/Controllers and Keyboard";
         private const int KeyCell = 16;
 
-        // Dark see-through strip above the story panel: [W][A][S][D] MOVE  [SPACE] POUNCE  [P] PAUSE, and the
-        // goals underneath, in white. Keys tap themselves (W-A-S-D in sequence, SPACE on a beat).
+        // Dark see-through strip above the story panel, white labels: a W/ASD cluster laid out like the
+        // keyboard + MOVE, [SPACE] POUNCE, [P] PAUSE. Keys tap themselves (W-A-S-D in sequence, SPACE on a beat).
         private static void ControlsStrip(Transform parent, HudLayout.Element e)
         {
             if (e == null) return;
@@ -219,9 +219,9 @@ namespace Komur.EditorTools
             strip.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.5f);
 
             var keys = NewRect("Keys", strip);
-            keys.anchorMin = new Vector2(0f, 0.4f);
+            keys.anchorMin = Vector2.zero;
             keys.anchorMax = Vector2.one;
-            keys.offsetMin = new Vector2(e.padding, 0f);
+            keys.offsetMin = new Vector2(e.padding, e.padding);
             keys.offsetMax = new Vector2(-e.padding, -e.padding);
             var row = keys.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
             row.childAlignment = TextAnchor.MiddleCenter;
@@ -232,8 +232,19 @@ namespace Komur.EditorTools
             float k = e.iconSize, fs = e.fontSize;
             if (letters != null)
             {
-                foreach (var (letter, i) in new[] { ('W', 0), ('A', 1), ('S', 2), ('D', 3) })
-                    Key(keys, letters, letter - 'A', k, i * 0.22f, 1.6f);
+                // W on top, A S D underneath, as on a keyboard (sized to fit the strip).
+                float gap = 4f, kk = Mathf.Min(k, (e.Size.y - e.padding * 2f - gap) / 2f);
+                var cluster = NewRect("WASD", keys);
+                var cle = cluster.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+                cle.preferredWidth = kk * 3f + gap * 2f;
+                cle.preferredHeight = kk * 2f + gap;
+                foreach (var (letter, i, col, line) in new[] { ('W', 0, 1, 0), ('A', 1, 0, 1), ('S', 2, 1, 1), ('D', 3, 2, 1) })
+                {
+                    var key = Key(cluster, letters, letter - 'A', kk, i * 0.22f, 1.6f);
+                    key.anchorMin = key.anchorMax = key.pivot = new Vector2(0f, 1f);
+                    key.anchoredPosition = new Vector2(col * (kk + gap), -line * (kk + gap));
+                    key.sizeDelta = new Vector2(kk, kk);
+                }
             }
             KeyLabel(keys, "MOVE", fs);
             KeyGap(keys, 56f);
@@ -243,12 +254,9 @@ namespace Komur.EditorTools
             if (letters != null) Key(keys, letters, 'P' - 'A', k, 0.9f, 2.4f);
             KeyLabel(keys, "PAUSE", fs);
 
-            var goals = UIText(strip, "Goals", "BRING MEDICINE TO THE SICK  -  STAY OUT OF THEIR SIGHT", fs * 0.85f,
-                TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero, Color.white);
-            SetAnchors(goals.rectTransform, Vector2.zero, new Vector2(1f, 0.4f), e.padding);
         }
 
-        private static void Key(Transform row, Texture2D sheet, int sheetRow, float size, float phase, float period)
+        private static RectTransform Key(Transform row, Texture2D sheet, int sheetRow, float size, float phase, float period)
         {
             var rt = NewRect("Key", row);
             var raw = rt.gameObject.AddComponent<UnityEngine.UI.RawImage>();
@@ -264,6 +272,7 @@ namespace Komur.EditorTools
             raw.uvRect = press.normalUv;
             var le = rt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
             le.preferredWidth = le.preferredHeight = size;
+            return rt;
         }
 
         private static void KeyLabel(Transform row, string text, float size)

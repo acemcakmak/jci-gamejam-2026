@@ -211,11 +211,11 @@
       318
     ],
     "size": [
-      1180,
-      150
+      1000,
+      140
     ],
     "fontSize": 34,
-    "iconSize": 64,
-    "padding": 12
+    "iconSize": 56,
+    "padding": 10
   }
 }

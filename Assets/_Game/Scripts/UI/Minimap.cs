@@ -104,6 +104,9 @@ namespace Komur
         public Color propWood = new Color32(150, 104, 62, 255);
         public Color propStone = new Color32(190, 186, 176, 255);
         public Color shadow = new Color(0f, 0f, 0f, 0.28f);
+        [Tooltip("Where there is no tile at all: the sea around the town (matches the water backdrop).")]
+        public Color water = new Color32(46, 104, 150, 255);
+        public Color waterGlint = new Color32(98, 160, 205, 255);
 
         private Texture2D painted;
         private int texW, texH;
@@ -133,12 +136,16 @@ namespace Komur
                 bool upper = TileName(grass2, world) != null;
                 bool onStone = TileName(stone1, world) != null;
                 string g1 = TileName(grass1, world);
+                bool sea = true;
+                foreach (var m in maps)
+                    if (m.HasTile(m.WorldToCell(world))) { sea = false; break; }
                 for (int py = 0; py < pixelsPerTile; py++)
                 for (int pxl = 0; pxl < pixelsPerTile; pxl++)
                 {
                     int x = tx * pixelsPerTile + pxl, y = ty * pixelsPerTile + py;
                     Color c;
-                    if (w1 != null && IsFace(w1)) c = ((y / 2 + (py < 3 ? 0 : 1) * (x / 3)) % 2 == 0) ? brick : brickDark;
+                    if (sea) c = (Noise(x / 2, y) < 0.06f) ? waterGlint : water;
+                    else if (w1 != null && IsFace(w1)) c = ((y / 2 + (py < 3 ? 0 : 1) * (x / 3)) % 2 == 0) ? brick : brickDark;
                     else if (w1 != null || (w2 != null && !upper)) c = wallTop;
                     else if (upper) c = Noise(x, y) < 0.2f ? Color.Lerp(upperGrass, Color.white, 0.12f) : upperGrass;
                     else if (onStone) c = (pxl == 0 || py == 0) ? Color.Lerp(stone, stoneEdge, 0.25f) : stone;
