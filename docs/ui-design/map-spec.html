@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kömür Town Map</title>
+<style>
+  @font-face { font-family: Sprout; src: url('../../Assets/ThirdPartyAssets/Sprout Lands - UI Pack - Basic pack/fonts/pixelFont-7-8x14-sproutLands.ttf'); }
+  :root { --bg: #1d1a17; --fg: #f3ead7; --muted: #b8ab93; --card: #2a2622; --line: #3d372f; --accent: #e9c46a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font: 400 38px Sprout, monospace; margin: 8px 0 4px; }
+  h2 { font: 400 24px Sprout, monospace; margin: 32px 0 6px; color: var(--accent); }
+  p { color: var(--muted); margin: 0 0 10px; max-width: 900px; }
+  code { background: #3a332b; padding: 1px 6px; border-radius: 4px; color: var(--fg); }
+  .bar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin: 10px 0; color: var(--muted); font-size: 14px; }
+  .bar label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .scroller { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #000; max-height: 80vh; }
+  canvas { display: block; image-rendering: pixelated; }
+  .quarters { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+  .quarters div { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: var(--muted); }
+  .quarters b { color: var(--fg); display: block; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>KOMUR TOWN MAP</h1>
+  <p>Rendered from <code>Assets/_Game/Map/town-map.json</code> with the real Cainos tiles and prefab sprites, using the same tile rules as <b>Kömür → Build Town Scene</b>. Regenerate the map with <code>python3 tools/mapgen/build_town_map.py</code>, reload this page, then rebuild the scene in Unity.</p>
+  <div class="bar">
+    <label>Zoom <input type="range" id="zoom" min="0.25" max="1.5" step="0.05" value="0.5"></label>
+    <label><input type="checkbox" id="camera" checked> Camera view (game zoom)</label>
+    <label><input type="checkbox" id="labels" checked> Quarter labels</label>
+    <span id="stats"></span>
+  </div>
+  <div class="scroller"><canvas id="map"></canvas></div>
+
+  <h2>Quarters</h2>
+  <div class="quarters">
+    <div><b>NW · Chapel Hill (upper floor)</b>A raised hill with a southern bulge and an eastern spur. The ruined church has two rows of pillars, an altar and a statue, with graves behind it. Main stairs on the bulge, side stairs to the east. Rat hole 4 is up on the hill.</div>
+    <div><b>NE · Market</b>A stone market plaza with stall rows and a well. A merchant terrace (upper floor) with stairs, plus a shop, a warehouse and a gatehouse by the north road. Rat hole 2 is on the east edge.</div>
+    <div><b>SW · Farmstead</b>A barn, a cottage and a walled garden, rows of flowers as crops, and a farm lane south off the west road. Rat hole 1 is on the west edge.</div>
+    <div><b>SE · Sunken graveyard</b>A walled pit with rows of graves, a mausoleum and broken rune pillars. You go down a west ramp from the graveyard path or a north ramp towards the market. Rat hole 3 is inside the pit.</div>
+    <div><b>Centre · Town square</b>A stone plaza with steps out to every road. It has the well, a statue, pillars on the corners and the apothecary. Kömür starts here.</div>
+    <div><b>Readability</b>Trees stay on the town edges and between quarters, never over roads, plazas or just south of cliffs. Inside the quarters there are only low bushes, rocks and flowers.</div>
+  </div>
+</main>
+
+<script>
+const T = 32; // pixels per tile
+const QUARTERS = [
+  { name: 'CHAPEL HILL', x: 12, y: 37.5 }, { name: 'MARKET', x: 40, y: 37.5 },
+  { name: 'FARMSTEAD', x: 10, y: 1.6 }, { name: 'GRAVEYARD', x: 42, y: 1.6 }, { name: 'SQUARE', x: 27.5, y: 13 },
+];
+const imgs = {};
+const loadImg = src => imgs[src] ? Promise.resolve(imgs[src]) : new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[src] = i); i.onerror = () => rej(src); i.src = '../../' + src; });
+
+function hash(x, y) { return (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; }
+
+function makeMap(m) {
+  const at = (x, y) => (x < 0 || y < 0 || x >= m.width || y >= m.height) ? 'X' : m.rows[m.height - 1 - y][x];
+  const raised = (x, y) => '^B'.includes(at(x, y));
+  const pit = (x, y) => 'sr'.includes(at(x, y));
+  const solidPit = (x, y) => at(x, y) === 's';
+  return { at, raised, pit, solidPit };
+}
+function raisedTile(M, x, y) {
+  const n = M.raised(x, y + 1), s = M.raised(x, y - 1), w = M.raised(x - 1, y), e = M.raised(x + 1, y);
+  if (!n) return !w ? 0 : !e ? 2 : 1;
+  if (!s) return !w ? 15 : !e ? 17 : 16;
+  if (!w) return 8;
+  if (!e) return 9;
+  if (!M.raised(x - 1, y + 1)) return 22;
+  if (!M.raised(x + 1, y + 1)) return 18;
+  return -1;
+}
+function wall1Tile(M, x, y) {
+  if (M.raised(x, y)) return raisedTile(M, x, y);
+  if (M.raised(x, y + 1)) return !M.raised(x - 1, y + 1) ? 23 : !M.raised(x + 1, y + 1) ? 25 : 24;
+  if (M.pit(x, y)) {
+    if (M.solidPit(x, y) && !M.pit(x, y + 1)) return !M.pit(x - 1, y) ? 23 : !M.pit(x + 1, y) ? 25 : 24;
+    return -1;
+  }
+  if (M.solidPit(x, y - 1) && !M.pit(x, y)) return !M.pit(x - 1, y - 1) ? 15 : !M.pit(x + 1, y - 1) ? 17 : 16;
+  if (M.solidPit(x, y + 1)) return 1;
+  if (M.solidPit(x + 1, y)) return 9;
+  if (M.solidPit(x - 1, y)) return 8;
+  if (M.solidPit(x + 1, y + 1) && !M.pit(x + 1, y) && !M.pit(x, y + 1)) return 18;
+  if (M.solidPit(x - 1, y + 1) && !M.pit(x - 1, y) && !M.pit(x, y + 1)) return 22;
+  return -1;
+}
+function shadowTile(M, x, y) {
+  if (M.raised(x, y)) return 0;
+  if (M.raised(x - 1, y)) return 2;
+  if (M.raised(x - 1, y + 1) && !M.raised(x, y + 1)) return 3;
+  if (M.raised(x - 1, y - 1) && !M.raised(x, y - 1)) return 1;
+  return 0;
+}
+function stoneIndex(M, x, y) {
+  const is = (a, b) => M.at(a, b) === '#';
+  const col = !is(x - 1, y) ? 0 : !is(x + 1, y) ? 2 : 1;
+  const row = !is(x, y + 1) ? 0 : !is(x, y - 1) ? 2 : 1;
+  return row * 8 + col;
+}
+
+// Draw a catalog sprite with its pivot at world (wx, wy).
+function drawSprite(g, m, sp, wx, wy, alpha = 1, flip = false) {
+  const img = imgs[sp.sheet]; if (!img) return;
+  const sy = img.naturalHeight - sp.y - sp.h;
+  const scale = T / sp.ppu, w = sp.w * scale, h = sp.h * scale;
+  const px = wx * T - sp.px * w, py = (m.height - wy) * T - (1 - sp.py) * h;
+  g.globalAlpha = alpha;
+  g.drawImage(img, sp.x, sy, sp.w, sp.h, Math.round(px), Math.round(py), Math.round(w), Math.round(h));
+  g.globalAlpha = 1;
+}
+function drawTile(g, m, sp, x, y) {
+  const img = imgs[sp.sheet]; if (!img) return;
+  const sy = img.naturalHeight - sp.y - sp.h;
+  g.drawImage(img, sp.x, sy, sp.w, sp.h, x * T, (m.height - 1 - y) * T, T, T);
+}
+
+async function main() {
+  const [m, cat] = await Promise.all([
+    fetch('../../Assets/_Game/Map/town-map.json').then(r => r.json()),
+    fetch('cainos-catalog.json').then(r => r.json()),
+  ]);
+  const sheets = new Set();
+  Object.values(cat.tiles).forEach(t => sheets.add(t.sheet));
+  Object.values(cat.prefabs).forEach(parts => parts.forEach(p => sheets.add(p.sheet)));
+  const extra = {
+    villager: 'Assets/ThirdPartyAssets/Cainos/Pixel Art Top Down - Basic/Texture/TX Player.png',
+    cat: 'Assets/ThirdPartyAssets/Pet Cats pack/Sprites/Cat-2/Cat-2-Sitting.png',
+    rat: 'Assets/ThirdPartyAssets/Monsters Creatures Fantasy 2/Sprites/Rat/idle.png',
+  };
+  await Promise.all([...sheets, ...Object.values(extra)].map(loadImg));
+
+  const M = makeMap(m);
+  const canvas = document.getElementById('map');
+  canvas.width = m.width * T; canvas.height = m.height * T;
+  const g = canvas.getContext('2d'); g.imageSmoothingEnabled = false;
+  const tile = k => cat.tiles[k];
+  const gaps = new Set(m.stairs.flatMap(s => [`${s.x - 1},${s.capY}`, `${s.x},${s.capY}`]));
+
+  // Outer wall (same as PaintRoom)
+  const outer = (x, y) => {
+    const L = 0, R = m.width - 1, top = m.height - 1;
+    if (y === top) return x === L ? 0 : x === R ? 2 : 1;
+    if (y === 1) return x === L ? 15 : x === R ? 17 : 16;
+    if (y === 0) return x === L ? 23 : x === R ? 25 : 24;
+    if (x === L) return 8; if (x === R) return 9;
+    return -1;
+  };
+
+  function render() {
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    // Layer 1 ground
+    for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+      const c = M.at(x, y), h = hash(x, y);
+      drawTile(g, m, c === '=' ? tile('pavement_' + h % 8) : c === ',' ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
+      if (c === '#') drawTile(g, m, tile('stone_' + stoneIndex(M, x, y)), x, y);
+    }
+    // Layer 1 shadows + walls
+    for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+      const sh = shadowTile(M, x, y); if (sh) drawTile(g, m, tile('shadow_' + sh), x, y);
+    }
+    for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+      const o = outer(x, y), w = o >= 0 ? o : wall1Tile(M, x, y);
+      if (w >= 0) drawTile(g, m, tile('wall_' + w), x, y);
+    }
+    // Layer 1 objects (stairs, props, characters), y-sorted
+    const objs1 = [], objs2 = [];
+    m.stairs.forEach(s => objs1.push({ prefab: 'Props/PF Struct - Stairs S 01 M', x: s.x, y: s.capY + 1 }));
+    m.props.forEach(p => (p.f === 2 ? objs2 : objs1).push({ prefab: p.p, x: p.x, y: p.y }));
+    m.villagers.forEach(v => (v.f === 2 ? objs2 : objs1).push({ special: 'villager', x: v.x, y: v.y }));
+    m.holes.forEach(h => (h.f === 2 ? objs2 : objs1).push({ special: 'hole', x: h.x, y: h.y, wave: h.wave }));
+    objs1.push({ prefab: 'Props/PF Props - Altar 01', x: m.apothecary[0], y: m.apothecary[1], label: 'APOTHECARY' });
+    objs1.push({ special: 'cat', x: m.komur[0], y: m.komur[1] });
+    const drawObjs = list => {
+      list.sort((a, b) => b.y - a.y);
+      for (const o of list) {
+        if (o.special === 'villager') drawSprite(g, m, { sheet: extra.villager, x: 6, y: 128 - 10 - 48, w: 21, h: 48, px: 0.5, py: 0.1, ppu: 32 }, o.x, o.y - 0.3);
+        else if (o.special === 'cat') drawSprite(g, m, { sheet: extra.cat, x: 0, y: 0, w: 50, h: 50, px: 0.5, py: 0.25, ppu: 20 }, o.x, o.y);
+        else if (o.special === 'hole') {
+          const cx = o.x * T, cy = (m.height - o.y) * T;
+          g.fillStyle = 'rgba(20,12,8,.9)'; g.beginPath(); g.ellipse(cx, cy, 0.35 * T, 0.2 * T, 0, 0, Math.PI * 2); g.fill();
+          g.font = '20px Sprout'; g.fillStyle = '#ffdf8a'; g.textAlign = 'center'; g.fillText('HOLE ' + o.wave, cx, cy - 0.45 * T);
+        } else {
+          const parts = cat.prefabs[o.prefab] || [];
+          parts.slice().sort((a, b) => a.order - b.order).forEach(p => drawSprite(g, m, p, o.x + p.ox, o.y + p.oy, p.part === 'Shadow' ? 0.6 : 1));
+          if (o.label) { g.font = '18px Sprout'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(o.label, o.x * T, (m.height - o.y - 1.6) * T); }
+        }
+      }
+    };
+    drawObjs(objs1);
+    // Layer 2: grass, walls, objects
+    for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+      if (!M.raised(x, y)) continue;
+      const h = hash(x, y);
+      drawTile(g, m, h % 7 === 0 ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
+    }
+    for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+      if (!M.raised(x, y)) continue;
+      let w = raisedTile(M, x, y);
+      if (w >= 15 && w <= 17 && gaps.has(`${x},${y}`)) w = -1;
+      if (w >= 0) drawTile(g, m, tile('wall_' + w), x, y);
+    }
+    drawObjs(objs2);
+
+    if (document.getElementById('labels').checked) {
+      g.font = '44px Sprout'; g.textAlign = 'center'; g.lineWidth = 8; g.strokeStyle = 'rgba(30,20,12,.9)'; g.fillStyle = '#fff2d1';
+      QUARTERS.forEach(q => { const px = q.x * T, py = (m.height - q.y) * T; g.strokeText(q.name, px, py); g.fillText(q.name, px, py); });
+    }
+    if (document.getElementById('camera').checked) {
+      // Gameplay camera: orthographic size 5 at 16:9 -> about 17.8 x 10 tiles, centred on Kömür.
+      const w = 17.8 * T, h = 10 * T, cx = m.komur[0] * T, cy = (m.height - m.komur[1]) * T;
+      g.strokeStyle = '#ffdf8a'; g.lineWidth = 4; g.setLineDash([16, 10]); g.strokeRect(cx - w / 2, cy - h / 2, w, h); g.setLineDash([]);
+    }
+    document.getElementById('stats').textContent = `${m.width}×${m.height} tiles · ${m.props.length} props · ${m.villagers.length} villagers · ${m.holes.length} rat holes`;
+  }
+  const zoom = () => { const z = +document.getElementById('zoom').value; canvas.style.width = canvas.width * z + 'px'; canvas.style.height = canvas.height * z + 'px'; };
+  document.getElementById('zoom').oninput = zoom;
+  document.getElementById('camera').onchange = render;
+  document.getElementById('labels').onchange = render;
+  await document.fonts.load('20px Sprout');
+  render(); zoom();
+}
+main().catch(e => document.querySelector('main').insertAdjacentHTML('beforeend', `<p style="color:#f88">Load failed: ${e}</p>`));
+</script>
+</body>
+</html>

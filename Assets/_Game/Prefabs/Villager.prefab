@@ -222,6 +222,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   background: {fileID: 7517992808757301665}
   fill: {fileID: 3768836848371786638}
+  chip: {fileID: 0}
   width: 0.8
   colors:
     serializedVersion: 2
@@ -253,6 +254,8 @@ MonoBehaviour:
     m_ColorSpace: -1
     m_NumColorKeys: 3
     m_NumAlphaKeys: 2
+  chipDelay: 0.15
+  chipSpeed: 2
 --- !u!1 &7450099153693528416
 GameObject:
   m_ObjectHideFlags: 0

@@ -1382,7 +1382,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 10
@@ -3639,7 +3639,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -3652,7 +3652,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -4421,7 +4421,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 3424661066
   m_fontColor: {r: 0.28862748, g: 0.18196079, b: 0.1254902, a: 0.8}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -4434,12 +4434,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 21
+  m_fontSize: 12.3
   m_fontSizeBase: 21
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -5068,7 +5068,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4291949311
   m_fontColor: {r: 1, g: 0.9490196, b: 0.81960785, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -5081,7 +5081,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -21778,7 +21778,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pickupRange: 1.3
-  brewTime: 3
+  brewTime: 2
   statusText: {fileID: 0}
   readyColor: {r: 0.3, g: 1, b: 0.4, a: 1}
   brewingColor: {r: 1, g: 0.85, b: 0.3, a: 1}
@@ -24504,7 +24504,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 7517992808757301665, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_SortingLayer
@@ -24928,7 +24929,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -25621,7 +25623,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 7517992808757301665, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_SortingLayer
@@ -26720,7 +26723,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -27219,7 +27223,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -28908,7 +28913,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4286640808
   m_fontColor: {r: 0.66, g: 0.95, b: 0.5, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -28921,7 +28926,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -29054,7 +29059,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4281545625
   m_fontColor: {r: 0.6, g: 0.2, b: 0.2, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -29067,7 +29072,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -29303,7 +29308,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -30316,39 +30322,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   waves:
-  - rats: 3
-    spawnInterval: 3
-    ratSpeed: 1.4
-    sickDuration: 30
+  - rats: 2
+    spawnInterval: 4
+    ratSpeed: 1.2
+    sickDuration: 40
+    fastRatChance: 0
+    ratKing: 0
+  - rats: 4
+    spawnInterval: 3.2
+    ratSpeed: 1.3
+    sickDuration: 36
     fastRatChance: 0
     ratKing: 0
   - rats: 6
+    spawnInterval: 2.6
+    ratSpeed: 1.45
+    sickDuration: 32
+    fastRatChance: 0.15
+    ratKing: 0
+  - rats: 8
     spawnInterval: 2.2
-    ratSpeed: 1.6
-    sickDuration: 26
-    fastRatChance: 0
+    ratSpeed: 1.55
+    sickDuration: 28
+    fastRatChance: 0.2
     ratKing: 0
-  - rats: 9
-    spawnInterval: 1.6
-    ratSpeed: 1.8
-    sickDuration: 22
+  - rats: 10
+    spawnInterval: 1.9
+    ratSpeed: 1.65
+    sickDuration: 25
     fastRatChance: 0.25
-    ratKing: 0
-  - rats: 12
-    spawnInterval: 1.2
-    ratSpeed: 2
-    sickDuration: 18
-    fastRatChance: 0.35
-    ratKing: 0
-  - rats: 15
-    spawnInterval: 1
-    ratSpeed: 2.1
-    sickDuration: 15
-    fastRatChance: 0.4
     ratKing: 1
-  timeBetweenWaves: 4
-  maxWaveDuration: 30
-  maxDeaths: 3
+  timeBetweenWaves: 6
+  maxWaveDuration: 40
+  maxDeaths: 4
+  revealPanTime: 0.8
+  revealHoldTime: 1.2
   panicPerDeath: 0.2
   ratPrefab: {fileID: 2080948871816872066, guid: 0d1aa7440604e484fa1b7190434f1566,
     type: 3}
@@ -43185,7 +43193,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -44271,7 +44280,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4281568320
   m_fontColor: {r: 0.25, g: 0.55, b: 0.2, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -44284,7 +44293,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -44949,7 +44958,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -46277,7 +46286,8 @@ PrefabInstance:
         type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+      objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
+        type: 2}
     - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_sharedMaterial
@@ -46779,7 +46789,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -46792,12 +46802,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28
+  m_fontSize: 19.95
   m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -48506,7 +48516,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -48519,7 +48529,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -48982,7 +48992,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -50640,10 +50650,9 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   - id: 1
-    vfxPrefab: {fileID: 2837609728858217907, guid: 30538aa757d5768459b127b9b70d4362,
-      type: 3}
+    vfxPrefab: {fileID: 181780, guid: 9dbd6578ad45ab34da731a133a3bd5f7, type: 3}
     vfxLifetime: 2
-    vfxScale: 0.35
+    vfxScale: 0.45
     sfx: {fileID: 0}
     volume: 1
     cameraShake: 0.08
@@ -50772,6 +50781,34 @@ MonoBehaviour:
     sfx: {fileID: 0}
     volume: 1
     cameraShake: 0
+    battleText: 
+    battleTextAnimation: {fileID: 0}
+    battleTextHeight: 1
+    onPlay:
+      m_PersistentCalls:
+        m_Calls: []
+  - id: 11
+    vfxPrefab: {fileID: 187952, guid: c05e92eaee7a00844867e5edc8e0dde1, type: 3}
+    vfxLifetime: 2
+    vfxScale: 0.7
+    sfx: {fileID: 0}
+    volume: 1
+    cameraShake: 0.12
+    battleText: RAT HOLE!
+    battleTextAnimation: {fileID: 11400000, guid: 8488570afc412bb47b34af682943713c,
+      type: 2}
+    battleTextHeight: 1
+    onPlay:
+      m_PersistentCalls:
+        m_Calls: []
+  - id: 12
+    vfxPrefab: {fileID: 2837609728858217907, guid: 30538aa757d5768459b127b9b70d4362,
+      type: 3}
+    vfxLifetime: 2
+    vfxScale: 0.3
+    sfx: {fileID: 0}
+    volume: 1
+    cameraShake: 0.06
     battleText: 
     battleTextAnimation: {fileID: 0}
     battleTextHeight: 1
