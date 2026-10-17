@@ -8,7 +8,7 @@ namespace Komur
     public class Rat : MonoBehaviour
     {
         public float speed = 1.6f;
-        public float biteRange = 0.45f;
+        public float biteRange = 0.55f;
         public float fleeSpeedMultiplier = 1.4f;
         public float retargetInterval = 1f;
         public SpriteRenderer visual;

@@ -12,7 +12,7 @@ namespace Komur
         public float pounceSpeed = 13f;
         public float pounceDuration = 0.15f;
         public float pounceCooldown = 0.35f;
-        public float pounceKillRadius = 0.75f;
+        public float pounceKillRadius = 0.95f;
 
         [Header("Medicine")]
         public float deliverRange = 0.9f;

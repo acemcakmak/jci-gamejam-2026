@@ -7,7 +7,16 @@ namespace Komur
     public class Hud : MonoBehaviour
     {
         public TextMeshProUGUI waveText;
+        [Tooltip("Legacy single-line counter; optional.")]
         public TextMeshProUGUI villagersText;
+        [Header("Town panel")]
+        public UnityEngine.UI.Image aliveIcon;
+        public TextMeshProUGUI aliveText;
+        public UnityEngine.UI.Image sickIcon;
+        public TextMeshProUGUI sickText;
+        public UnityEngine.UI.Image lostIcon;
+        public TextMeshProUGUI lostText;
+        [Header("Other")]
         public TextMeshProUGUI hintText;
         public TextMeshProUGUI bannerText;
         public GameObject introPanel;
@@ -37,7 +46,10 @@ namespace Komur
             if (gm == null) return;
 
             if (waveText != null)
-                waveText.text = gm.WaveNumber > 0 ? $"Wave {gm.WaveNumber}/{gm.WaveCount}" : "";
+                waveText.text = gm.WaveNumber > 0 ? $"WAVE {gm.WaveNumber}/{gm.WaveCount}" : "GET READY";
+            if (aliveText != null) aliveText.text = gm.Alive.ToString();
+            if (sickText != null) sickText.text = gm.Sick.ToString();
+            if (lostText != null) lostText.text = $"{gm.Dead}/{gm.maxDeaths}";
             if (villagersText != null)
                 villagersText.text = $"Villagers {gm.Alive}   <color=#7CFF6B>Sick {gm.Sick}</color>   <color=#FF8A8A>Lost {gm.Dead}/{gm.maxDeaths}</color>";
             if (hintText != null)
@@ -66,7 +78,7 @@ namespace Komur
 
         private IEnumerator BannerRoutine(string text, float duration)
         {
-            bannerText.text = text;
+            bannerText.text = text.ToUpperInvariant();
             var banner = BannerObject;
             banner.SetActive(true);
             float t = 0f;
@@ -84,13 +96,12 @@ namespace Komur
         {
             if (endPanel == null) return;
             endPanel.SetActive(true);
-            if (endTitle != null) endTitle.text = won ? "The town is saved!" : "The plague took the town...";
+            if (endTitle != null) endTitle.text = won ? "THE TOWN IS SAVED!" : "THE PLAGUE TOOK THE TOWN...";
             if (endBody != null)
             {
                 endBody.text = won
-                    ? $"{alive} villagers survived, {cured} cured by Kömür.\nThey'll never fear a black cat again."
-                    : $"{dead} villagers were lost.\nThe townsfolk still blame the black cat...";
-                endBody.text += "\n\nPress R or click Again";
+                    ? $"{alive} VILLAGERS SURVIVED, {cured} CURED BY KOMUR.\nTHEY WILL NEVER FEAR A BLACK CAT AGAIN."
+                    : $"{dead} VILLAGERS WERE LOST.\nTHE TOWNSFOLK STILL BLAME THE BLACK CAT...";
             }
         }
     }

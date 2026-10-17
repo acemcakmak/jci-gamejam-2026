@@ -209,7 +209,7 @@ namespace Komur
             Friendly = true;
             if (sickBar != null) sickBar.SetVisible(false);
             SetTint(Color.white);
-            ShowIconFor("Thanks!", new Color(1f, 0.6f, 0.8f), 1.5f);
+            SetIcon("", Color.white); // the CURED! battle text replaces the old "Thanks!"
             GameFeedbacks.Play(FeedbackId.Cured, transform.position);
             if (GameManager.I != null) GameManager.I.OnVillagerCured();
         }

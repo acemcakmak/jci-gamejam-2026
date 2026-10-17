@@ -83,6 +83,12 @@ namespace Komur.EditorTools
                 gm.bossPrefab = prefabs.boss;
                 gm.waves = GameManager.DefaultWaves();
                 EnsureNavGrids(gm);
+                foreach (var tmp in Object.FindObjectsByType<TextMeshPro>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    tmp.font = WorldFont();
+                    tmp.text = tmp.text.ToUpperInvariant();
+                    EditorUtility.SetDirty(tmp);
+                }
                 EditorUtility.SetDirty(gm);
                 EditorSceneManager.MarkSceneDirty(gm.gameObject.scene);
                 EditorSceneManager.SaveScene(gm.gameObject.scene);
@@ -301,15 +307,15 @@ namespace Komur.EditorTools
         private static Rat BuildRatPrefab(Sprite circle, int layer)
         {
             var run = SheetFrames(MonstersRoot + "/Rat/run.png");
-            var go = BuildEnemyBase("Rat", layer, 0.12f);
+            var go = BuildEnemyBase("Rat", layer, 0.16f);
             var visual = go.transform.Find("Visual");
             var sr = visual.GetComponent<SpriteRenderer>();
 
             if (run.Length > 0)
             {
                 // Monsters Creatures Fantasy 2 rat: 70px frames at 100 PPU, faces right.
-                visual.localPosition = new Vector3(0f, 0.15f, 0f);
-                visual.localScale = Vector3.one * 1.3f;
+                visual.localPosition = new Vector3(0f, 0.23f, 0f);
+                visual.localScale = Vector3.one * 2f;
                 var flipbook = visual.gameObject.AddComponent<SpriteFlipbook>();
                 flipbook.defaultClip = "Run";
                 flipbook.clips = new[]
@@ -338,10 +344,10 @@ namespace Komur.EditorTools
         {
             var walk = SheetFrames(MonstersRoot + "/Slime/walk.png");
             if (walk.Length == 0) return null;
-            var go = BuildEnemyBase("Plague Slime", layer, 0.35f);
+            var go = BuildEnemyBase("Plague Slime", layer, 0.5f);
             var visual = go.transform.Find("Visual");
-            visual.localPosition = new Vector3(0f, 0.6f, 0f);
-            visual.localScale = Vector3.one * 4f;
+            visual.localPosition = new Vector3(0f, 0.9f, 0f);
+            visual.localScale = Vector3.one * 6f;
             var sr = visual.GetComponent<SpriteRenderer>();
             sr.sprite = walk[0];
             var flipbook = visual.gameObject.AddComponent<SpriteFlipbook>();
@@ -432,14 +438,14 @@ namespace Komur.EditorTools
         private static GameObject BuildKomurPrefab(int layer, int charactersLayer)
         {
             var go = new GameObject("Komur") { layer = Mathf.Max(0, layer) };
-            AddBody(go, 0.22f);
+            AddBody(go, 0.28f);
             go.GetComponent<Collider2D>().excludeLayers = 1 << charactersLayer;
             go.AddComponent<SpriteRenderer>(); // Cainos StairsLayerTrigger needs one on the root
 
             var visual = new GameObject("Visual");
             visual.transform.SetParent(go.transform, false);
-            visual.transform.localPosition = new Vector3(0f, 0.3f, 0f);
-            visual.transform.localScale = Vector3.one * 3f;
+            visual.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+            visual.transform.localScale = Vector3.one * 5f;
             var sr = visual.AddComponent<SpriteRenderer>();
             sr.sortingLayerName = CharacterSortingLayer;
             sr.sortingOrder = 2;
@@ -454,7 +460,7 @@ namespace Komur.EditorTools
             };
             sr.sprite = flipbook.clips[0].frames.FirstOrDefault();
 
-            var medicine = AddWorldText(go.transform, "Medicine Icon", "+", 7f, new Vector3(0f, 1.1f, 0f), new Color(0.3f, 1f, 0.4f));
+            var medicine = AddWorldText(go.transform, "Medicine Icon", "+", 7f, new Vector3(0f, 1.6f, 0f), new Color(0.3f, 1f, 0.4f));
 
             var komur = go.AddComponent<KomurController>();
             komur.flipbook = flipbook;
@@ -474,7 +480,7 @@ namespace Komur.EditorTools
                 var a = (GameObject)PrefabUtility.InstantiatePrefab(altar, go.transform);
                 a.transform.localPosition = Vector3.zero;
             }
-            AddWorldText(go.transform, "Label", "Apothecary", 3.5f, new Vector3(0f, 1.6f, 0f), Color.white);
+            AddWorldText(go.transform, "Label", "APOTHECARY", 3.5f, new Vector3(0f, 1.6f, 0f), Color.white);
             AddWorldText(go.transform, "Cross", "+", 8f, new Vector3(0f, 2.3f, 0f), new Color(0.3f, 1f, 0.4f));
             return go;
         }
@@ -536,7 +542,7 @@ namespace Komur.EditorTools
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
             var tmp = go.AddComponent<TextMeshPro>();
-            tmp.font = TMP_Settings.defaultFontAsset;
+            tmp.font = WorldFont();
             tmp.text = text;
             tmp.fontSize = size;
             tmp.color = color;
@@ -548,6 +554,13 @@ namespace Komur.EditorTools
             mr.sortingLayerName = CharacterSortingLayer;
             mr.sortingOrder = 40;
             return tmp;
+        }
+
+        // World-space labels and icons use the PixelBattleText pixel font so they match the battle texts.
+        private static TMP_FontAsset WorldFont()
+        {
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/ThirdPartyAssets/PixelBattleText/Fonts/Alphapix.asset");
+            return font != null ? font : TMP_Settings.defaultFontAsset;
         }
 
         private static Sprite[] CatFrames(string anim)

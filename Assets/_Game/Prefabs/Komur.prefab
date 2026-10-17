@@ -497,4 +497,9 @@ MonoBehaviour:
     - {fileID: 256048711, guid: 4282a1e20e673d943a10aa8a0fdf40fc, type: 3}
     fps: 6
     loop: 1
+  - name: Sit
+    frames:
+    - {fileID: 256048711, guid: 4282a1e20e673d943a10aa8a0fdf40fc, type: 3}
+    fps: 5
+    loop: 1
   defaultClip: Idle
