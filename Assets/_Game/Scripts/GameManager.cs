@@ -458,6 +458,8 @@ namespace Komur
 
         [Header("Ending")]
         public Vector2 endCircleRadius = new Vector2(2.1f, 1.35f);
+        [Tooltip("How far below the altar's middle Kömür's feet go, so the sitting cat looks centred.")]
+        public float komurAltarDrop = 0.3f;
         public float endShowScreenAfter = 1.5f;
 
         // Everyone gathers: the rats burrow away, Kömür appears on the apothecary, the villagers (and the
@@ -476,15 +478,16 @@ namespace Komur
 
             var apothecary = FindFirstObjectByType<Apothecary>();
             int floor = apothecary != null ? apothecary.Floor : 1;
-            Vector3 centre = apothecary != null ? apothecary.transform.position : (komur != null ? komur.transform.position : Vector3.zero);
+            Vector3 centre = apothecary != null ? apothecary.AltarCentre : (komur != null ? komur.transform.position : Vector3.zero);
             var grid = NavGrid.For(floor);
             if (komur != null)
             {
                 GameFeedbacks.Play(FeedbackId.RatDig, komur.transform.position);
-                komur.EnterEnding(centre, floor);
+                // Kömür's feet a little below the middle, so the sitting cat looks centred on the altar.
+                komur.EnterEnding(centre + Vector3.down * komurAltarDrop, floor);
                 GameFeedbacks.Play(FeedbackId.MedicinePicked, centre);
             }
-            CameraFollow2D.Focus(centre + Vector3.down * 0.3f);
+            CameraFollow2D.Focus(centre);
             CameraFollow2D.ZoomTo(titleCameraSize, 1.2f);
             yield return new WaitForSeconds(0.5f);
 
@@ -493,8 +496,9 @@ namespace Komur
             {
                 var v = villagers[i];
                 float angle = Mathf.PI * 0.5f + i * Mathf.PI * 2f / n;
-                Vector3 slot = centre + new Vector3(Mathf.Cos(angle) * endCircleRadius.x, Mathf.Sin(angle) * endCircleRadius.y, 0f);
-                if (v.State != VillagerState.Dead && grid != null && grid.TryNearestWalkable(slot, 2, out var free)) slot = free;
+                // Slots are feet; the bodies stand ~half a unit higher, so drop the ring to centre the bodies.
+                Vector3 slot = centre + new Vector3(Mathf.Cos(angle) * endCircleRadius.x, Mathf.Sin(angle) * endCircleRadius.y - 0.45f, 0f);
+                if (v.State != VillagerState.Dead && grid != null && !grid.IsWalkable(slot) && grid.TryNearestWalkable(slot, 1, out var free)) slot = free;
                 var mood = Villager.EndMood.Calm;
                 if (v.State != VillagerState.Dead)
                 {

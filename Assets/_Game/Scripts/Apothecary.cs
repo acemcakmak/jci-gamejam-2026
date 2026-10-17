@@ -87,6 +87,23 @@ namespace Komur
             }
         }
 
+        // Middle of the altar sprite (its pivot is not its centre).
+        public Vector3 AltarCentre
+        {
+            get
+            {
+                Bounds altar = new Bounds(transform.position, Vector3.zero);
+                bool any = false;
+                foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
+                {
+                    if (sr.sprite == null || sr.name.Contains("Shadow") || sr == potionPlaceholder) continue;
+                    if (!any) { altar = sr.bounds; any = true; }
+                    else altar.Encapsulate(sr.bounds);
+                }
+                return new Vector3(altar.center.x, altar.center.y, 0f);
+            }
+        }
+
         // The boss smashes the waiting potion; brewing resumes once it is dead.
         public void OnBossArrived() => ClearPotion(true);
 
