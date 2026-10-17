@@ -26,7 +26,7 @@ namespace Komur
 
         // Tilemaps per floor (1..3) and tree crowns, cached once per scene.
         private static readonly List<Tilemap>[] floorMaps = { null, new List<Tilemap>(), new List<Tilemap>(), new List<Tilemap>() };
-        private static readonly List<SpriteRenderer> crowns = new List<SpriteRenderer>();
+        private static readonly List<SpriteRenderer> occluders = new List<SpriteRenderer>();
         private static int cachedScene = -1;
 
         private void Start()
@@ -49,7 +49,7 @@ namespace Komur
             if (scene == cachedScene) return;
             cachedScene = scene;
             for (int f = 1; f <= 3; f++) floorMaps[f].Clear();
-            crowns.Clear();
+            occluders.Clear();
             foreach (var tm in FindObjectsByType<Tilemap>(FindObjectsSortMode.None))
             {
                 string n = tm.name;
@@ -57,9 +57,15 @@ namespace Komur
                 for (int f = 1; f <= 3; f++)
                     if (n.StartsWith(FloorAgent.LayerName(f) + " - ") && !n.Contains("Shadow") && !n.Contains("Wall")) floorMaps[f].Add(tm);
             }
-            // Whole trees (trunk and leaves of both sprite halves), not their ground shadows.
+            // Tall scenery that can be drawn over a character: trees, statues, pillars, gates, lanterns, crates...
             foreach (var sr in FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None))
-                if (sr.name != "Shadow" && sr.transform.parent != null && sr.transform.parent.name.Contains("Tree")) crowns.Add(sr);
+            {
+                if (sr.sprite == null || sr.name.Contains("Shadow")) continue;
+                if (sr.GetComponentInParent<KomurController>() || sr.GetComponentInParent<Villager>() || sr.GetComponentInParent<Rat>()
+                    || sr.GetComponentInParent<RatHole>() || sr.GetComponentInParent<ThrownStone>()) continue;
+                if (sr.bounds.size.y < 0.9f) continue;
+                occluders.Add(sr);
+            }
         }
 
         private void LateUpdate()
@@ -101,12 +107,18 @@ namespace Komur
                         if (tm.HasTile(tm.WorldToCell(p))) return true;
                 }
 
-            // Trees in front of the character: a tree whose trunk is lower on screen draws over it.
-            float feet = transform.position.y;
-            foreach (var crown in crowns)
+            // Scenery drawn over the character: on a higher sorting layer, or the same layer and lower on
+            // screen (sprites are sorted by Y), or a higher order on the same layer.
+            float feet = SortY(source);
+            int myLayer = SortingLayer.GetLayerValueFromID(source.sortingLayerID);
+            foreach (var crown in occluders)
             {
-                if (crown == null || crown.transform.parent.position.y > feet) continue;
-                if (crown.sortingLayerID != source.sortingLayerID) continue;
+                if (crown == null || !crown.enabled) continue;
+                int layer = SortingLayer.GetLayerValueFromID(crown.sortingLayerID);
+                bool inFront = layer > myLayer
+                               || layer == myLayer && (crown.sortingOrder > source.sortingOrder
+                                                      || crown.sortingOrder == source.sortingOrder && SortY(crown) < feet);
+                if (!inFront) continue;
                 var cb = crown.bounds;
                 // Shrink the sprite box a little: its corners are transparent.
                 cb.Expand(new Vector3(-cb.size.x * 0.2f, -cb.size.y * 0.1f, 0f));
@@ -114,6 +126,12 @@ namespace Komur
                     if (cb.Contains(new Vector3(p.x, p.y, cb.center.z))) return true;
             }
             return false;
+        }
+
+        // The Y Unity sorts a sprite by (custom Y axis): its pivot or its bounds centre, per Sprite Sort Point.
+        private static float SortY(SpriteRenderer r)
+        {
+            return r.spriteSortPoint == SpriteSortPoint.Pivot ? r.transform.position.y : r.bounds.center.y;
         }
 
         private int FloorOfCharacter()

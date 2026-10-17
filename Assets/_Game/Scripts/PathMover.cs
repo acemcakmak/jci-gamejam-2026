@@ -16,6 +16,9 @@ namespace Komur
         private float nextRepathAt;
         private Vector3 lastProgressPos;
         private float progressCheckAt;
+        private float sidestepUntil;
+        private float sidestepSign = 1f;
+        private int stuckCount;
 
         public bool HasDestination => hasDestination;
         public bool Arrived => hasDestination && index >= path.Count;
@@ -65,8 +68,16 @@ namespace Komur
             {
                 bool stuck = (transform.position - lastProgressPos).sqrMagnitude < 0.01f && index < path.Count;
                 lastProgressPos = transform.position;
-                progressCheckAt = Time.time + 0.6f;
-                if (stuck) nextRepathAt = 0f;
+                progressCheckAt = Time.time + 0.5f;
+                if (stuck)
+                {
+                    // Re-plan, and slide sideways for a moment to get off whatever corner we're caught on.
+                    nextRepathAt = 0f;
+                    stuckCount++;
+                    sidestepSign = stuckCount % 2 == 0 ? 1f : -1f;
+                    sidestepUntil = Time.time + 0.35f;
+                }
+                else stuckCount = 0;
             }
             if (Time.time >= nextRepathAt) Repath();
 
@@ -74,7 +85,9 @@ namespace Komur
             while (index < path.Count && (path[index] - pos).sqrMagnitude <= waypointReachedDistance * waypointReachedDistance)
                 index++;
             if (index >= path.Count) return Vector2.zero;
-            return (path[index] - pos).normalized;
+            Vector2 dir = (path[index] - pos).normalized;
+            if (Time.time < sidestepUntil) dir = (dir * 0.4f + new Vector2(-dir.y, dir.x) * sidestepSign).normalized;
+            return dir;
         }
 
         private void OnDrawGizmosSelected()

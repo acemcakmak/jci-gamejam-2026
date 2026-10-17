@@ -23,7 +23,8 @@ namespace Komur
         [Range(1, 3)] public int floor = 1;
         public float cellSize = 0.5f;
         [Tooltip("Half-size of the box checked for obstacles around each cell centre.")]
-        public float clearance = 0.3f;
+        // Renamed from 'clearance' so scenes saved with the old, too-wide 0.3 pick up the new default.
+        public float obstacleHalfSize = 0.18f;
         public int rowsRefreshedPerFrame = 6;
         public int maxSearchNodes = 8000;
         public bool drawGizmos;
@@ -223,7 +224,7 @@ namespace Komur
 
         private bool Blocked(Vector2 center)
         {
-            Vector2 size = Vector2.one * (clearance * 2f);
+            Vector2 size = Vector2.one * (obstacleHalfSize * 2f);
             int n = Physics2D.OverlapBox(center, size, 0f, obstacleFilter, overlapBuffer);
             for (int i = 0; i < n; i++)
             {
