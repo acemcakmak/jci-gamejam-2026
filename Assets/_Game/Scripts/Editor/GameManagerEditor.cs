@@ -28,6 +28,11 @@ namespace Komur.EditorTools
                 if (GUILayout.Button("All Dead")) gm.DebugEnding(Ending.AllDead);
             }
             if (over && GUILayout.Button("Back to Main Menu")) gm.ReturnToMenu();
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Test Boss", EditorStyles.boldLabel);
+            using (new EditorGUI.DisabledScope(over || gm.BossAlive || gm.IsCinematic))
+                if (GUILayout.Button(gm.BossAlive ? "Boss is here" : "Summon Boss")) gm.DebugSummonBoss();
         }
 
         private const string Menu = "Kömür/Test Ending/";
@@ -49,6 +54,12 @@ namespace Komur.EditorTools
             var gm = GameManager.I;
             return Application.isPlaying && gm != null && (gm.State == GameState.Intro || gm.State == GameState.Playing);
         }
+
+        [MenuItem("Kömür/Summon Boss", priority = 64)]
+        private static void SummonBoss() => GameManager.I?.DebugSummonBoss();
+
+        [MenuItem("Kömür/Summon Boss", true)]
+        private static bool CanSummonBoss() => CanRun() && !GameManager.I.BossAlive && !GameManager.I.IsCinematic;
 
         private static void Run(Ending ending)
         {

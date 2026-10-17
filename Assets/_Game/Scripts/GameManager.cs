@@ -320,6 +320,16 @@ namespace Komur
         }
 
 #if UNITY_EDITOR
+        // Editor-only test: the boss arrives now (full reveal), with the last wave's speed.
+        public void DebugSummonBoss()
+        {
+            if (State == GameState.Intro) StartGame();
+            if (State != GameState.Playing || BossAlive || IsCinematic) return;
+            if (IsPaused) SetPaused(false);
+            float speed = waves.Count > 0 ? waves[waves.Count - 1].ratSpeed : 1.6f;
+            StartCoroutine(RevealBoss(speed));
+        }
+
         // Editor-only test: jump straight to an ending (starts the game first if on the title screen).
         public void DebugEnding(Ending ending)
         {
