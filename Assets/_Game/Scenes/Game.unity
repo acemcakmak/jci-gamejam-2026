@@ -279,6 +279,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -1620,7 +1625,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4281545625
   m_fontColor: {r: 0.6, g: 0.2, b: 0.2, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -1633,7 +1638,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -4672,7 +4677,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 3424661066
   m_fontColor: {r: 0.28862748, g: 0.18196079, b: 0.1254902, a: 0.8}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -4685,12 +4690,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 21
+  m_fontSize: 12.3
   m_fontSizeBase: 21
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -4789,7 +4794,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floor: 2
   cellSize: 0.5
-  clearance: 0.3
+  obstacleHalfSize: 0.18
   rowsRefreshedPerFrame: 6
   maxSearchNodes: 8000
   drawGizmos: 0
@@ -6601,6 +6606,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -7049,7 +7059,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4291949311
   m_fontColor: {r: 1, g: 0.9490196, b: 0.81960785, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -7062,7 +7072,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -12265,6 +12275,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -12785,7 +12800,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4284940108
   m_fontColor: {r: 0.3, g: 1, b: 0.4, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -12798,7 +12813,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -14267,7 +14282,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.5, y: -0.5, z: -10}
+  m_LocalPosition: {x: 3.08, y: 2.61, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14955,7 +14970,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -15327,6 +15342,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -16730,7 +16750,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4281568320
   m_fontColor: {r: 0.25, g: 0.55, b: 0.2, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -16743,7 +16763,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -17154,7 +17174,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -17167,7 +17187,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -17753,7 +17773,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -17977,7 +17997,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floor: 3
   cellSize: 0.5
-  clearance: 0.3
+  obstacleHalfSize: 0.18
   rowsRefreshedPerFrame: 6
   maxSearchNodes: 8000
   drawGizmos: 0
@@ -19149,6 +19169,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -19420,7 +19445,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -22161,6 +22186,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -22463,6 +22493,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -22889,7 +22924,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -22902,12 +22937,12 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28
+  m_fontSize: 19.95
   m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -30391,7 +30426,7 @@ Transform:
   m_GameObject: {fileID: 1301473095}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3, y: 2.6, z: 0}
+  m_LocalPosition: {x: 3, y: -0.57, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -30721,7 +30756,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4286640808
   m_fontColor: {r: 0.66, g: 0.95, b: 0.5, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -30734,7 +30769,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -31756,6 +31791,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8304537473991271978, guid: 905c36f04a2404707a9e59c15a431dd7,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 9099213068759902947, guid: 905c36f04a2404707a9e59c15a431dd7,
         type: 3}
       propertyPath: m_Name
@@ -32268,12 +32308,12 @@ PrefabInstance:
     - target: {fileID: 333210291134263409, guid: ee6d76ab501c34d6680d8ae7b411ff41,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.5
+      value: 2.95
       objectReference: {fileID: 0}
     - target: {fileID: 333210291134263409, guid: ee6d76ab501c34d6680d8ae7b411ff41,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.5
+      value: 2.17
       objectReference: {fileID: 0}
     - target: {fileID: 333210291134263409, guid: ee6d76ab501c34d6680d8ae7b411ff41,
         type: 3}
@@ -32332,6 +32372,16 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5547366144680400538, guid: 554d25ed6addaf34f9824d8cfe5a5d44,
         type: 2}
+    - target: {fileID: 8433485638130124269, guid: ee6d76ab501c34d6680d8ae7b411ff41,
+        type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4284940108
+      objectReference: {fileID: 0}
+    - target: {fileID: 8433485638130124269, guid: ee6d76ab501c34d6680d8ae7b411ff41,
+        type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -35794,7 +35844,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4280826460
   m_fontColor: {r: 0.36078432, g: 0.22745098, b: 0.15686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -35807,7 +35857,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -36335,7 +36385,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 10
@@ -36599,7 +36649,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   floor: 1
   cellSize: 0.5
-  clearance: 0.3
+  obstacleHalfSize: 0.18
   rowsRefreshedPerFrame: 6
   maxSearchNodes: 8000
   drawGizmos: 0
@@ -40756,7 +40806,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2135407829
 Transform:
   m_ObjectHideFlags: 0
@@ -41713,6 +41763,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1177272032}
     m_Modifications:
+    - target: {fileID: 2055102311959635369, guid: 99597c7b4aa47494fb2b6061505735da,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2055102311959635375, guid: 99597c7b4aa47494fb2b6061505735da,
         type: 3}
       propertyPath: m_RootOrder

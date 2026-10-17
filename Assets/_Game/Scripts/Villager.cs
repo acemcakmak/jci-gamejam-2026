@@ -266,6 +266,10 @@ namespace Komur
                 int layer = LayerMask.NameToLayer(FloorAgent.LayerName(Floor));
                 foreach (var t in grave.GetComponentsInChildren<Transform>(true)) if (layer >= 0) t.gameObject.layer = layer;
                 foreach (var r in grave.GetComponentsInChildren<Renderer>(true)) r.sortingLayerName = FloorAgent.LayerName(Floor);
+                var scenery = GameManager.I != null ? GameManager.I.sceneryMaterial : null;
+                if (scenery != null)
+                    foreach (var sr in grave.GetComponentsInChildren<SpriteRenderer>(true))
+                        if (!sr.name.Contains("Shadow")) sr.sharedMaterial = scenery;
             }
             GameFeedbacks.Play(FeedbackId.VillagerDied, transform.position);
             if (GameManager.I != null) GameManager.I.OnVillagerDied();

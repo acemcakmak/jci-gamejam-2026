@@ -31,6 +31,13 @@ namespace Komur
         {
             if (!force && hasDestination && (target - destination).sqrMagnitude < 0.25f && targetFloor == destinationFloor && Time.time < nextRepathAt)
                 return true;
+            if (hasDestination && !OnGrid())
+            {
+                // On the stairs: keep climbing; the new goal is planned once we're back on a floor.
+                destination = target;
+                destinationFloor = targetFloor;
+                return true;
+            }
             destination = target;
             destinationFloor = targetFloor;
             hasDestination = true;
@@ -84,7 +91,8 @@ namespace Komur
                 }
                 else stuckCount = 0;
             }
-            if (Time.time >= nextRepathAt) Repath();
+            // Never re-plan mid-staircase: stairs aren't on any floor's grid, so a fresh plan would fail.
+            if (Time.time >= nextRepathAt && OnGrid()) Repath();
 
             Vector2 pos = transform.position;
             while (index < path.Count && (path[index] - pos).sqrMagnitude <= waypointReachedDistance * waypointReachedDistance)
@@ -93,6 +101,12 @@ namespace Komur
             Vector2 dir = (path[index] - pos).normalized;
             if (Time.time < sidestepUntil) dir = (dir * 0.4f + new Vector2(-dir.y, dir.x) * sidestepSign).normalized;
             return dir;
+        }
+
+        private bool OnGrid()
+        {
+            var grid = NavGrid.For(FloorAgent.FloorOf(gameObject));
+            return grid == null || grid.TryNearestWalkable(transform.position, 1, out _);
         }
 
         private void OnDrawGizmosSelected()

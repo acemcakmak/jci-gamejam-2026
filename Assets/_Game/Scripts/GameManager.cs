@@ -46,6 +46,8 @@ namespace Komur
         public Transform[] ratSpawns;
         public KomurController komur;
         public Hud hud;
+        [Tooltip("Komur/Sprite material that clears the stencil; given to all scenery at start so hidden characters show a silhouette.")]
+        public Material sceneryMaterial;
 
         [Header("Title screen")]
         [Tooltip("Camera size while the title screen shows Kömür sitting in the square.")]
@@ -134,8 +136,24 @@ namespace Komur
 
         private void Start()
         {
+            ApplySceneryMaterial();
             if (hud != null) hud.ShowIntro(true);
             CameraFollow2D.ZoomTo(titleCameraSize, 0f);
+        }
+
+        // Scenery (props, plants, tilemaps) clears the stencil wherever it draws, so a character covered by it
+        // shows its silhouette. Ground shadows are left alone (they are see-through).
+        private void ApplySceneryMaterial()
+        {
+            if (sceneryMaterial == null) return;
+            foreach (var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!(r is SpriteRenderer) && !(r is UnityEngine.Tilemaps.TilemapRenderer)) continue;
+                if (r.name.Contains("Shadow")) continue;
+                if (r.GetComponentInParent<KomurController>() || r.GetComponentInParent<Villager>() || r.GetComponentInParent<Rat>()
+                    || r.GetComponentInParent<RatHole>() || r.GetComponentInParent<ThrownStone>() || r.GetComponentInParent<Canvas>()) continue;
+                r.sharedMaterial = sceneryMaterial;
+            }
         }
 
         // Called by the Play button (or Space / Enter on the title screen).

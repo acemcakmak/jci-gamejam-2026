@@ -279,7 +279,7 @@ namespace Komur
                 block.SetFloat(FadeAmount, k);
                 visual.SetPropertyBlock(block);
                 // Fallback for materials without the dissolve: fade the sprite out.
-                if (!visual.sharedMaterial.IsKeywordEnabled("FADE_ON"))
+                if (!visual.sharedMaterial.HasProperty("_FadeAmount"))
                     visual.color = new Color(start.r, start.g, start.b, 1f - k);
                 yield return null;
             }

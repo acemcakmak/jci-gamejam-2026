@@ -101,6 +101,7 @@ namespace Komur.EditorTools
             {
                 gm.ratPrefab = prefabs.rat;
                 gm.bossPrefab = prefabs.boss;
+                gm.sceneryMaterial = SceneryMaterial();
                 gm.waves = GameManager.DefaultWaves();
                 gm.maxDeaths = 4;
                 gm.maxWaveDuration = 40f;
@@ -256,6 +257,7 @@ namespace Komur.EditorTools
             }
             gm.ratPrefab = prefabs.rat;
             gm.bossPrefab = prefabs.boss;
+            gm.sceneryMaterial = SceneryMaterial();
             gm.komur = komurController;
             gm.hud = hud;
             EnsureNavGrids(gm);
@@ -480,74 +482,71 @@ namespace Komur.EditorTools
             }
         }
 
-        // Outline-only sprite drawn over everything while a character is hidden (see OcclusionOutline).
-        private static Material HiddenOutlineMaterial()
+        // ---------- Komur/Sprite materials (stencil "see through walls" + plagued look) ----------
+        // Scenery clears the stencil, characters write 1, the silhouette draws where stencil != 1.
+        private const float CompAlways = 8f, CompNotEqual = 6f, OpKeep = 0f, OpReplace = 2f;
+
+        private static Material KomurMaterial(string name, System.Action<Material> setup)
         {
-            string path = GameRoot + "/Art/Materials/Hidden Outline.mat";
-            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
-            if (shader == null) return null;
+            string path = GameRoot + "/Art/Materials/" + name + ".mat";
+            var shader = Shader.Find("Komur/Sprite");
+            if (shader == null) { Debug.LogWarning("[Kömür] Komur/Sprite shader not found"); return null; }
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
             {
                 Directory.CreateDirectory(GameRoot + "/Art/Materials");
-                mat = new Material(shader) { name = "Hidden Outline" };
+                mat = new Material(shader) { name = name };
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.shader = shader;
-            foreach (var k in new[] { "OUTBASE_ON", "ONLYOUTLINE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
-            mat.SetColor("_OutlineColor", Color.white);
-            mat.SetFloat("_OutlineAlpha", 0.6f);      // softer so the 1-texel line reads thinner
-            mat.SetFloat("_OutlineGlow", 1f);
-            mat.SetFloat("_OutlinePixelWidth", 1f);
+            mat.shaderKeywords = new string[0];
+            mat.SetFloat("_Cutoff", 0.1f);
+            setup(mat);
             EditorUtility.SetDirty(mat);
             return mat;
         }
+
+        private static Material SceneryMaterial() => KomurMaterial("Scenery", m =>
+        {
+            m.SetFloat("_StencilRef", 0f); m.SetFloat("_StencilComp", CompAlways); m.SetFloat("_StencilOp", OpReplace);
+        });
+
+        private static Material CharacterMaterial() => KomurMaterial("Character", m =>
+        {
+            m.SetFloat("_StencilRef", 1f); m.SetFloat("_StencilComp", CompAlways); m.SetFloat("_StencilOp", OpReplace);
+        });
+
+        private static Material SilhouetteMaterial() => KomurMaterial("Hidden Silhouette", m =>
+        {
+            m.SetFloat("_StencilRef", 1f); m.SetFloat("_StencilComp", CompNotEqual); m.SetFloat("_StencilOp", OpKeep);
+            m.SetFloat("_Silhouette", 1f);
+            m.SetColor("_SilhouetteColor", new Color(1f, 1f, 1f, 0.5f));
+        });
 
         private static void AddHiddenOutline(GameObject go, SpriteRenderer source, Color color)
         {
             var outline = go.AddComponent<OcclusionOutline>();
             outline.source = source;
-            outline.outlineMaterial = HiddenOutlineMaterial();
+            outline.outlineMaterial = SilhouetteMaterial();
             outline.color = color;
         }
 
-        // Desaturated, green-tinted sprite with a sickly green pixel outline; also carries the hit flash
-        // (_HitEffectBlend) and dissolve (_FadeAmount) the Rat script animates.
-        private static Material PlaguedMaterial()
+        // Desaturated, green-tinted sprite with a sickly green outline; also carries the hit flash
+        // (_HitEffectBlend) and dissolve (_FadeAmount) the Rat script animates, and writes the character stencil.
+        private static Material PlaguedMaterial() => KomurMaterial("Plagued", m =>
         {
-            string path = GameRoot + "/Art/Materials/Plagued.mat";
-            // The default (unlit) All In 1 shader: the town has no 2D lights, and the lit URP 2D variant
-            // rendered the rats invisible.
-            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
-            if (shader == null) return null;
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mat == null)
-            {
-                Directory.CreateDirectory(GameRoot + "/Art/Materials");
-                mat = new Material(shader) { name = "Plagued" };
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            mat.shader = shader;
-            foreach (var k in new[] { "OUTBASE_ON", "OUTBASEPIXELPERF_ON", "GREYSCALE_ON", "HITEFFECT_ON", "FADE_ON" }) mat.EnableKeyword(k);
-            mat.SetColor("_OutlineColor", new Color(0.55f, 1f, 0.25f, 1f));
-            mat.SetFloat("_OutlineAlpha", 1f);
-            mat.SetFloat("_OutlineGlow", 2f);
-            mat.SetFloat("_OutlinePixelWidth", 1f);
-            mat.SetColor("_GreyscaleTintColor", new Color(0.72f, 0.95f, 0.55f, 1f));
-            mat.SetFloat("_GreyscaleBlend", 0.55f);
-            mat.SetFloat("_GreyscaleLuminosity", 0.05f);
-            mat.SetColor("_HitEffectColor", Color.white);
-            mat.SetFloat("_HitEffectGlow", 5f);
-            mat.SetFloat("_HitEffectBlend", 0f);
-            mat.SetFloat("_FadeAmount", -0.1f);
-            mat.SetColor("_FadeBurnColor", new Color(0.5f, 1f, 0.2f, 1f));
-            mat.SetFloat("_FadeBurnWidth", 0.08f);
-            mat.SetFloat("_FadeBurnGlow", 5f);
+            m.SetFloat("_StencilRef", 1f); m.SetFloat("_StencilComp", CompAlways); m.SetFloat("_StencilOp", OpReplace);
+            m.SetFloat("_GreyBlend", 0.55f);
+            m.SetColor("_GreyTint", new Color(0.72f, 0.95f, 0.55f, 1f));
+            m.SetColor("_OutlineColor", new Color(0.55f, 1f, 0.25f, 1f));
+            m.SetColor("_HitEffectColor", Color.white);
+            m.SetFloat("_HitEffectBlend", 0f);
+            m.SetFloat("_FadeAmount", -0.1f);
+            m.SetColor("_FadeBurnColor", new Color(0.5f, 1f, 0.2f, 1f));
+            m.SetFloat("_FadeBurnWidth", 0.08f);
             var noise = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Plugins/AllIn1SpriteShader/Textures/seamlessNoise.png");
-            if (noise != null) mat.SetTexture("_FadeTex", noise);
-            EditorUtility.SetDirty(mat);
-            return mat;
-        }
+            if (noise != null) m.SetTexture("_FadeTex", noise);
+        });
 
         private static GameObject BuildEnemyBase(string name, int layer, float radius)
         {
@@ -610,7 +609,10 @@ namespace Komur.EditorTools
             var icon = AddWorldText(go.transform, "Icon", "", 5f, new Vector3(0f, 2.1f, 0f), Color.white);
 
             var villager = go.AddComponent<Villager>();
-            AddHiddenOutline(go, visual.GetComponent<SpriteRenderer>(), new Color(0.95f, 0.95f, 0.85f));
+            var villagerSr = visual.GetComponent<SpriteRenderer>();
+            var charMat = CharacterMaterial();
+            if (charMat != null) villagerSr.sharedMaterial = charMat;
+            AddHiddenOutline(go, villagerSr, new Color(0.95f, 0.95f, 0.85f));
             villager.animator = visual.GetComponent<Animator>();
             villager.sickBar = bar;
             villager.icon = icon;
@@ -648,6 +650,8 @@ namespace Komur.EditorTools
             var medicine = AddWorldText(go.transform, "Medicine Icon", "+", 7f, new Vector3(0f, 1.6f, 0f), new Color(0.3f, 1f, 0.4f));
 
             var komur = go.AddComponent<KomurController>();
+            var komurMat = CharacterMaterial();
+            if (komurMat != null) sr.sharedMaterial = komurMat;
             AddHiddenOutline(go, sr, new Color(1f, 0.85f, 0.3f));
             komur.flipbook = flipbook;
             komur.visual = sr;
