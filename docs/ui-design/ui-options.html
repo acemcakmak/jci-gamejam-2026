@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kömür UI Options</title>
+<style>
+  @font-face { font-family: Sprout; src: url('../../Assets/ThirdPartyAssets/Sprout Lands - UI Pack - Basic pack/fonts/pixelFont-7-8x14-sproutLands.ttf'); }
+  @font-face { font-family: Alphapix; src: url('../../Assets/ThirdPartyAssets/PixelBattleText/Fonts/Alphapix.ttf'); }
+  :root {
+    --bg: #1d1a17; --fg: #f3ead7; --muted: #b8ab93; --card: #2a2622; --line: #3d372f; --accent: #e9c46a;
+    --ink: #5c3a28; --cream: #fff2d1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font: 400 40px Sprout, monospace; letter-spacing: 1px; margin: 8px 0 4px; }
+  h2 { font: 400 26px Sprout, monospace; margin: 48px 0 6px; color: var(--accent); }
+  p.lead { color: var(--muted); margin: 0 0 8px; max-width: 760px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+  .grid.wide { grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .card h3 { margin: 0 0 2px; font-size: 15px; }
+  .card .note { color: var(--muted); font-size: 13px; margin: 2px 0 10px; }
+  .tag { display: inline-block; background: var(--accent); color: #2a1d10; border-radius: 4px; padding: 0 6px; font-weight: 600; font-size: 12px; margin-right: 6px; }
+  .stage { position: relative; overflow: hidden; border-radius: 6px; image-rendering: pixelated; }
+  canvas { image-rendering: pixelated; display: block; }
+  .pix { image-rendering: pixelated; }
+  .sprout { font-family: Sprout, monospace; -webkit-font-smoothing: none; }
+  .alpha { font-family: Alphapix, monospace; -webkit-font-smoothing: none; }
+  .outline { text-shadow: 3px 0 #2a1a12, -3px 0 #2a1a12, 0 3px #2a1a12, 0 -3px #2a1a12, 3px 3px #2a1a12, -3px 3px #2a1a12, 3px -3px #2a1a12, -3px -3px #2a1a12, 0 6px rgba(0,0,0,.35); }
+  .outline-sm { text-shadow: 2px 0 #2a1a12, -2px 0 #2a1a12, 0 2px #2a1a12, 0 -2px #2a1a12, 2px 2px #2a1a12, -2px 2px #2a1a12, 2px -2px #2a1a12, -2px -2px #2a1a12; }
+  .abs { position: absolute; }
+  .panel { position: absolute; border-style: solid; }
+  .picks { background: var(--card); border: 1px dashed var(--accent); border-radius: 10px; padding: 14px 16px; margin-top: 40px; }
+  .picks code { background: #3a332b; padding: 1px 6px; border-radius: 4px; }
+  @media (max-width: 640px) { .grid.wide { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>KOMUR UI OPTIONS</h1>
+  <p class="lead">Mockups built from the real sprites: Sprout Lands UI, Complete UI Essential, Cainos, Pet Cats, Monsters and the PixelBattleText font. Pick one option per section and I'll implement those in Unity.</p>
+
+  <h2>1 · Panel style (status panel)</h2>
+  <p class="lead">The panel behind wave and villager counts, used for every panel (status, story, end screen, banner). Every option is 9-sliced, so text always fits inside the border.</p>
+  <div class="grid" id="panels"></div>
+
+  <h2>2 · Minimap</h2>
+  <p class="lead">The map is drawn from the town's tiles (grass, roads, square, raised areas, walls), not a camera snapshot, so it's always readable. Icons: Kömür = cat, villager = cream dot, cured = pink dot, sick = pulsing green "+" (turns red as time runs out), rat = red dot, apothecary = house, open rat hole = dark ring.</p>
+  <div class="grid" id="minimaps"></div>
+
+  <h2>3 · Title screen</h2>
+  <p class="lead">The game starts zoomed in on the square with Kömür sitting, then zooms out when you press Play.</p>
+  <div class="grid wide" id="titles"></div>
+
+  <h2>4 · Wave banner</h2>
+  <p class="lead">Short announcements: "WAVE 2/5", "A NEW RAT HOLE APPEARED!", "THE PLAGUE SLIME IS HERE!"</p>
+  <div class="grid" id="banners"></div>
+
+  <h2>5 · Battle texts (PixelBattleText)</h2>
+  <p class="lead">Rendered on a low-resolution overlay so they come out big and crisp, and spawned right above the character involved. These replace "Thanks!" and the other plain world texts.</p>
+  <div class="grid wide" id="battle"></div>
+
+  <h2>6 · Character scale</h2>
+  <p class="lead">Kömür and the rats are too small next to Cainos props. Compare sizes against a villager and a crate. The game camera shows about 10 tiles of height.</p>
+  <div class="grid wide" id="scale"></div>
+
+  <div class="picks">
+    <strong>How to reply:</strong> e.g. <code>Panel A, Minimap 1, Title 2, Banner B, Scale C</code>, plus anything you'd like changed. If none fit, tell me what to combine.
+  </div>
+</main>
+
+<script>
+const ROOT = '../../Assets/ThirdPartyAssets/';
+const SRC = {
+  basic: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/Sprite sheet for Basic Pack.png',
+  play: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/UI Big Play Button.png',
+  icons: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/Icons/All Icons.png',
+  dialog: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/Dialouge UI/dialog box big.png',
+  flatFrame: ROOT + 'Complete_UI_Essential_Pack_Free/01_Flat_Theme/Sprites/UI_Flat_Frame01a.png',
+  flatBanner: ROOT + 'Complete_UI_Essential_Pack_Free/01_Flat_Theme/Sprites/UI_Flat_Banner01a.png',
+  grass: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Tileset Grass.png',
+  stone: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Tileset Stone Ground.png',
+  player: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Player.png',
+  props: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Props.png',
+  catSit: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Sitting.png',
+  catRun: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Run.png',
+  catIdle: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Idle.png',
+  rat: ROOT + 'Monsters Creatures Fantasy 2/Sprites/Rat/run.png',
+  slime: ROOT + 'Monsters Creatures Fantasy 2/Sprites/Slime/walk.png',
+};
+// Sprite rects (x, y from top, w, h) read from the Unity .meta files.
+const R = {
+  tan: [10, 58, 28, 30], light: [10, 10, 28, 30], wood: [152, 8, 32, 32], arrow: [244, 1, 9, 14],
+  playBtn: [2, 33, 92, 29], blankBtn: [2, 1, 92, 29],
+  plus: [1, 33, 14, 14], house: [33, 34, 14, 13], skull: [33, 2, 14, 13], bang: [5, 16, 6, 11],
+  grassTile: [0, 0, 32, 32], stoneC: [32, 32, 32, 32],
+  villager: [6, 10, 21, 48], crate: [160, 18, 32, 46], well: [420, 359, 58, 49],
+  cat: [0, 0, 50, 50], rat: [0, 0, 70, 70], slime: [0, 0, 156, 156],
+};
+
+const imgs = {};
+function load(key) {
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[key] = i); i.onerror = () => rej(key); i.src = SRC[key]; });
+}
+function crop(key, r, scale = 1) {
+  const [x, y, w, h] = r, c = document.createElement('canvas');
+  c.width = w * scale; c.height = h * scale;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(imgs[key], x, y, w, h, 0, 0, w * scale, h * scale);
+  return c;
+}
+function el(tag, cls, parent, style = {}) {
+  const e = document.createElement(tag); if (cls) e.className = cls; Object.assign(e.style, style); if (parent) parent.appendChild(e); return e;
+}
+function spriteEl(parent, key, r, scale, x, y, extra = {}) {
+  const c = crop(key, r, scale); c.className = 'abs pix'; Object.assign(c.style, { left: x + 'px', top: y + 'px' }, extra); parent.appendChild(c); return c;
+}
+// 9-slice: border = source pixels, scale = pixel size.
+function nine(node, key, r, border, scale) {
+  const url = crop(key, r, scale).toDataURL();
+  const b = border * scale;
+  Object.assign(node.style, { borderImage: `url(${url}) ${b} fill / ${b}px stretch`, borderWidth: b + 'px', borderStyle: 'solid', imageRendering: 'pixelated' });
+}
+function card(container, tag, title, note) {
+  const c = el('div', 'card', container); const h = el('h3', null, c); h.innerHTML = `<span class="tag">${tag}</span>${title}`;
+  if (note) el('div', 'note', c).textContent = note; return c;
+}
+// Grass backdrop with an optional stone square.
+function stage(parent, w, h, opts = {}) {
+  const s = el('div', 'stage', parent, { width: w + 'px', height: h + 'px' });
+  const c = el('canvas', null, s, {}); c.width = w; c.height = h;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const t = opts.tile || 48;
+  for (let y = 0; y < h; y += t) for (let x = 0; x < w; x += t) {
+    const v = ((x / t * 7 + y / t * 13) % 4) * 32;
+    g.drawImage(imgs.grass, v, (y / t % 4) * 32, 32, 32, x, y, t, t);
+  }
+  if (opts.square) {
+    const [sx, sy, sw, sh] = opts.square;
+    g.fillStyle = '#8b887d'; g.fillRect(sx, sy, sw, sh);
+    g.strokeStyle = '#5f4c3d'; g.lineWidth = 3; g.strokeRect(sx + 1.5, sy + 1.5, sw - 3, sh - 3);
+  }
+  return s;
+}
+
+// ---------- 1. Panels ----------
+const PANELS = {
+  A: { title: 'Sprout tan', note: 'Warm parchment; matches the Play button.', key: 'basic', r: R.tan, border: 7, scale: 3, ink: '#5c3a28' },
+  B: { title: 'Sprout light', note: 'Paler and calmer; less contrast with the grass.', key: 'basic', r: R.light, border: 7, scale: 3, ink: '#4b4a42' },
+  C: { title: 'Sprout wooden frame', note: 'Chunky wood border around a dark inset; strongest look.', key: 'basic', r: R.wood, border: 9, scale: 3, ink: '#ffeccc' },
+  D: { title: 'Complete UI flat', note: 'Clean grey; more modern than pixel-rustic.', key: 'flatFrame', r: [0, 0, 96, 64], border: 6, scale: 3, ink: '#2e3440' },
+};
+function statusPanel(parent, p, x, y, w, h) {
+  const n = el('div', 'panel sprout', parent, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px', color: p.ink });
+  nine(n, p.key, p.r, p.border, p.scale);
+  n.innerHTML = `<div style="font-size:28px;line-height:1">WAVE 2/5</div>
+    <div style="font-size:14px;margin-top:6px;white-space:nowrap">VILLAGERS 8 &nbsp;<span style="color:#3f8f2f">SICK 1</span> &nbsp;<span style="color:#b33b3b">LOST 0/3</span></div>`;
+  return n;
+}
+function buildPanels() {
+  const host = document.getElementById('panels');
+  for (const [tag, p] of Object.entries(PANELS)) {
+    const c = card(host, 'Panel ' + tag, p.title, p.note);
+    const s = stage(c, 300, 140);
+    statusPanel(s, p, 14, 18, 272, 104);
+  }
+}
+
+// ---------- 2. Minimaps ----------
+// Town layout (48x32 tiles, y up) mirrored from the Unity town builder.
+const PLATFORMS = [[3, 20, 15, 10], [38, 25, 8, 6], [9, 8, 4, 4], [40, 8, 5, 4], [28, 22, 4, 4], [17, 3, 4, 4]];
+function cellType(x, y) {
+  if (x === 0 || x === 47 || y <= 1 || y === 31) return 'wall';
+  for (const [px, py, pw, ph] of PLATFORMS) {
+    if (x >= px && x < px + pw && y >= py && y < py + ph) {
+      if (y <= py + 1 || y === py + ph - 1 || x === px || x === px + pw - 1) return 'cliff';
+      return 'upper';
+    }
+  }
+  if (x >= 19 && x <= 28 && y >= 12 && y <= 19) return 'square';
+  if ((x >= 23 && x <= 25) || (y >= 14 && y <= 16)) return 'road';
+  return 'grass';
+}
+const MAPCOL = { wall: '#4a3a30', cliff: '#6b5444', upper: '#9bbf5a', square: '#a29e92', road: '#8d8a72', grass: '#6f8a3a' };
+function drawMap(canvas, px) {
+  canvas.width = 48 * px; canvas.height = 32 * px;
+  const g = canvas.getContext('2d');
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 48; x++) { g.fillStyle = MAPCOL[cellType(x, y)]; g.fillRect(x * px, (31 - y) * px, px, px); }
+  return g;
+}
+const VILLAGERS = [[7, 26, 'h'], [13, 24, 'f'], [35, 25, 'h'], [41, 22, 's'], [7, 7, 'h'], [13, 4, 'f'], [38, 6, 'h'], [21, 17, 'h']];
+const RATS = [[30, 15], [26, 6], [39, 23], [10, 15]];
+const HOLES = [[24, 3], [45, 24], [2, 9]];
+function drawIcons(layer, px, t) {
+  layer.innerHTML = '';
+  const at = (x, y) => [x * px + px / 2, (31 - y) * px + px / 2];
+  const dot = (x, y, d, col, ring) => { const [cx, cy] = at(x, y); el('div', 'abs', layer, { left: cx - d / 2 + 'px', top: cy - d / 2 + 'px', width: d + 'px', height: d + 'px', borderRadius: '50%', background: ring ? 'transparent' : col, border: ring ? `3px solid ${col}` : '1px solid #0006' }); };
+  const icon = (x, y, key, r, sc, filter) => { const [cx, cy] = at(x, y); spriteEl(layer, key, r, sc, cx - r[2] * sc / 2, cy - r[3] * sc / 2, { filter: filter || '' }); };
+  HOLES.forEach(([x, y]) => dot(x, y, 12, '#2a1a10', true));
+  icon(24, 16, 'icons', R.house, 2, 'brightness(1.2) sepia(1) saturate(4) hue-rotate(-10deg)');
+  VILLAGERS.forEach(([x, y, s]) => {
+    if (s === 's') { const k = 1 + 0.2 * Math.sin(t * 6); icon(x, y, 'icons', R.plus, 2, `sepia(1) saturate(8) hue-rotate(60deg) brightness(${1 + 0.2 * Math.sin(t * 6)})`); }
+    else dot(x, y, 10, s === 'f' ? '#ff9ccc' : '#f6f0d8');
+  });
+  RATS.forEach(([x, y]) => dot(x, y, 7, '#e23b3b'));
+  icon(23, 13, 'catIdle', R.cat, 0.9);
+}
+const MINIMAPS = {
+  1: { title: 'Wooden frame', note: 'Thick Sprout wood border; matches the wooden-frame panel.', key: 'basic', r: R.wood, border: 9, scale: 2 },
+  2: { title: 'Tan panel', note: 'Same parchment as the status panel; lighter and softer.', key: 'basic', r: R.tan, border: 7, scale: 2 },
+  3: { title: 'Flat frame', note: 'Thin grey bevel from Complete UI; very clean.', key: 'flatFrame', r: [0, 0, 96, 64], border: 6, scale: 2 },
+};
+const minimapLayers = [];
+function buildMinimaps() {
+  const host = document.getElementById('minimaps');
+  for (const [tag, m] of Object.entries(MINIMAPS)) {
+    const c = card(host, 'Minimap ' + tag, m.title, m.note);
+    const s = stage(c, 300, 230);
+    const frame = el('div', 'panel', s, { left: '12px', top: '14px' });
+    nine(frame, m.key, m.r, m.border, m.scale);
+    const inner = el('div', null, frame, { position: 'relative', width: 48 * 5 + 'px', height: 32 * 5 + 'px' });
+    drawMap(el('canvas', null, inner), 5);
+    const layer = el('div', 'abs', inner, { left: 0, top: 0, width: '100%', height: '100%' });
+    minimapLayers.push(layer);
+    el('div', 'sprout outline-sm abs', s, { left: '14px', bottom: '6px', fontSize: '14px', color: '#fff2d1' }).textContent = 'MAP';
+  }
+}
+
+// ---------- 3. Title screens ----------
+function titleBase(parent) {
+  const s = stage(parent, 576, 324, { tile: 64, square: [96, 40, 384, 250] });
+  spriteEl(s, 'props', R.well, 2, 410, 70);
+  spriteEl(s, 'props', R.crate, 2, 120, 190);
+  return s;
+}
+function playButton(s, x, y, sc) { spriteEl(s, 'play', R.playBtn, sc, x, y); }
+function buildTitles() {
+  const host = document.getElementById('titles');
+
+  let c = card(host, 'Title 1', 'Classic', 'Big title on top, Kömür in the middle, short story on a parchment strip, Play underneath.');
+  let s = titleBase(c);
+  spriteEl(s, 'catSit', R.cat, 3, 288 - 75, 120);
+  el('div', 'abs sprout outline', s, { left: 0, right: 0, top: '14px', textAlign: 'center', fontSize: '64px', color: '#fff2d1', lineHeight: 1 }).textContent = 'KOMUR';
+  el('div', 'abs sprout outline-sm', s, { left: 0, right: 0, top: '84px', textAlign: 'center', fontSize: '22px', color: '#a8f27e' }).textContent = 'AND THE PLAGUE RATS';
+  let p = el('div', 'panel sprout', s, { left: '108px', top: '214px', width: '360px', height: '58px', color: '#5c3a28', fontSize: '12px', textAlign: 'center', lineHeight: 1.3 });
+  nine(p, 'basic', R.tan, 7, 2);
+  p.innerHTML = 'THE TOWN SAYS BLACK CATS BRING BAD LUCK.<br>ONLY KOMUR CAN STOP THE PLAGUE RATS.';
+  playButton(s, 288 - 92, 276, 2);
+
+  c = card(host, 'Title 2', 'Notice board', 'Wooden board on the left holds the title, story and Play; Kömür sits big on the right.');
+  s = titleBase(c);
+  spriteEl(s, 'catSit', R.cat, 5, 330, 70);
+  p = el('div', 'panel sprout', s, { left: '24px', top: '30px', width: '290px', height: '264px', color: '#ffeccc', textAlign: 'center' });
+  nine(p, 'basic', R.wood, 9, 3);
+  p.innerHTML = `<div class="outline-sm" style="font-size:52px;line-height:1;margin-top:4px">KOMUR</div>
+    <div style="font-size:16px;color:#a8f27e;margin:4px 0 10px">AND THE PLAGUE RATS</div>
+    <div style="font-size:12px;line-height:1.35">THE TOWN FEARS BLACK CATS.<br>BUT RATS ARE SPREADING THE PLAGUE<br>AND ONLY KOMUR CAN STOP THEM.</div>`;
+  playButton(s, 169 - 92, 220, 2);
+
+  c = card(host, 'Title 3', 'Cinematic', 'No panels: a dark strip along the bottom, the title over the scene, Kömür centre stage.');
+  s = titleBase(c);
+  el('div', 'abs', s, { left: 0, right: 0, bottom: 0, height: '120px', background: 'rgba(20,14,10,.72)' });
+  spriteEl(s, 'catSit', R.cat, 4, 288 - 100, 70);
+  el('div', 'abs sprout outline', s, { left: '28px', bottom: '58px', fontSize: '58px', color: '#fff2d1', lineHeight: 1 }).textContent = 'KOMUR';
+  el('div', 'abs sprout', s, { left: '30px', bottom: '30px', fontSize: '15px', color: '#a8f27e' }).textContent = 'AND THE PLAGUE RATS  ·  SAVE THE TOWN THAT FEARS YOU';
+  playButton(s, 576 - 210, 324 - 88, 2);
+
+  c = card(host, 'Title 4', 'Speech bubble', 'Kömür "says" the intro in a speech bubble; feels playful and tells the story through the character.');
+  s = titleBase(c);
+  spriteEl(s, 'catSit', R.cat, 4, 120, 120);
+  el('div', 'abs sprout outline', s, { right: '30px', top: '20px', fontSize: '60px', color: '#fff2d1', lineHeight: 1 }).textContent = 'KOMUR';
+  p = el('div', 'panel sprout', s, { left: '270px', top: '110px', width: '270px', height: '96px', color: '#5c3a28', fontSize: '13px', lineHeight: 1.35 });
+  nine(p, 'basic', R.light, 7, 2);
+  p.innerHTML = 'MEOW. THEY SAY I BRING BAD LUCK...<br>BUT THE RATS BRING THE PLAGUE.<br>LET\'S SAVE THEM ANYWAY.';
+  playButton(s, 300, 230, 2);
+}
+
+// ---------- 4. Banners ----------
+function buildBanners() {
+  const host = document.getElementById('banners');
+  const variants = {
+    A: ['Parchment strip', 'Sprout tan, 9-sliced to fit any text.', n => { nine(n, 'basic', R.tan, 7, 3); n.style.color = '#5c3a28'; }],
+    B: ['Text only', 'Big outlined pixel text; no box, least clutter.', n => { n.classList.add('outline'); n.style.color = '#fff2d1'; }],
+    C: ['Wooden sign', 'Sprout wood frame; matches the wooden minimap.', n => { nine(n, 'basic', R.wood, 9, 3); n.style.color = '#ffeccc'; }],
+  };
+  for (const [tag, [title, note, style]] of Object.entries(variants)) {
+    const c = card(host, 'Banner ' + tag, title, note);
+    const s = stage(c, 300, 150);
+    const n = el('div', 'panel sprout', s, { left: '20px', top: '30px', width: '260px', minHeight: '90px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' });
+    style(n);
+    n.innerHTML = '<div style="font-size:30px;line-height:1">WAVE 2/5</div><div style="font-size:14px;margin-top:4px">A NEW RAT HOLE APPEARED!</div>';
+  }
+}
+
+// ---------- 5. Battle texts ----------
+function battle(s, text, x, y, color, border, size = 22) {
+  const e = el('div', 'abs alpha', s, { left: x + 'px', top: y + 'px', fontSize: size + 'px', color, transform: 'translateX(-50%)', whiteSpace: 'nowrap',
+    textShadow: `2px 0 ${border}, -2px 0 ${border}, 0 2px ${border}, 0 -2px ${border}, 2px 2px ${border}, -2px -2px ${border}, 2px -2px ${border}, -2px 2px ${border}` });
+  e.textContent = text;
+}
+function buildBattle() {
+  const host = document.getElementById('battle');
+  const c = card(host, 'Preview', 'Words above the character involved', 'Colours approximate the PixelBattleText presets: venom, crit, healing, KO, shock, spooky.');
+  const s = stage(c, 576, 220, { tile: 64 });
+  spriteEl(s, 'player', R.villager, 2, 60, 80);           battle(s, 'BITE!', 81, 50, '#b7f25c', '#3b1b4a');
+  spriteEl(s, 'rat', R.rat, 2, 150, 110);                 battle(s, 'SQUEAK!', 220, 110, '#ffcf3f', '#7a1f12');
+  spriteEl(s, 'player', R.villager, 2, 280, 80);          battle(s, 'CURED!', 301, 50, '#7dffb0', '#0f4a2f');
+  battle(s, 'R.I.P.', 400, 70, '#d0d0d0', '#2a2a2a');
+  spriteEl(s, 'catIdle', R.cat, 3, 450, 100);             battle(s, 'OUCH!', 525, 90, '#fff36b', '#5a3b00');
+  battle(s, 'EEK!', 101, 22, '#e8b4ff', '#2b0f3a', 16);
+}
+
+// ---------- 6. Scale ----------
+function buildScale() {
+  const host = document.getElementById('scale');
+  const unit = 40; // px per Unity unit in this preview (32px tile)
+  const sets = {
+    A: ['Current', 'Cat ×3, rat ×1.3, slime ×4: the cat reads as a mouse.', 3, 1.3, 4],
+    B: ['Medium', 'Cat ×5, rat ×2, slime ×6: cat about half a villager.', 5, 2, 6],
+    C: ['Large', 'Cat ×6, rat ×2.4, slime ×7: closest to Cainos proportions.', 6, 2.4, 7],
+  };
+  for (const [tag, [title, note, cat, rat, slime]] of Object.entries(sets)) {
+    const c = card(host, 'Scale ' + tag, title, note);
+    const s = stage(c, 560, 190, { tile: unit });
+    const ground = 170;
+    // lift = fraction of empty space under the sprite inside its frame (slime frames are mostly empty below).
+    const draw = (key, r, ppu, scale, x, lift = 0) => { const sc = unit * scale / ppu; return spriteEl(s, key, r, sc, x, ground - r[3] * sc * (1 - lift)); };
+    draw('player', R.villager, 32, 1, 20);
+    draw('props', R.crate, 32, 1, 80);
+    draw('catRun', R.cat, 100, cat, 130);
+    draw('rat', R.rat, 100, rat, 270);
+    draw('slime', R.slime, 100, slime, 340, 0.42);
+  }
+}
+
+Promise.all(Object.keys(SRC).map(load)).then(() => {
+  buildPanels(); buildMinimaps(); buildTitles(); buildBanners(); buildBattle(); buildScale();
+  const tick = t => { minimapLayers.forEach(l => drawIcons(l, 5, t / 1000)); setTimeout(() => requestAnimationFrame(tick), 120); };
+  requestAnimationFrame(tick);
+}).catch(k => { document.querySelector('main').insertAdjacentHTML('beforeend', `<p style="color:#f88">Could not load ${k}. Serve this page from the repo root (python3 -m http.server).</p>`); });
+</script>
+</body>
+</html>
