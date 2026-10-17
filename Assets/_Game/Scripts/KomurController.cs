@@ -120,6 +120,21 @@ namespace Komur
             }
         }
 
+        // End of the game: appear on the given spot (the apothecary) and sit there.
+        public void EnterEnding(Vector3 position, int floor)
+        {
+            SetMedicine(false);
+            pounceEndsAt = 0f;
+            body.linearVelocity = Vector2.zero;
+            body.position = position;
+            transform.position = position;
+            string layerName = FloorAgent.LayerName(floor);
+            int layer = LayerMask.NameToLayer(layerName);
+            if (layer >= 0) gameObject.layer = layer;
+            if (visual != null) visual.sortingLayerName = layerName;
+            facing = Vector2.down;
+        }
+
         // Picked up at the apothecary: the potion (if any) starts orbiting the cat.
         public void TakePotion(Potion potion)
         {
@@ -166,6 +181,7 @@ namespace Komur
             if (flipbook == null) return;
             var gm = GameManager.I;
             if (gm != null && gm.State == GameState.Intro) flipbook.Play("Sit");
+            else if (gm != null && (gm.State == GameState.Won || gm.State == GameState.Lost) && !IsStunned) flipbook.Play("Sit");
             else if (IsPouncing) flipbook.Play("Pounce");
             else if (IsStunned) flipbook.Play("Stunned");
             else if (input.sqrMagnitude > 0.01f) flipbook.Play("Run");

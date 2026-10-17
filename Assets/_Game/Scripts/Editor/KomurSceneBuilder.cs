@@ -726,6 +726,7 @@ namespace Komur.EditorTools
             SetFeedback(feedbacks, FeedbackId.BossKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 1.1f, 0.35f);
             SetFeedback(feedbacks, FeedbackId.BossArrived, "Environment/Smoke/StinkyCloud.prefab", 1f, 0.3f);
             SetFeedback(feedbacks, FeedbackId.StoneImpact, "Environment/Dust/DustDirtyPoofSoft.prefab", 0.25f, 0f);
+            SetFeedback(feedbacks, FeedbackId.Love, "Interactive/Hearts/HeartPoof.prefab", 0.35f, 0f);
         }
 
         private static void SetFeedback(GameFeedbacks feedbacks, FeedbackId id, string etfxPath, float scale, float shake)

@@ -22,6 +22,8 @@ namespace Komur
         public GameObject introPanel;
         public GameObject endPanel;
         public TextMeshProUGUI endTitle;
+        [Tooltip("Line under the end title (like the title screen's subtitle).")]
+        public TextMeshProUGUI endSubtitle;
         public TextMeshProUGUI endBody;
         public UnityEngine.UI.Button playButton;
         public UnityEngine.UI.Button againButton;
@@ -213,30 +215,39 @@ namespace Komur
             banner.SetActive(false);
         }
 
+        // The gameplay HUD fades away while the ending plays out.
+        public void HideGameplay()
+        {
+            if (gameplayGroup != null) gameplayGroup.alpha = 0f;
+            if (bannerText != null) BannerObject.SetActive(false);
+        }
+
         public void ShowEnd(Ending ending, int alive, int grateful, int dead, int total)
         {
             if (endPanel == null) return;
+            HideGameplay();
             endPanel.SetActive(true);
             switch (ending)
             {
                 case Ending.Loved:
-                    SetEnd("THE VILLAGE LOVES YOU!",
-                        $"{alive} OF {total} VILLAGERS SURVIVED AND {grateful} WERE CURED BY KOMUR.\nTHEY WILL NEVER FEAR A BLACK CAT AGAIN.");
+                    SetEnd("THE VILLAGE LOVES YOU", $"{grateful} OF {total} VILLAGERS ADORE KOMUR",
+                        "THE PLAGUE IS OVER, AND THE TOWN SAW WHO SAVED IT.\nNOBODY WILL FEAR A BLACK CAT AGAIN.");
                     break;
                 case Ending.UnknownHero:
-                    SetEnd("AN UNKNOWN HERO",
-                        $"THE RATS ARE GONE AND {alive} OF {total} VILLAGERS SURVIVED,\nBUT ONLY {grateful} OF THEM KNOW WHO SAVED THEM.\nTHE TOWN STILL HATES THE BLACK CAT... YOU SAVED IT ANYWAY.");
+                    SetEnd("AN UNKNOWN HERO", $"{alive} OF {total} VILLAGERS SURVIVED",
+                        "THE RATS ARE GONE, BUT THE TOWN STILL BLAMES THE BLACK CAT.\nONLY KOMUR KNOWS WHO REALLY SAVED THEM.");
                     break;
                 default:
-                    SetEnd("THE PLAGUE TOOK THE TOWN...",
-                        $"ALL {total} VILLAGERS WERE LOST.\nTHE TOWNSFOLK WILL BLAME THE BLACK CAT FOREVER...");
+                    SetEnd("THE PLAGUE WON", $"ALL {total} VILLAGERS WERE LOST",
+                        "ONLY THEIR SPIRITS REMAIN IN THE EMPTY TOWN...\nAND EVEN THEY BLAME THE BLACK CAT.");
                     break;
             }
         }
 
-        private void SetEnd(string title, string body)
+        private void SetEnd(string title, string subtitle, string body)
         {
             if (endTitle != null) endTitle.text = title;
+            if (endSubtitle != null) endSubtitle.text = subtitle;
             if (endBody != null) endBody.text = body;
         }
     }

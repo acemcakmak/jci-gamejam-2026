@@ -38,6 +38,13 @@ namespace Komur
             return ghost;
         }
 
+        // Re-appear somewhere else (the end-of-game circle): fades in and rises again.
+        public void MoveTo(Vector3 position)
+        {
+            origin = position;
+            bornAt = Time.time;
+        }
+
         private void Update()
         {
             float age = Time.time - bornAt;

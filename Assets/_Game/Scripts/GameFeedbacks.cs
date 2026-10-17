@@ -24,7 +24,8 @@ namespace Komur
         RatDig,
         BossKilled,
         BossArrived,
-        StoneImpact
+        StoneImpact,
+        Love
     }
 
     // One place to hook juice to game events: drop an Epic Toon FX prefab into vfxPrefab,

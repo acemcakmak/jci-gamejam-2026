@@ -156,15 +156,20 @@ namespace Komur.EditorTools
             ControlsStrip(title, L.controlsPanel);
             hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, L.playButton.Anchor, L.playButton.Pos, L.playButton.Size, null, ink);
 
-            // --- End screen ---
+            // --- End screen: laid out like the title screen (the ending scene plays behind it) ---
             var end = Stretch(NewRect("End Screen", root));
-            var dim = end.gameObject.AddComponent<UnityEngine.UI.Image>();
-            dim.color = new Color(0.05f, 0.04f, 0.08f, 0.6f);
-            hud.endTitle = UIText(end, "Title", "", L.endTitle.fontSize, TextAlignmentOptions.Center, L.endTitle.Anchor, L.endTitle.Pos, L.endTitle.Size, cream);
+            hud.endTitle = UIText(end, "Title", "", L.title.fontSize, TextAlignmentOptions.Center, L.title.Anchor, L.title.Pos, L.title.Size, cream);
+            hud.endTitle.enableAutoSizing = true;
+            hud.endTitle.fontSizeMin = L.title.fontSize * 0.45f;
+            hud.endTitle.fontSizeMax = L.title.fontSize;
+            hud.endTitle.textWrappingMode = TextWrappingModes.NoWrap;
             Outline(hud.endTitle, 0.3f);
-            var endPanel = Panel(end, "Panel", tan, L.endPanel);
-            hud.endBody = FitText(endPanel, "Body", "", L.endPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.endPanel));
-            hud.againButton = UIButton(end, "Again Button", blankButton, blankPressed, L.againButton.Anchor, L.againButton.Pos, L.againButton.Size, "MAIN MENU", ink);
+            hud.endSubtitle = UIText(end, "Subtitle", "", L.subtitle.fontSize, TextAlignmentOptions.Center, L.subtitle.Anchor, L.subtitle.Pos, L.subtitle.Size, new Color(0.66f, 0.95f, 0.5f));
+            Outline(hud.endSubtitle);
+            var endPanel = Panel(end, "Story Panel", tan, L.storyPanel);
+            hud.endBody = FitText(endPanel, "Body", "", L.storyPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.storyPanel));
+            hud.endBody.fontSizeMin = L.storyPanel.fontSize * 0.6f;
+            hud.againButton = UIButton(end, "Menu Button", blankButton, blankPressed, L.playButton.Anchor, L.playButton.Pos, L.againButton.Size, "MAIN MENU", ink);
             hud.endPanel = end.gameObject;
             end.gameObject.SetActive(false);
 

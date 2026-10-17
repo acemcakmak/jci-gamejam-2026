@@ -120,10 +120,75 @@ namespace Komur
             if (GameManager.I != null) GameManager.I.villagers.Remove(this);
         }
 
+        // ---------- End of the game: the circle around Kömür ----------
+
+        public enum EndMood { Calm, Angry, Loving }
+
+        private bool inEnding;
+        private EndMood endMood;
+        private Vector3? endSlot;
+        private Vector3 endLookAt;
+        private float nextEndActionAt;
+        private VillagerGhost spirit;
+
+        // Stand at the given spot facing Kömür (spirits float there instead) and act out the ending.
+        public void EnterEnding(Vector3 slot, int floor, Vector3 lookAt, EndMood mood)
+        {
+            inEnding = true;
+            endMood = mood;
+            endSlot = slot;
+            endLookAt = lookAt;
+            nextEndActionAt = Time.time + Random.Range(0.6f, 1.6f);
+            if (State == VillagerState.Dead)
+            {
+                if (spirit != null) spirit.MoveTo(slot);     // otherwise BecomeGrave puts it there
+                return;
+            }
+            mover.Stop();
+            body.linearVelocity = Vector2.zero;
+            body.position = slot;
+            transform.position = slot;
+            if (TryGetComponent(out FloorAgent agent)) agent.SetFloor(floor);
+            if (visualSprite != null) visualSprite.flipX = lookAt.x < slot.x;
+            if (flipbook != null) flipbook.Play("Idle");
+            fleeUntil = 0f;
+            fear = 0f;
+            shownAnger = -1f;
+            GameFeedbacks.Play(FeedbackId.RatDig, slot);      // a little poof as they arrive
+        }
+
+        private void UpdateEnding()
+        {
+            if (State == VillagerState.Dead || Time.time < nextEndActionAt) return;
+            switch (endMood)
+            {
+                case EndMood.Angry:
+                    nextEndActionAt = Time.time + Random.Range(1.4f, 2.6f);
+                    var gm = GameManager.I;
+                    if (stonePrefab != null && gm != null && gm.komur != null)
+                    {
+                        if (flipbook != null) PlayOnce("Hurt");
+                        var stone = Instantiate(stonePrefab, transform.position + Vector3.up * 0.5f, Quaternion.identity);
+                        stone.Launch(gm.komur, 0.4f, Floor, visualSprite != null ? visualSprite.sharedMaterial : null);
+                    }
+                    break;
+                case EndMood.Loving:
+                    nextEndActionAt = Time.time + Random.Range(0.7f, 1.4f);
+                    GameFeedbacks.Play(FeedbackId.Love, transform.position + new Vector3(Random.Range(-0.25f, 0.25f), 0.9f, 0f));
+                    break;
+            }
+        }
+
         private void Update()
         {
             var gm = GameManager.I;
             bool playing = gm == null || gm.IsSimulating;
+            if (inEnding)
+            {
+                UpdateEnding();
+                UpdateAnger();
+                return;
+            }
 
             if (State == VillagerState.Sick && playing)
             {
@@ -296,7 +361,12 @@ namespace Komur
             float anger = 0f;
             // Sick green wins over the pink: fondness shows again once they are cured.
             bool fond = Friendly && State == VillagerState.Healthy;
-            if (State == VillagerState.Healthy && !Friendly)
+            if (inEnding)
+            {
+                fond = endMood == EndMood.Loving && State == VillagerState.Healthy;
+                if (endMood == EndMood.Angry && State == VillagerState.Healthy) anger = 0.75f + 0.25f * Mathf.Sin(Time.time * 18f);
+            }
+            else if (State == VillagerState.Healthy && !Friendly)
             {
                 if (Time.time < fleeUntil) anger = 0.75f + 0.25f * Mathf.Sin(Time.time * 18f);
                 else anger = fearBuildTime > 0f ? fear / fearBuildTime : 0f;
@@ -419,7 +489,7 @@ namespace Komur
             var idle = flipbook != null && flipbook.clips != null && flipbook.clips.Length > 0 ? flipbook.clips[0].frames : null;
             if (ghostMaterial != null && idle != null)
             {
-                VillagerGhost.Spawn(idle, flip, transform.position, ghostMaterial, Floor);
+                spirit = VillagerGhost.Spawn(idle, flip, endSlot ?? transform.position, ghostMaterial, Floor);
             }
             else if (gravestonePrefab != null)
             {

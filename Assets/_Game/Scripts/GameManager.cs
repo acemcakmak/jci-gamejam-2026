@@ -428,6 +428,59 @@ namespace Komur
                 : Grateful > 0 && Grateful >= Mathf.CeilToInt(Alive * lovedThreshold + 0.0001f) ? Ending.Loved
                 : Ending.UnknownHero;
             GameFeedbacks.Play(won ? FeedbackId.Won : FeedbackId.Lost, komur != null ? komur.transform.position : Vector3.zero, komur != null ? komur.transform : null);
+            StartCoroutine(EndSequence());
+        }
+
+        [Header("Ending")]
+        public Vector2 endCircleRadius = new Vector2(2.1f, 1.35f);
+        public float endShowScreenAfter = 1.5f;
+
+        // Everyone gathers: the rats burrow away, Kömür appears on the apothecary, the villagers (and the
+        // spirits of the dead) form a circle around the cat and act out the ending, then the end screen.
+        private IEnumerator EndSequence()
+        {
+            if (hud != null) hud.HideGameplay();
+            for (int i = rats.Count - 1; i >= 0; i--)
+            {
+                if (rats[i] == null) continue;
+                GameFeedbacks.Play(FeedbackId.RatDig, rats[i].transform.position);
+                Destroy(rats[i].gameObject);
+            }
+            foreach (var stone in FindObjectsByType<ThrownStone>(FindObjectsSortMode.None)) Destroy(stone.gameObject);
+            yield return new WaitForSeconds(0.6f);
+
+            var apothecary = FindFirstObjectByType<Apothecary>();
+            int floor = apothecary != null ? apothecary.Floor : 1;
+            Vector3 centre = apothecary != null ? apothecary.transform.position : (komur != null ? komur.transform.position : Vector3.zero);
+            var grid = NavGrid.For(floor);
+            if (komur != null)
+            {
+                GameFeedbacks.Play(FeedbackId.RatDig, komur.transform.position);
+                komur.EnterEnding(centre, floor);
+                GameFeedbacks.Play(FeedbackId.MedicinePicked, centre);
+            }
+            CameraFollow2D.Focus(centre + Vector3.down * 0.3f);
+            CameraFollow2D.ZoomTo(titleCameraSize, 1.2f);
+            yield return new WaitForSeconds(0.5f);
+
+            int n = Mathf.Max(1, villagers.Count);
+            for (int i = 0; i < villagers.Count; i++)
+            {
+                var v = villagers[i];
+                float angle = Mathf.PI * 0.5f + i * Mathf.PI * 2f / n;
+                Vector3 slot = centre + new Vector3(Mathf.Cos(angle) * endCircleRadius.x, Mathf.Sin(angle) * endCircleRadius.y, 0f);
+                if (v.State != VillagerState.Dead && grid != null && grid.TryNearestWalkable(slot, 2, out var free)) slot = free;
+                var mood = Villager.EndMood.Calm;
+                if (v.State != VillagerState.Dead)
+                {
+                    if (Ending == Ending.Loved && v.Friendly) mood = Villager.EndMood.Loving;
+                    else if (Ending == Ending.UnknownHero) mood = v.Friendly ? Villager.EndMood.Loving : Villager.EndMood.Angry;
+                }
+                v.EnterEnding(slot, floor, centre, mood);
+                yield return new WaitForSeconds(0.12f);
+            }
+
+            yield return new WaitForSeconds(endShowScreenAfter);
             if (hud != null) hud.ShowEnd(Ending, Alive, Grateful, Dead, Total);
         }
     }

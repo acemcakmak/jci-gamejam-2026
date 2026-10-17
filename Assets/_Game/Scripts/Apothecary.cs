@@ -51,7 +51,10 @@ namespace Komur
         private void Update()
         {
             UpdateStatus();
-            if (IsReady && potion == null) SpawnPotion();
+            var state = GameManager.I != null ? GameManager.I.State : GameState.Intro;
+            bool over = state == GameState.Won || state == GameState.Lost;
+            if (IsReady && potion == null && !over) SpawnPotion();
+            else if (over && potion != null) ClearPotion(false);
 
             var gm = GameManager.I;
             if (gm == null || !gm.IsSimulating || gm.komur == null) return;
@@ -85,10 +88,12 @@ namespace Komur
         }
 
         // The boss smashes the waiting potion; brewing resumes once it is dead.
-        public void OnBossArrived()
+        public void OnBossArrived() => ClearPotion(true);
+
+        public void ClearPotion(bool smash)
         {
             if (potion == null) return;
-            GameFeedbacks.Play(FeedbackId.RatHit, potion.transform.position);
+            if (smash) GameFeedbacks.Play(FeedbackId.RatHit, potion.transform.position);
             Destroy(potion.gameObject);
             potion = null;
         }
