@@ -38,6 +38,8 @@ namespace Komur
         public bool Friendly { get; private set; }
         public bool CanBeBitten => State == VillagerState.Healthy;
         public int Floor => FloorAgent.FloorOf(gameObject);
+        // 1 = just bitten, 0 = about to die. Only meaningful while sick.
+        public float SickFraction => State == VillagerState.Sick ? Mathf.Clamp01(sickTimeLeft / sickDuration) : 1f;
         private NavGrid Grid => NavGrid.For(Floor);
 
         private Rigidbody2D body;

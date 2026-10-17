@@ -450,6 +450,7 @@ namespace Komur.EditorTools
                 new SpriteFlipbook.Clip { name = "Run", frames = CatFrames("Run"), fps = 14f },
                 new SpriteFlipbook.Clip { name = "Pounce", frames = CatFrames("Run"), fps = 28f },
                 new SpriteFlipbook.Clip { name = "Stunned", frames = CatFrames("Sitting"), fps = 6f },
+                new SpriteFlipbook.Clip { name = "Sit", frames = CatFrames("Sitting"), fps = 5f },
             };
             sr.sprite = flipbook.clips[0].frames.FirstOrDefault();
 
@@ -478,78 +479,6 @@ namespace Komur.EditorTools
             return go;
         }
 
-        // ---------- HUD ----------
-
-        private static Hud BuildHud()
-        {
-            var canvasGo = new GameObject("HUD");
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
-            var hud = canvasGo.AddComponent<Hud>();
-            var t = canvasGo.transform;
-
-            hud.waveText = UIText(t, "Wave", "", 44, TextAlignmentOptions.TopLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(40, -30), new Vector2(600, 80));
-            hud.villagersText = UIText(t, "Villagers", "", 36, TextAlignmentOptions.TopRight, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-40, -30), new Vector2(900, 80));
-            hud.hintText = UIText(t, "Hint", "", 34, TextAlignmentOptions.Bottom, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 40), new Vector2(1400, 80));
-            hud.bannerText = UIText(t, "Banner", "", 96, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 200), new Vector2(1400, 160));
-
-            var intro = Panel(t, "Intro Panel");
-            UIText(intro.transform, "Title", "Kömür", 120, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 280), new Vector2(1400, 180));
-            UIText(intro.transform, "Story",
-                "The townsfolk say black cats bring bad luck.\nBut the plague rats are coming, and only Kömür can stop them.",
-                44, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 80), new Vector2(1600, 200));
-            UIText(intro.transform, "Controls",
-                "WASD / Arrows  move      SPACE  pounce\nBitten villagers need medicine from the Apothecary.\nVillagers fear you. Don't linger near them!",
-                36, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -140), new Vector2(1600, 200));
-            UIText(intro.transform, "Start", "Press SPACE to start", 48, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -330), new Vector2(1000, 100));
-            hud.introPanel = intro;
-
-            var end = Panel(t, "End Panel");
-            hud.endTitle = UIText(end.transform, "Title", "", 96, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 160), new Vector2(1600, 160));
-            hud.endBody = UIText(end.transform, "Body", "", 44, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -80), new Vector2(1600, 320));
-            hud.endPanel = end;
-            end.SetActive(false);
-
-            return hud;
-        }
-
-        private static GameObject Panel(Transform parent, string name)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            go.GetComponent<Image>().color = new Color(0.05f, 0.04f, 0.08f, 0.85f);
-            return go;
-        }
-
-        private static TextMeshProUGUI UIText(Transform parent, string name, string text, float size, TextAlignmentOptions align,
-            Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 sizeDelta)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = anchorMin;
-            rt.anchorMax = anchorMax;
-            rt.pivot = anchorMin;
-            rt.anchoredPosition = position;
-            rt.sizeDelta = sizeDelta;
-            var tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.font = TMP_Settings.defaultFontAsset;
-            tmp.text = text;
-            tmp.fontSize = size;
-            tmp.alignment = align;
-            tmp.color = Color.white;
-            return tmp;
-        }
-
         // ---------- Feedback defaults (Epic Toon FX) ----------
 
         private static void ConfigureDefaultFeedbacks(GameFeedbacks feedbacks)
@@ -562,6 +491,7 @@ namespace Komur.EditorTools
             SetFeedback(feedbacks, FeedbackId.VillagerDied, "Environment/Smoke/Dark/SmokeBurstDark.prefab", 0.5f, 0.15f);
             SetFeedback(feedbacks, FeedbackId.Stunned, "Interactive/Stars/StarPoof.prefab", 0.35f, 0.1f);
             SetFeedback(feedbacks, FeedbackId.MedicinePicked, "Interactive/Sparkle/SparkleSolo/SparkleSoloGreen.prefab", 0.5f, 0f);
+            ConfigureBattleTexts(feedbacks);
         }
 
         private static void SetFeedback(GameFeedbacks feedbacks, FeedbackId id, string etfxPath, float scale, float shake)

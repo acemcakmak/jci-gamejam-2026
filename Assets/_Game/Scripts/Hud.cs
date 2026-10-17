@@ -14,12 +14,20 @@ namespace Komur
         public GameObject endPanel;
         public TextMeshProUGUI endTitle;
         public TextMeshProUGUI endBody;
+        public UnityEngine.UI.Button playButton;
+        public UnityEngine.UI.Button againButton;
+        [Tooltip("Optional frame behind the banner text; shown and hidden with it.")]
+        public GameObject bannerRoot;
+        [Tooltip("Status panel, minimap, hint and arrows; faded out while the title screen is up.")]
+        public CanvasGroup gameplayGroup;
 
         private Coroutine bannerRoutine;
 
         private void Awake()
         {
-            if (bannerText != null) bannerText.gameObject.SetActive(false);
+            if (playButton != null) playButton.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.StartGame(); });
+            if (againButton != null) againButton.onClick.AddListener(() => { if (GameManager.I != null) GameManager.I.Restart(); });
+            if (bannerText != null) BannerObject.SetActive(false);
             if (endPanel != null) endPanel.SetActive(false);
         }
 
@@ -31,7 +39,7 @@ namespace Komur
             if (waveText != null)
                 waveText.text = gm.WaveNumber > 0 ? $"Wave {gm.WaveNumber}/{gm.WaveCount}" : "";
             if (villagersText != null)
-                villagersText.text = $"Villagers  {gm.Alive}   Sick  {gm.Sick}   Lost  {gm.Dead}/{gm.maxDeaths}";
+                villagersText.text = $"Villagers {gm.Alive}   <color=#7CFF6B>Sick {gm.Sick}</color>   <color=#FF8A8A>Lost {gm.Dead}/{gm.maxDeaths}</color>";
             if (hintText != null)
             {
                 if (gm.State != GameState.Playing) hintText.text = "";
@@ -41,9 +49,12 @@ namespace Komur
             }
         }
 
+        private GameObject BannerObject => bannerRoot != null ? bannerRoot : bannerText.gameObject;
+
         public void ShowIntro(bool visible)
         {
             if (introPanel != null) introPanel.SetActive(visible);
+            if (gameplayGroup != null) gameplayGroup.alpha = visible ? 0f : 1f;
         }
 
         public void ShowBanner(string text, float duration = 1.6f)
@@ -56,16 +67,17 @@ namespace Komur
         private IEnumerator BannerRoutine(string text, float duration)
         {
             bannerText.text = text;
-            bannerText.gameObject.SetActive(true);
+            var banner = BannerObject;
+            banner.SetActive(true);
             float t = 0f;
             while (t < duration)
             {
                 t += Time.unscaledDeltaTime;
                 float pop = 1f + 0.25f * Mathf.Max(0f, 1f - t * 5f);
-                bannerText.transform.localScale = Vector3.one * pop;
+                banner.transform.localScale = Vector3.one * pop;
                 yield return null;
             }
-            bannerText.gameObject.SetActive(false);
+            banner.SetActive(false);
         }
 
         public void ShowEnd(bool won, int alive, int cured, int dead)
@@ -78,7 +90,7 @@ namespace Komur
                 endBody.text = won
                     ? $"{alive} villagers survived, {cured} cured by Kömür.\nThey'll never fear a black cat again."
                     : $"{dead} villagers were lost.\nThe townsfolk still blame the black cat...";
-                endBody.text += "\n\nPress R to try again";
+                endBody.text += "\n\nPress R or click Again";
             }
         }
     }

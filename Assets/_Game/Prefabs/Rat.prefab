@@ -200,6 +200,9 @@ MonoBehaviour:
   fleeSpeedMultiplier: 1.4
   retargetInterval: 1
   visual: {fileID: 2059992543873173198}
+  flipbook: {fileID: 8237348548765669969}
+  isBoss: 0
+  giveUpAfter: 4
   fastTint: {r: 0.75, g: 0.25, b: 0.2, a: 1}
   kingTint: {r: 0.3, g: 0.1, b: 0.35, a: 1}
   kingHealth: 3
@@ -214,6 +217,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4549186683707626329}
   - component: {fileID: 2059992543873173198}
+  - component: {fileID: 8237348548765669969}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -230,8 +234,8 @@ Transform:
   m_GameObject: {fileID: 9198896483545105780}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.45, y: 0.28, z: 1}
+  m_LocalPosition: {x: 0, y: 0.15, z: 0}
+  m_LocalScale: {x: 1.3, y: 1.3, z: 1.3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 416981305669033894}
@@ -280,14 +284,71 @@ SpriteRenderer:
   m_SortingLayerID: -1869315837
   m_SortingLayer: 1
   m_SortingOrder: 2
-  m_Sprite: {fileID: 21300000, guid: d6b73af48e3234768990a1ba424786b0, type: 3}
-  m_Color: {r: 0.36, g: 0.27, b: 0.22, a: 1}
+  m_Sprite: {fileID: -1882347247711912902, guid: 1bedbc2da85209842ab93a4e0e5d322f,
+    type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.7, y: 0.7}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &8237348548765669969
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9198896483545105780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3ef866b20caa4764aa7e2dd75c24c4d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  clips:
+  - name: Run
+    frames:
+    - {fileID: -1882347247711912902, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: 7439426567979852956, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: -2673560216460186399, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: -5822559823783948592, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: -4997308686002322044, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: -7808277857516635856, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: 2102408166121253023, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    - {fileID: -828024806730890176, guid: 1bedbc2da85209842ab93a4e0e5d322f, type: 3}
+    fps: 14
+    loop: 1
+  - name: Idle
+    frames:
+    - {fileID: 8793639957104055765, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 6084859605308855041, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 8603369663158992956, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: -5906421172241655209, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 5704420531145803721, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: -148617073940163930, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 4729606205655721961, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: -2073685336235588006, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 512795395688303107, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    - {fileID: 5667770778836351527, guid: 06bcc4d7ce9d91b4d957a1f2bb07f55b, type: 3}
+    fps: 10
+    loop: 1
+  - name: Bite
+    frames:
+    - {fileID: -3660337718397525389, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: 2591778900972152968, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -4935829826945031917, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -6538923972316792016, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: 4256614086351038501, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: 6678146037622112100, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -370905007996645351, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -3695961973125446166, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: 679081695457712378, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: 8674729504705624623, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -4359423781326089219, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    - {fileID: -4806425183443704193, guid: eab5a34792d9d4942b93cdc7e6663b0e, type: 3}
+    fps: 24
+    loop: 0
+  defaultClip: Run

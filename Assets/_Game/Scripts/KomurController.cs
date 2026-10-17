@@ -145,7 +145,9 @@ namespace Komur
                 : Color.white;
 
             if (flipbook == null) return;
-            if (IsPouncing) flipbook.Play("Pounce");
+            var gm = GameManager.I;
+            if (gm != null && gm.State == GameState.Intro) flipbook.Play("Sit");
+            else if (IsPouncing) flipbook.Play("Pounce");
             else if (IsStunned) flipbook.Play("Stunned");
             else if (input.sqrMagnitude > 0.01f) flipbook.Play("Run");
             else flipbook.Play("Idle");

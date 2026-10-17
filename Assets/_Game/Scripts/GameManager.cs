@@ -43,6 +43,11 @@ namespace Komur
         public KomurController komur;
         public Hud hud;
 
+        [Header("Title screen")]
+        [Tooltip("Camera size while the title screen shows Kömür sitting in the square.")]
+        public float titleCameraSize = 3f;
+        public float titleZoomOutTime = 1.4f;
+
         public GameState State { get; private set; } = GameState.Intro;
         private int playingSinceFrame = int.MaxValue;
 
@@ -122,6 +127,23 @@ namespace Komur
         private void Start()
         {
             if (hud != null) hud.ShowIntro(true);
+            CameraFollow2D.ZoomTo(titleCameraSize, 0f);
+        }
+
+        // Called by the Play button (or Space / Enter on the title screen).
+        public void StartGame()
+        {
+            if (State != GameState.Intro) return;
+            if (hud != null) hud.ShowIntro(false);
+            State = GameState.Playing;
+            playingSinceFrame = Time.frameCount;
+            CameraFollow2D.ZoomTo(CameraFollow2D.GameplaySize, titleZoomOutTime);
+            StartCoroutine(RunWaves());
+        }
+
+        public void Restart()
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         private void Update()
@@ -129,18 +151,11 @@ namespace Komur
             switch (State)
             {
                 case GameState.Intro:
-                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
-                    {
-                        if (hud != null) hud.ShowIntro(false);
-                        State = GameState.Playing;
-                        playingSinceFrame = Time.frameCount;
-                        StartCoroutine(RunWaves());
-                    }
+                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) StartGame();
                     break;
                 case GameState.Won:
                 case GameState.Lost:
-                    if (Input.GetKeyDown(KeyCode.R))
-                        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                    if (Input.GetKeyDown(KeyCode.R)) Restart();
                     break;
             }
         }
