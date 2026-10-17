@@ -137,14 +137,17 @@ namespace Komur.EditorTools
             const int cell = 32;
             if (tex == null || tex.height < cell * 4 || slices.Length < 10) return null;   // e.g. the anvil prop
 
-            int rows = tex.height / cell;
+            // Frames per row = highest occupied cell + 1 (the importer sometimes splits one frame into
+            // several slices, so slices can't be counted directly).
+            int rows = tex.height / cell, columns = tex.width / cell;
             var counts = new int[rows];
             Sprite firstIdle = null;
             foreach (var s in slices)
             {
                 int row = (tex.height - Mathf.FloorToInt(s.rect.y) - 1) / cell;
-                if (row < 0 || row >= rows) continue;
-                counts[row]++;
+                int col = Mathf.FloorToInt(s.rect.center.x / cell);
+                if (row < 0 || row >= rows || col < 0 || col >= columns) continue;
+                counts[row] = Mathf.Max(counts[row], col + 1);
                 if (row == 0 && (firstIdle == null || s.rect.x < firstIdle.rect.x)) firstIdle = s;
             }
             int last = rows - 1;

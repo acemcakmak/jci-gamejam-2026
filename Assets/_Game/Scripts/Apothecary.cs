@@ -18,7 +18,9 @@ namespace Komur
         [Tooltip("Where the potion floats, relative to the centre of the altar sprite.")]
         public Vector2 potionOffset = new Vector2(0f, 0.15f);
 
-        public bool IsReady => Time.time >= readyAt;
+        public bool IsReady => !Blocked && Time.time >= readyAt;
+        public bool Blocked => GameManager.I != null && GameManager.I.BossAlive;
+        public Color blockedColor = new Color(1f, 0.25f, 0.2f);
         public int Floor => FloorAgent.FloorOf(gameObject);
 
         private float readyAt;
@@ -52,7 +54,12 @@ namespace Komur
         private void UpdateStatus()
         {
             if (statusText == null) return;
-            if (IsReady)
+            if (Blocked)
+            {
+                statusText.text = "X";
+                statusText.color = blockedColor;
+            }
+            else if (IsReady)
             {
                 statusText.text = potion != null ? "" : "+";      // the glowing potion is the sign
                 statusText.color = readyColor;
@@ -62,6 +69,15 @@ namespace Komur
                 statusText.text = Mathf.CeilToInt(readyAt - Time.time).ToString();
                 statusText.color = brewingColor;
             }
+        }
+
+        // The boss smashes the waiting potion; brewing resumes once it is dead.
+        public void OnBossArrived()
+        {
+            if (potion == null) return;
+            GameFeedbacks.Play(FeedbackId.RatHit, potion.transform.position);
+            Destroy(potion.gameObject);
+            potion = null;
         }
 
         private void SpawnPotion()

@@ -83,6 +83,9 @@ namespace Komur
         // Survivors who were cured by Kömür (and so stopped fearing the cat).
         public int Grateful => villagers.Count(v => v.State != VillagerState.Dead && v.Friendly);
         public Ending Ending { get; private set; }
+        // The boss takes over the apothecary: no medicine until it is dead.
+        public Rat Boss { get; private set; }
+        public bool BossAlive => Boss != null && rats.Contains(Boss);
         public int Sick => villagers.Count(v => v.State == VillagerState.Sick);
 
         public static List<Wave> DefaultWaves()
@@ -214,8 +217,7 @@ namespace Komur
 
                 if (wave.ratKing)
                 {
-                    var boss = SpawnRat(wave.ratSpeed, RatKind.King);
-                    if (boss != null) yield return RevealBoss(boss);
+                    yield return RevealBoss(wave.ratSpeed);
                 }
 
                 for (int r = 0; r < wave.rats; r++)
@@ -275,18 +277,45 @@ namespace Komur
             IsCinematic = false;
         }
 
-        // Like a hole reveal: pan to the boss as it climbs out, let it roar, pan back.
-        private IEnumerator RevealBoss(Rat boss)
+        // Like a hole reveal: pan to the apothecary, the boss bursts out of it and roars, pan back.
+        private IEnumerator RevealBoss(float speed)
         {
             IsCinematic = true;
+            var apothecary = FindFirstObjectByType<Apothecary>();
             if (hud != null) hud.ShowBanner(bossPrefab != null ? "The Plague Slime is here!" : "The Rat King is here!", revealPanTime * 2f + revealHoldTime + 0.5f);
-            CameraFollow2D.Focus(boss.transform.position);
-            yield return new WaitForSeconds(revealPanTime);
-            if (boss != null) GameFeedbacks.Play(FeedbackId.BossArrived, boss.transform.position, boss.transform);
+            if (apothecary != null)
+            {
+                CameraFollow2D.Focus(apothecary.transform.position);
+                yield return new WaitForSeconds(revealPanTime);
+            }
+            var boss = SpawnBoss(speed);
+            if (boss != null)
+            {
+                CameraFollow2D.Focus(boss.transform.position);
+                GameFeedbacks.Play(FeedbackId.HoleOpened, boss.transform.position);
+                GameFeedbacks.Play(FeedbackId.BossArrived, boss.transform.position, boss.transform);
+            }
             yield return new WaitForSeconds(revealHoldTime + 0.5f);
             CameraFollow2D.Focus(null);
             yield return new WaitForSeconds(revealPanTime);
             IsCinematic = false;
+        }
+
+        // The boss bursts out of the apothecary (or a rat hole if there is none) and holds it.
+        private Rat SpawnBoss(float speed)
+        {
+            var apothecary = FindFirstObjectByType<Apothecary>();
+            var prefab = bossPrefab != null ? bossPrefab : ratPrefab;
+            if (apothecary == null || prefab == null) return Boss = SpawnRat(speed, RatKind.King);
+            int floor = apothecary.Floor;
+            Vector3 pos = apothecary.transform.position;
+            var grid = NavGrid.For(floor);
+            if (grid != null && grid.TryNearestWalkable(pos, 6, out var walkable)) pos = walkable;
+            var rat = Instantiate(prefab, pos, Quaternion.identity);
+            rat.Init(pos, speed, RatKind.King, floor);
+            Boss = rat;
+            apothecary.OnBossArrived();
+            return rat;
         }
 
         private Rat SpawnRat(float speed, RatKind kind)

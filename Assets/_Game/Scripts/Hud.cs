@@ -56,6 +56,7 @@ namespace Komur
             {
                 if (gm.State != GameState.Playing) hintText.text = "";
                 else if (gm.komur != null && gm.komur.HasMedicine) hintText.text = "Carrying medicine: bring it to a sick villager!";
+                else if (gm.BossAlive) hintText.text = "The boss took the Apothecary! Defeat it to free the medicine.";
                 else if (gm.Sick > 0) hintText.text = "Someone is sick! Grab medicine at the Apothecary.";
                 else hintText.text = "";
             }

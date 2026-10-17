@@ -84,6 +84,8 @@ namespace Komur
         public Sprite[] Frames(Look look, int row, int count)
         {
             if (look == null || look.sheet == null || row < 0 || count <= 0) return null;
+            count = Mathf.Min(count, look.sheet.width / look.cell);
+            if (count <= 0 || (row + 1) * look.cell > look.sheet.height) return null;
             var key = (look.sheet, row, count);
             if (cache.TryGetValue(key, out var frames)) return frames;
             frames = new Sprite[count];
@@ -101,15 +103,17 @@ namespace Komur
 
         public SpriteFlipbook.Clip[] Clips(Look look)
         {
+            var idle = Frames(look, look.idleRow, look.idleFrames);
+            var walk = Frames(look, look.walkRow, look.walkFrames) ?? idle;
             var clips = new List<SpriteFlipbook.Clip>
             {
-                new SpriteFlipbook.Clip { name = "Idle", frames = Frames(look, look.idleRow, look.idleFrames), fps = 6f },
-                new SpriteFlipbook.Clip { name = "Walk", frames = Frames(look, look.walkRow, look.walkFrames), fps = 10f },
+                new SpriteFlipbook.Clip { name = "Idle", frames = idle, fps = 6f },
+                new SpriteFlipbook.Clip { name = "Walk", frames = walk, fps = 10f },
             };
-            if (look.hurtRow >= 0)
-                clips.Add(new SpriteFlipbook.Clip { name = "Hurt", frames = Frames(look, look.hurtRow, look.hurtFrames), fps = 8f, loop = false });
-            if (look.deathRow >= 0)
-                clips.Add(new SpriteFlipbook.Clip { name = "Death", frames = Frames(look, look.deathRow, look.deathFrames), fps = 8f, loop = false });
+            var hurt = Frames(look, look.hurtRow, look.hurtFrames);
+            if (hurt != null) clips.Add(new SpriteFlipbook.Clip { name = "Hurt", frames = hurt, fps = 8f, loop = false });
+            var death = Frames(look, look.deathRow, look.deathFrames);
+            if (death != null) clips.Add(new SpriteFlipbook.Clip { name = "Death", frames = death, fps = 8f, loop = false });
             return clips.ToArray();
         }
     }
