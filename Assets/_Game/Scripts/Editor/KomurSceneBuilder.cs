@@ -381,7 +381,7 @@ namespace Komur.EditorTools
             rat.visual = sr;
             rat.flipbook = visual.GetComponent<SpriteFlipbook>();
             rat.health = 1;
-            AddEnemyEffects(rat, sr, 0.75f, 0.6f, 0.3f);
+            AddEnemyEffects(rat, sr, 0.75f, 0.6f, 0.45f);
             return SavePrefab(go, "Rat").GetComponent<Rat>();
         }
 
@@ -464,7 +464,9 @@ namespace Komur.EditorTools
         private static Material PlaguedMaterial()
         {
             string path = GameRoot + "/Art/Materials/Plagued.mat";
-            var shader = Shader.Find("AllIn1SpriteShader/AllIn1Urp2dRenderer");
+            // The default (unlit) All In 1 shader: the town has no 2D lights, and the lit URP 2D variant
+            // rendered the rats invisible.
+            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
             if (shader == null) return null;
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
