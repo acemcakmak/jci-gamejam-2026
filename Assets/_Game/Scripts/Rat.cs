@@ -16,6 +16,17 @@ namespace Komur
         public SpriteFlipbook flipbook;
         [Tooltip("Prefab is the dedicated boss (Plague Slime): its look comes from the prefab, not from tinting.")]
         public bool isBoss;
+
+        [Header("Boss: plague stones")]
+        [Tooltip("Thrown at Kömür; empty = borrow the villagers' stone.")]
+        public ThrownStone stonePrefab;
+        public float throwInterval = 3f;
+        public float throwMinRange = 2.5f;
+        public float throwMaxRange = 9f;
+        public float throwStun = 1.3f;
+        public Color plagueStoneTint = new Color(0.55f, 1f, 0.35f, 1f);
+        public Color plagueStoneRim = new Color(0.08f, 0.25f, 0.04f, 1f);
+        private float nextThrowAt;
         [Tooltip("Seconds a rat waits for a reachable target before giving up and leaving.")]
         public float giveUpAfter = 4f;
 
@@ -89,6 +100,8 @@ namespace Komur
             Kind = kind;
             floorAgent.SetFloor(floor);
 
+            nextThrowAt = Time.time + 4.5f;     // after the boss reveal, plus a moment to react
+
             switch (kind)
             {
                 case RatKind.Fast:
@@ -131,6 +144,8 @@ namespace Komur
                 body.linearVelocity = Vector2.zero;
                 return;
             }
+
+            if (isBoss) TryThrowAtKomur(gm);
 
             float currentSpeed = speed;
 
@@ -301,6 +316,26 @@ namespace Komur
             // On to the next healthy villager; rats only head home when nobody is left to bite.
             target = null;
             nextRetargetAt = 0f;
+        }
+
+        // The boss lobs plague stones at Kömür whenever it can see the cat from a distance.
+        private void TryThrowAtKomur(GameManager gm)
+        {
+            var komur = gm.komur;
+            if (komur == null || Time.time < nextThrowAt || komur.Floor != Floor) return;
+            Vector3 from = transform.position + Vector3.up * 0.8f;
+            float d = Vector2.Distance(transform.position, komur.transform.position);
+            if (d < throwMinRange || d > throwMaxRange || !Sight.Clear(from, komur.transform.position, Floor)) return;
+            var prefab = stonePrefab;
+            if (prefab == null)
+                foreach (var v in gm.villagers) if (v != null && v.stonePrefab != null) { prefab = v.stonePrefab; break; }
+            if (prefab == null) return;
+
+            nextThrowAt = Time.time + throwInterval * Random.Range(0.85f, 1.2f);
+            PlayBite();
+            var stone = Instantiate(prefab, from, Quaternion.identity);
+            stone.Launch(komur, throwStun, Floor, komur.visual != null ? komur.visual.sharedMaterial : null);
+            stone.MakePlague(plagueStoneTint, plagueStoneRim, 1.3f);
         }
 
         private void StartFleeing(GameManager gm)

@@ -67,6 +67,21 @@ namespace Komur
             Destroy(gameObject, 4f);
         }
 
+        // The boss's version: a sickly green rock with a dark green rim, a bit bigger.
+        public void MakePlague(Color tint, Color rimColor, float sizeScale)
+        {
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
+            {
+                if (sr.transform == shadow) continue;
+                sr.color = tint;
+                var block = new MaterialPropertyBlock();
+                sr.GetPropertyBlock(block);
+                block.SetColor(OutlineColorId, rimColor);
+                sr.SetPropertyBlock(block);
+            }
+            if (visual != null) visual.localScale = Vector3.one * rockSize * sizeScale;
+        }
+
         private float landedAt = -1f;
         private Vector3 rollDirection;
 
