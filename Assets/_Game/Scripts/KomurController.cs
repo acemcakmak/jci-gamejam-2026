@@ -16,7 +16,6 @@ namespace Komur
 
         [Header("Medicine")]
         public float deliverRange = 0.9f;
-        public GameObject medicineIcon;
 
         [Header("Visuals")]
         public SpriteFlipbook flipbook;
@@ -41,7 +40,6 @@ namespace Komur
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
-            if (medicineIcon != null) medicineIcon.SetActive(false);
 
             // Start on the ground floor so Cainos stairs can move us between floors.
             int ground = LayerMask.NameToLayer("Layer 1");
@@ -147,7 +145,6 @@ namespace Komur
         {
             HasMedicine = has;
             if (!has && CarriedPotion != null) { Destroy(CarriedPotion.gameObject); CarriedPotion = null; }
-            if (medicineIcon != null) medicineIcon.SetActive(has && CarriedPotion == null);
             if (has) GameFeedbacks.Play(FeedbackId.MedicinePicked, transform.position, transform);
         }
 
@@ -166,9 +163,6 @@ namespace Komur
             // Cainos stairs change the sprites' sorting layer; the group must follow.
             if (sortingGroup != null && visual != null && sortingGroup.sortingLayerID != visual.sortingLayerID)
                 sortingGroup.sortingLayerID = visual.sortingLayerID;
-            // Keep the medicine icon on the same sorting layer as the cat when the stairs change it.
-            if (medicineIcon != null && visual != null && medicineIcon.TryGetComponent(out Renderer iconRenderer))
-                iconRenderer.sortingLayerID = visual.sortingLayerID;
         }
 
         private void UpdateVisuals()

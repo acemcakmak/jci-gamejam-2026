@@ -670,7 +670,6 @@ namespace Komur.EditorTools
             };
             sr.sprite = flipbook.clips[0].frames.FirstOrDefault();
 
-            var medicine = AddWorldText(go.transform, "Medicine Icon", "+", 7f, new Vector3(0f, 1.6f, 0f), new Color(0.3f, 1f, 0.4f));
 
             var komur = go.AddComponent<KomurController>();
             var komurMat = CharacterMaterial();
@@ -678,7 +677,6 @@ namespace Komur.EditorTools
             AddHiddenOutline(go, sr, new Color(1f, 0.85f, 0.3f));
             komur.flipbook = flipbook;
             komur.visual = sr;
-            komur.medicineIcon = medicine.gameObject;
             return SavePrefab(go, "Komur");
         }
 
@@ -694,7 +692,6 @@ namespace Komur.EditorTools
                 a.transform.localPosition = Vector3.zero;
             }
             AddWorldText(go.transform, "Label", "APOTHECARY", 3.5f, new Vector3(0f, 1.6f, 0f), Color.white);
-            AddWorldText(go.transform, "Cross", "+", 8f, new Vector3(0f, 2.3f, 0f), new Color(0.3f, 1f, 0.4f));
             return go;
         }
 

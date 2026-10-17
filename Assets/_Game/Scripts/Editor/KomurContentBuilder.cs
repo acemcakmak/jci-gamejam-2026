@@ -64,6 +64,10 @@ namespace Komur.EditorTools
                 apothecary.potionGlowMaterial = glow;
                 apothecary.potionOffset = Vector2.zero;
                 EnsurePotionPlaceholder(apothecary, potions.Length > 0 ? potions[0] : null);
+                // The glowing potion is the sign now: no "+" / countdown text over the altar.
+                var cross = apothecary.transform.Find("Cross");
+                if (cross != null) Object.DestroyImmediate(cross.gameObject);
+                apothecary.statusText = null;
                 EditorUtility.SetDirty(apothecary);
             }
 

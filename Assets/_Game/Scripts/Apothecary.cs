@@ -41,11 +41,7 @@ namespace Komur
                 placeholderCentre = transform.InverseTransformPoint(potionPlaceholder.bounds.center);
                 potionPlaceholder.enabled = false;
             }
-            if (statusText == null)
-            {
-                var cross = transform.Find("Cross");
-                if (cross != null) statusText = cross.GetComponent<TextMeshPro>();
-            }
+
         }
 
         private void Update()
