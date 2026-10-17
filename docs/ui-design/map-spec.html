@@ -37,20 +37,20 @@
 
   <h2>Quarters</h2>
   <div class="quarters">
-    <div><b>NW · Chapel Hill (upper floor)</b>A raised hill with a southern bulge and an eastern spur. The ruined church has two rows of pillars, an altar and a statue, with graves behind it. Main stairs on the bulge, side stairs to the east. Rat hole 4 is up on the hill.</div>
-    <div><b>NE · Market</b>A stone market plaza with stall rows and a well. A merchant terrace (upper floor) with stairs, plus a shop, a warehouse and a gatehouse by the north road. Rat hole 2 is on the east edge.</div>
-    <div><b>SW · Farmstead</b>A barn, a cottage and a walled garden, rows of flowers as crops, and a farm lane south off the west road. Rat hole 1 is on the west edge.</div>
-    <div><b>SE · Sunken graveyard</b>A walled pit with rows of graves, a mausoleum and broken rune pillars. You go down a west ramp from the graveyard path or a north ramp towards the market. Rat hole 3 is inside the pit.</div>
-    <div><b>Centre · Town square</b>A stone plaza with steps out to every road. It has the well, a statue, pillars on the corners and the apothecary. Kömür starts here.</div>
-    <div><b>Readability</b>Trees stay on the town edges and between quarters, never over roads, plazas or just south of cliffs. Inside the quarters there are only low bushes, rocks and flowers.</div>
+    <div><b>Centre · Apothecary square</b>The apothecary altar sits at the exact centre of the map. Around it are four stone lanterns, benches facing it from three sides, and pillars on the plaza corners. Road stubs lead out to every quarter, and Kömür starts just south of the altar.</div>
+    <div><b>NW · Chapel Hill (upper floor)</b>A ruined church on the hill. An archway at the top of the main stairs leads into a nave with stone-bench pews. A stone coffin lies before the statue, flanked by rune pillars, with pillars along the walls and lanterns at the entrance. The churchyard graves sit on the edges. West stairs too. Rat hole 4 is on the hill.</div>
+    <div><b>NE · Market</b>A stone market with stall rows (crates, barrels, pots), a well, a bench and lanterns. An archway marks the entrance from the east road. There's a merchant terrace (upper floor) with goods and stairs, plus a shop, a warehouse and a gatehouse. Rat hole 2 is on the east side.</div>
+    <div><b>SW · Farmstead</b>A barn with supplies, a walled garden behind a brick fence with an open wooden gate, a cottage with a bench, and crop rows lined with hedges along the farm lane. Rat hole 1 is by the west fence.</div>
+    <div><b>SE · Sunken graveyard</b>A walled pit with rows of graves and stone coffins, lanterns on the corners, and a mausoleum with a statue on top. You enter through an archway over the north ramp, or down the west ramp from the graveyard path. Mourners' benches stand outside. Rat hole 3 is in the pit.</div>
+    <div><b>Outline and readability</b>The town wall follows an irregular outline with bays and stepped corners, and the darkness beyond it is outside the town. Trees stay near the wall and between quarters, never over roads, plazas or just south of a cliff.</div>
   </div>
 </main>
 
 <script>
 const T = 32; // pixels per tile
 const QUARTERS = [
-  { name: 'CHAPEL HILL', x: 12, y: 37.5 }, { name: 'MARKET', x: 40, y: 37.5 },
-  { name: 'FARMSTEAD', x: 10, y: 1.6 }, { name: 'GRAVEYARD', x: 42, y: 1.6 }, { name: 'SQUARE', x: 27.5, y: 13 },
+  { name: 'CHAPEL HILL', x: 13, y: 38.2 }, { name: 'MARKET', x: 40, y: 38.2 },
+  { name: 'FARMSTEAD', x: 12, y: 2.4 }, { name: 'GRAVEYARD', x: 42, y: 2.4 }, { name: 'SQUARE', x: 28, y: 13.6 },
 ];
 const imgs = {};
 const loadImg = src => imgs[src] ? Promise.resolve(imgs[src]) : new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[src] = i); i.onerror = () => rej(src); i.src = '../../' + src; });
@@ -58,11 +58,12 @@ const loadImg = src => imgs[src] ? Promise.resolve(imgs[src]) : new Promise((res
 function hash(x, y) { return (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0; }
 
 function makeMap(m) {
-  const at = (x, y) => (x < 0 || y < 0 || x >= m.width || y >= m.height) ? 'X' : m.rows[m.height - 1 - y][x];
+  const at = (x, y) => (x < 0 || y < 0 || x >= m.width || y >= m.height) ? ' ' : m.rows[m.height - 1 - y][x];
+  const room = (x, y) => at(x, y) !== ' ';
   const raised = (x, y) => '^B'.includes(at(x, y));
   const pit = (x, y) => 'sr'.includes(at(x, y));
   const solidPit = (x, y) => at(x, y) === 's';
-  return { at, raised, pit, solidPit };
+  return { at, raised, pit, solidPit, room };
 }
 function raisedTile(M, x, y) {
   const n = M.raised(x, y + 1), s = M.raised(x, y - 1), w = M.raised(x - 1, y), e = M.raised(x + 1, y);
@@ -87,6 +88,18 @@ function wall1Tile(M, x, y) {
   if (M.solidPit(x - 1, y)) return 8;
   if (M.solidPit(x + 1, y + 1) && !M.pit(x + 1, y) && !M.pit(x, y + 1)) return 18;
   if (M.solidPit(x - 1, y + 1) && !M.pit(x - 1, y) && !M.pit(x, y + 1)) return 22;
+  return -1;
+}
+function roomTile(M, x, y) {
+  if (!M.room(x, y)) return -1;
+  const w = M.room(x - 1, y), e = M.room(x + 1, y);
+  if (!M.room(x, y + 1)) return !w ? 0 : !e ? 2 : 1;
+  if (!M.room(x, y - 1)) return !w ? 23 : !e ? 25 : 24;
+  if (!M.room(x, y - 2)) return !w ? 15 : !e ? 17 : 16;
+  if (!w) return 8;
+  if (!e) return 9;
+  if (!M.room(x - 1, y + 1)) return 22;
+  if (!M.room(x + 1, y + 1)) return 18;
   return -1;
 }
 function shadowTile(M, x, y) {
@@ -141,21 +154,13 @@ async function main() {
   const tile = k => cat.tiles[k];
   const gaps = new Set(m.stairs.flatMap(s => [`${s.x - 1},${s.capY}`, `${s.x},${s.capY}`]));
 
-  // Outer wall (same as PaintRoom)
-  const outer = (x, y) => {
-    const L = 0, R = m.width - 1, top = m.height - 1;
-    if (y === top) return x === L ? 0 : x === R ? 2 : 1;
-    if (y === 1) return x === L ? 15 : x === R ? 17 : 16;
-    if (y === 0) return x === L ? 23 : x === R ? 25 : 24;
-    if (x === L) return 8; if (x === R) return 9;
-    return -1;
-  };
 
   function render() {
-    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = '#1a1714'; g.fillRect(0, 0, canvas.width, canvas.height);
     // Layer 1 ground
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
       const c = M.at(x, y), h = hash(x, y);
+      if (c === ' ') continue;
       drawTile(g, m, c === '=' ? tile('pavement_' + h % 8) : c === ',' ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
       if (c === '#') drawTile(g, m, tile('stone_' + stoneIndex(M, x, y)), x, y);
     }
@@ -164,7 +169,7 @@ async function main() {
       const sh = shadowTile(M, x, y); if (sh) drawTile(g, m, tile('shadow_' + sh), x, y);
     }
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
-      const o = outer(x, y), w = o >= 0 ? o : wall1Tile(M, x, y);
+      const o = roomTile(M, x, y), w = o >= 0 ? o : wall1Tile(M, x, y);
       if (w >= 0) drawTile(g, m, tile('wall_' + w), x, y);
     }
     // Layer 1 objects (stairs, props, characters), y-sorted

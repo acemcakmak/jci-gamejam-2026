@@ -33,7 +33,8 @@ namespace Komur.EditorTools
             public Prop[] props;
 
             // rows are stored top to bottom
-            public char At(int x, int y) => x < 0 || y < 0 || x >= width || y >= height ? 'X' : rows[height - 1 - y][x];
+            public char At(int x, int y) => x < 0 || y < 0 || x >= width || y >= height ? ' ' : rows[height - 1 - y][x];
+            public bool Room(int x, int y) => At(x, y) != ' ';
             public bool Raised(int x, int y) { char c = At(x, y); return c == '^' || c == 'B'; }
             public bool Pit(int x, int y) { char c = At(x, y); return c == 's' || c == 'r'; }
             public bool Ramp(int x, int y) => At(x, y) == 'r';
@@ -117,6 +118,7 @@ namespace Komur.EditorTools
                 var cell = new Vector3Int(x, y, 0);
                 char c = m.At(x, y);
                 uint h = TileHash(x, y);
+                if (c == ' ') continue; // outside the town
 
                 // Ground floor: grass everywhere, cobbles on paths, 9-sliced stone on plazas.
                 if (c == '=') grass1.SetTile(cell, LoadTile("TP Grass", "TX Tileset Grass Pavement " + h % 8));
@@ -128,7 +130,8 @@ namespace Komur.EditorTools
                 if (m.Raised(x, y))
                     grass2.SetTile(cell, LoadTile("TP Grass", h % 7 == 0 ? "TX Tileset Grass Flower " + h % 16 : "TX Tileset Grass " + h % 16));
 
-                int w1 = Wall1Tile(m, x, y);
+                int room = RoomTile(m, x, y);
+                int w1 = room >= 0 ? room : Wall1Tile(m, x, y);
                 if (w1 >= 0) wall1.SetTile(cell, Wall(w1));
                 int w2 = m.Raised(x, y) ? RaisedTile(m, x, y) : -1;
                 if (w2 >= 15 && w2 <= 17 && gaps.Contains(new Vector2Int(x, y))) w2 = -1;
@@ -141,8 +144,21 @@ namespace Komur.EditorTools
                 }
             }
 
-            // Outer town wall around the border.
-            PaintRoom(wall1, new RectInt(0, 0, m.width, m.height), true);
+        }
+
+        // Town wall following the outline: rim on top, rims on the sides, cap + brick face along the bottom.
+        private static int RoomTile(TownMap m, int x, int y)
+        {
+            if (!m.Room(x, y)) return -1;
+            bool w = m.Room(x - 1, y), e = m.Room(x + 1, y);
+            if (!m.Room(x, y + 1)) return !w ? 0 : !e ? 2 : 1;
+            if (!m.Room(x, y - 1)) return !w ? 23 : !e ? 25 : 24;
+            if (!m.Room(x, y - 2)) return !w ? 15 : !e ? 17 : 16;
+            if (!w) return 8;
+            if (!e) return 9;
+            if (!m.Room(x - 1, y + 1)) return 22;
+            if (!m.Room(x + 1, y + 1)) return 18;
+            return -1;
         }
 
         private static int StoneIndex(TownMap m, int x, int y)

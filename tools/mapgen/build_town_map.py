@@ -21,11 +21,13 @@ W, H = 56, 40
 
 # ---------------------------------------------------------------------------
 # Terrain legend (one char per tile, rows top to bottom):
+#   (space) outside the town - nothing is painted; the town wall follows this outline
 #   .  grass            ,  flowery grass      =  cobbled path       #  stone plaza
 #   ^  raised ground (upper floor, walkable via stairs)
 #   B  building / walled block (raised, no stairs - cover and decoration)
 #   s  sunken ground (graveyard pit)          r  ramp: sunken cell with no wall (entrance)
-# The outer town wall is added automatically around the border.
+# The town wall takes the outermost ring of town cells: 1 row on top, 1 column on the sides, and
+# 2 rows at the bottom (cap + brick face). Keep content 2 cells away from the outline.
 # ---------------------------------------------------------------------------
 grid = [['.'] * W for _ in range(H)]
 
@@ -39,10 +41,11 @@ def fill(x0, y0, x1, y1, ch):
 
 
 def at(x, y):
-    return grid[y][x] if 0 <= x < W and 0 <= y < H else 'X'
+    return grid[y][x] if 0 <= x < W and 0 <= y < H else ' '
 
 
 rng = random.Random(1717)
+CX, CY = W // 2, H // 2          # map centre: the apothecary altar
 
 # --- Flowery meadows sprinkled everywhere first
 for y in range(H):
@@ -50,185 +53,229 @@ for y in range(H):
         if rng.random() < 0.10:
             grid[y][x] = ','
 
-# --- Central square (irregular: main plaza + steps out to the roads)
-fill(23, 15, 32, 23, '#')
-fill(22, 17, 22, 21, '#')
-fill(33, 17, 33, 21, '#')
-fill(25, 24, 30, 24, '#')
-fill(25, 14, 30, 14, '#')
+# --- Irregular town outline: bites out of the corners and edges
+for x0, y0, x1, y1 in [
+    (0, 35, 6, 39), (0, 30, 2, 34),          # NW corner, stepped
+    (49, 36, 55, 39),                        # NE corner
+    (51, 0, 55, 5), (53, 6, 55, 9),          # SE corner, stepped
+    (0, 0, 4, 3),                            # SW corner
+    (22, 37, 25, 39),                        # north bay between hill and market
+    (19, 0, 24, 2),                          # south bay
+    (0, 8, 1, 13),                           # west notch
+    (54, 14, 55, 20),                        # east notch
+]:
+    fill(x0, y0, x1, y1, ' ')
 
-# --- Roads (3 wide, with bends so quarters don't feel like boxes)
-fill(26, 25, 28, 30, '=')       # north road ...
-fill(28, 31, 30, 37, '=')       # ... bends east toward the market
-fill(26, 31, 28, 31, '=')
-fill(34, 18, 42, 20, '=')       # east road into the market
-fill(40, 21, 42, 24, '=')
-fill(2, 18, 21, 20, '=')        # west road to the farmstead
-fill(12, 9, 14, 17, '=')        # farm lane south
-fill(26, 2, 28, 13, '=')        # south road ...
-fill(29, 9, 33, 11, '=')        # ... and the path into the graveyard
+# --- Centre: town square around the apothecary altar (octagon-ish plaza with road stubs)
+fill(23, 15, 33, 25, '#')
+for x, y in [(23, 15), (33, 15), (23, 25), (33, 25)]:
+    grid[y][x] = '.'
+fill(22, 18, 22, 22, '#')
+fill(34, 18, 34, 22, '#')
 
-# --- NW: Chapel Hill (raised, with an eastern spur and a southern bulge)
-fill(3, 27, 19, 36, '^')
-fill(20, 31, 23, 35, '^')
-fill(8, 25, 13, 26, '^')       # bulge carrying the main stairs
-# --- NE: Market quarter (plaza, merchant terrace, shop blocks)
-fill(34, 24, 47, 33, '#')
-fill(36, 34, 43, 35, '#')
-fill(44, 31, 52, 37, '^')       # merchant terrace
-fill(48, 30, 52, 30, '^')
-fill(35, 36, 38, 38, 'B')       # shop
-fill(49, 24, 52, 27, 'B')       # warehouse
-fill(31, 32, 33, 34, 'B')       # gatehouse by the north road
+# --- Roads (3 wide, bending between quarters)
+fill(5, 19, 21, 21, '=')          # west road to the farmstead
+fill(10, 8, 12, 18, '=')          # farm lane
+fill(27, 26, 29, 29, '=')         # north road ...
+fill(16, 28, 26, 30, '=')         # ... turning west to the chapel stairs
+fill(35, 19, 37, 21, '=')         # east road ...
+fill(36, 22, 38, 23, '=')         # ... turning north into the market
+fill(27, 3, 29, 14, '=')          # south road
+fill(30, 8, 35, 10, '=')          # graveyard path to the west ramp
 
-# --- SW: Farmstead (barn, cottage, walled garden; rows of flowers as crops)
-fill(4, 4, 9, 8, 'B')           # barn
-fill(16, 12, 19, 14, 'B')       # cottage
-fill(3, 12, 7, 14, 'B')         # walled garden
-for y in (3, 5, 7):             # crop rows
-    fill(16, y, 22, y, ',')
+# --- NW: Chapel Hill (raised): main body, west lobe, south bulge with the main stairs
+fill(7, 31, 21, 36, '^')
+fill(5, 31, 6, 34, '^')
+fill(12, 31, 18, 31, '^')
+fill(12, 29, 18, 30, '^')         # south bulge (church entrance)
+# --- NE: Market quarter
+fill(34, 24, 46, 33, '#')
+fill(43, 29, 49, 34, '^')         # merchant terrace
+fill(34, 34, 37, 36, 'B')         # shop
+fill(50, 24, 53, 27, 'B')         # warehouse
+fill(31, 31, 33, 33, 'B')         # gatehouse by the north road
+# --- SW: Farmstead
+fill(5, 4, 10, 8, 'B')            # barn
+fill(15, 12, 18, 14, 'B')         # cottage
+fill(4, 12, 7, 14, 'B')           # walled garden
+for y in (4, 6, 8):               # crop rows
+    fill(13, y, 18, y, ',')
+# --- SE: Sunken graveyard
+fill(36, 4, 49, 13, 's')
+fill(41, 14, 46, 15, 's')
+fill(36, 8, 36, 9, 'r')           # west ramp
+fill(43, 15, 44, 15, 'r')         # north ramp (under the archway)
+fill(45, 6, 48, 8, 'B')           # mausoleum
 
-# --- SE: Sunken graveyard (pit with a northern extension, ramps west and north)
-fill(34, 3, 51, 12, 's')
-fill(40, 13, 46, 14, 's')
-fill(34, 9, 34, 10, 'r')        # west ramp (from the graveyard path)
-fill(42, 14, 43, 14, 'r')       # north ramp (towards the market)
-fill(46, 6, 49, 8, 'B')         # mausoleum inside the pit
-
-# Stairs: (x, region) on the south cap of a raised region. Pivot = (x, capRow + 1).
+# Stairs on the south cap of raised ground. Pivot = (x, capY + 1).
 stairs = [
-    {'x': 10, 'capY': 25},      # chapel hill main stairs (on the bulge)
-    {'x': 17, 'capY': 27},      # chapel hill side stairs
-    {'x': 47, 'capY': 31},      # merchant terrace
+    {'x': 15, 'capY': 29},        # chapel: main stairs into the church
+    {'x': 9, 'capY': 31},         # chapel: west stairs
+    {'x': 46, 'capY': 29},        # merchant terrace
 ]
 
 # ---------------------------------------------------------------------------
-# Objects (world coords: x+0.5 is a cell centre). floor 2 = on a raised region.
+# Objects (world coords). floor 2 = on raised ground.
 # ---------------------------------------------------------------------------
 props = []
 taken = set()
 
 
+def room(x, y):
+    return at(x, y) != ' '
+
+
 def free(x, y, r=1):
-    for dy in range(-r, r + 1):
-        for dx in range(-r, r + 1):
-            if (x + dx, y + dy) in taken:
-                return False
-    return True
+    return all((x + dx, y + dy) not in taken for dy in range(-r, r + 1) for dx in range(-r, r + 1))
 
 
-def put(prefab, x, y, floor=1, mark=1):
-    props.append({'p': prefab, 'x': round(x + 0.5, 3), 'y': round(y + 0.2, 3), 'f': floor})
+def put(prefab, x, y, floor=1, mark=1, exact=False):
+    px, py = (x, y) if exact else (x + 0.5, y + 0.2)
+    props.append({'p': prefab, 'x': round(px, 3), 'y': round(py, 3), 'f': floor})
     for dy in range(-mark, mark + 1):
         for dx in range(-mark, mark + 1):
-            taken.add((x + dx, y + dy))
+            taken.add((int(x) + dx, int(y) + dy))
 
 
 def raised(x, y):
     return at(x, y) in '^B'
 
 
+def near_outline(x, y, r=2):
+    return any(not room(x + dx, y + dy) for dy in range(-r, r + 1) for dx in range(-r, r + 1))
+
+
 def ground_ok(x, y):
-    """Floor-1 spot: grass, not near raised edges (tall sprites would clip under the upper layer)."""
-    if at(x, y) not in '.,s':
+    """Floor-1 spot for tall things: grass, off the town wall, not just south of a cliff."""
+    if at(x, y) not in '.,s' or near_outline(x, y, 2):
         return False
-    for dy in range(-1, 5):          # nothing tall just south of a cliff
-        for dx in range(-1, 2):
-            if raised(x + dx, y + dy):
-                return False
-    return 1 < x < W - 2 and 1 < y < H - 2
+    return not any(raised(x + dx, y + dy) for dy in range(-1, 5) for dx in range(-1, 2))
 
 
 # Gameplay markers
-komur = [27.5, 18.5]
-apothecary = [28.5, 21.5]
+apothecary = [float(CX), float(CY)]          # the altar, exactly at the map centre
+komur = [CX + 0.5, CY - 2.5]
 villagers = [
-    {'x': 9.5, 'y': 33.5, 'f': 2}, {'x': 17.5, 'y': 30.5, 'f': 2},   # Chapel Hill
-    {'x': 38.5, 'y': 28.5, 'f': 1}, {'x': 45.5, 'y': 26.5, 'f': 1},  # Market
-    {'x': 9.5, 'y': 11.5, 'f': 1}, {'x': 20.5, 'y': 5.5, 'f': 1},    # Farmstead
-    {'x': 39.5, 'y': 7.5, 'f': 1},                                   # Graveyard
-    {'x': 24.5, 'y': 20.5, 'f': 1},                                  # Square
+    {'x': 10.5, 'y': 34.5, 'f': 2}, {'x': 19.5, 'y': 32.5, 'f': 2},   # Chapel Hill
+    {'x': 38.5, 'y': 30.5, 'f': 1}, {'x': 42.5, 'y': 26.5, 'f': 1},  # Market
+    {'x': 14.5, 'y': 10.5, 'f': 1}, {'x': 7.5, 'y': 16.5, 'f': 1},   # Farmstead
+    {'x': 42.5, 'y': 10.5, 'f': 1},                                  # Graveyard
+    {'x': 31.5, 'y': 23.5, 'f': 1},                                  # Square
 ]
 holes = [
-    {'x': 2.5, 'y': 10.5, 'f': 1, 'wave': 1},    # SW farmstead
-    {'x': 53.5, 'y': 22.5, 'f': 1, 'wave': 2},   # NE market
-    {'x': 50.5, 'y': 4.5, 'f': 1, 'wave': 3},    # SE graveyard (in the pit)
-    {'x': 5.5, 'y': 35.5, 'f': 2, 'wave': 4},    # NW chapel hill
+    {'x': 3.5, 'y': 16.5, 'f': 1, 'wave': 1},    # SW farmstead
+    {'x': 52.5, 'y': 30.5, 'f': 1, 'wave': 2},   # NE market
+    {'x': 39.5, 'y': 5.5, 'f': 1, 'wave': 3},    # SE graveyard (in the pit)
+    {'x': 8.5, 'y': 35.5, 'f': 2, 'wave': 4},    # NW chapel hill
 ]
 for m in [komur, apothecary] + [[v['x'], v['y']] for v in villagers] + [[h['x'], h['y']] for h in holes]:
     for dy in range(-1, 2):
         for dx in range(-1, 2):
             taken.add((int(m[0]) + dx, int(m[1]) + dy))
 
-P, PL = 'Props/PF Props - ', 'Plant/PF Plant - '
+P, PL, ST = 'Props/PF Props - ', 'Plant/PF Plant - ', 'Props/PF Struct - '
 
-# Square: well, pillars at the corners, a statue facing the apothecary
-put(P + 'Well 01', 31, 22)
-put(P + 'Statue 01', 24, 23)
-for x, y in [(22, 22), (33, 22), (22, 16), (33, 16)]:
+# --- Square: the altar in the middle, a ring of lanterns, benches facing it, pillars on the plaza corners
+put(P + 'Stone Bench 01 S', CX, CY + 3, exact=True)
+put(P + 'Stone Bench 01 E', CX - 3.4, CY, exact=True)
+put(P + 'Stone Bench 01 W', CX + 3.4, CY, exact=True)
+for dx, dy in [(-3, 3), (3, 3), (-3, -3), (3, -3)]:
+    put(P + 'Stone Lantern 01', CX + dx, CY + dy, mark=0, exact=True)
+for x, y in [(24, 24), (32, 24), (24, 16), (32, 16)]:
     put(P + 'Pillar 0' + str(1 + (x + y) % 2), x, y, mark=0)
-put(P + 'Road Sign 01 E', 34, 21, mark=0)
-put(P + 'Road Sign 01 W', 21, 21, mark=0)
+put(P + 'Road Sign 01 W', 21, 22, mark=0)
+put(P + 'Road Sign 01 E', 35, 22, mark=0)
 
-# Chapel Hill: ruined nave (two rows of pillars), altar and statue, graves behind the church
-for x in (7, 15):
-    for y in (29, 31, 33):
-        put(P + 'Pillar 0' + str(1 + y % 2), x, y, 2, mark=0)
-put(P + 'Altar 01', 11, 34, 2)
-put(P + 'Statue 01', 11, 35, 2, mark=0)
-put(P + 'Rune Pillar X3', 21, 33, 2)
-put(P + 'Rune Pillar Broken', 4, 28, 2, mark=0)
-for x, y in [(16, 35), (18, 35), (16, 33), (18, 33)]:
-    put(P + 'Gravestone 0' + str(1 + x % 3), x, y, 2, mark=0)
-for x, y in [(4, 31), (5, 34), (13, 28), (22, 32)]:
+# --- Chapel Hill: a ruined church - pews in the nave, coffin before the statue, archway at the entrance
+put(ST + 'Gate 01', 15.0, 31.25, 2, exact=True)                 # church entrance, top of the main stairs
+for y in (32.5, 33.7):
+    for x in (12.6, 17.4):
+        put(P + 'Stone Bench 01 S', x, y, 2, mark=0, exact=True)  # pews
+put(P + 'Statue 01', 15.0, 35.6, 2, exact=True)
+put(P + 'Stone Coffin 01 H', 15.0, 34.8, 2, mark=0, exact=True)
+for x in (11.5, 18.5):
+    put(P + 'Rune Pillar X3', x, 35.4, 2, mark=0, exact=True)
+for y in (32, 34):
+    put(P + 'Pillar 01', 10.5, y + 0.2, 2, mark=0, exact=True)
+    put(P + 'Pillar 02', 19.5, y + 0.2, 2, mark=0, exact=True)
+for x, y in [(11, 30), (19, 30)]:
+    put(P + 'Stone Lantern 01', x + 0.5, y + 0.3, 2, mark=0, exact=True)
+for x, y in [(6, 33), (7, 31), (20, 35), (21, 33)]:                # churchyard graves
+    put(P + 'Gravestone 0' + str(1 + (x + y) % 3), x, y, 2, mark=0)
+for x, y in [(8, 33), (13, 36), (17, 36), (21, 31)]:
     put(PL + 'Bush 0' + str(1 + (x * y) % 6), x, y, 2, mark=0)
 
-# Market: stall rows, goods on the terrace and on the shop roofs
-for i, x in enumerate(range(35, 45, 3)):
-    put(P + 'Crate 0' + str(1 + i % 2), x, 30, mark=0)
-    put(P + 'Barrel 01', x + 1, 30, mark=0)
-    put(P + 'Pot 0' + str(1 + i % 3), x, 26, mark=0)
-put(P + 'Chest 01', 37, 33)
-put(P + 'Well 01', 41, 28)
-for x, y in [(45, 35), (47, 35), (50, 34), (51, 36), (49, 32)]:
+# --- Market: stall rows (crate, barrel, pot), well, benches, lanterns, goods on the terrace and roofs
+for i, x in enumerate(range(35, 42, 3)):
+    put(P + 'Crate 0' + str(1 + i % 2), x, 28, mark=0)
+    put(P + 'Barrel 01', x + 1, 28, mark=0)
+    put(P + 'Pot 0' + str(1 + i % 3), x, 25, mark=0)
+    put(P + 'Pot 0' + str(1 + (i + 1) % 3), x + 1, 25, mark=0)
+put(P + 'Well 01', 39, 32)
+put(P + 'Chest 01', 35, 32, mark=0)
+put(P + 'Stone Bench 01 S', 41.5, 32.2, mark=0, exact=True)
+put(P + 'Stone Lantern 01', 34.5, 30.2, mark=0, exact=True)
+put(P + 'Stone Lantern 01', 42.5, 24.4, mark=0, exact=True)
+put(ST + 'Gate 01', 37.0, 22.1, exact=True)                       # market archway on the east road
+for x, y in [(44, 33), (45, 33), (48, 33), (48, 31), (44, 31)]:
     put(P + ('Crate 01' if (x + y) % 2 else 'Barrel 01'), x, y, 2, mark=0)
-put(P + 'Pot 02', 36, 37, 2, mark=0)
-put(P + 'Crate 02', 50, 26, 2, mark=0)
+put(P + 'Stone Lantern 01', 46.5, 32.2, 2, mark=0, exact=True)
+put(P + 'Pot 02', 35, 35, 2, mark=0)
+put(P + 'Crate 02', 51, 26, 2, mark=0)
+put(P + 'Barrel 01', 52, 25, 2, mark=0)
 
-# Farmstead: supplies by the barn, hay (bushes) on the garden wall, scarecrow sign
-for x, y in [(10, 5), (11, 6), (10, 9)]:
+# --- Farmstead: barn supplies, fenced garden with an open gate, crops with hedges, a bench by the cottage
+for x, y in [(11, 6), (11, 5), (9, 10)]:
     put(P + 'Crate 0' + str(1 + x % 2), x, y, mark=0)
-put(P + 'Barrel 01', 3, 9, mark=0)
-for x, y in [(5, 13), (6, 13), (17, 13)]:
+put(P + 'Barrel 01', 4, 10, mark=0)
+for x in range(3, 9):
+    put(P + 'Brick 0' + str(1 + x % 3), x, 15.6, mark=0, exact=True)  # fence line
+put(P + 'Wooden Gate 01 Opened', 9.0, 15.4, exact=True)
+for x, y in [(5, 13), (6, 13), (16, 13)]:
     put(PL + 'Bush 0' + str(1 + (x + y) % 6), x, y, 2, mark=0)
+for y in (4, 6, 8):
+    put(PL + 'Bush 0' + str(1 + y % 6), 12, y, mark=0)
+    put(PL + 'Bush 0' + str(2 + y % 5), 19, y, mark=0)
+put(P + 'Stone Bench 01 S', 16.5, 11.2, mark=0, exact=True)
 put(P + 'Pot 01', 7, 7, 2, mark=0)
-put(P + 'Road Sign 01 W', 11, 16, mark=0)
+put(P + 'Stone Cube 01', 13, 13, mark=0)
 
-# Graveyard: rows of graves in the pit, statue and pillars, mausoleum top
-for y in (4, 6, 8, 10):
-    for x in range(36, 46, 2):
-        if (x, y) in [(38, 8), (40, 8)]:
+# --- Graveyard: rows of graves and coffins in the pit, lanterns at the corners, archway over the north ramp
+for y in (5, 7, 9, 11):
+    for x in range(38, 45, 2):
+        if (x, y) in [(42, 11), (40, 5)]:
             continue
         put(P + 'Gravestone 0' + str(1 + (x + y) % 3), x, y, mark=0)
-put(P + 'Statue 01', 47, 10, mark=0)
-put(P + 'Rune Pillar X2', 47, 7, 2, mark=0)
-put(P + 'Rune Pillar Broken', 36, 12, mark=0)
-put(P + 'Rune Pillar Broken', 50, 11, mark=0)
+for x, y in [(46, 11), (48, 11)]:
+    put(P + 'Stone Coffin 01 V', x, y, mark=0)
+put(P + 'Stone Coffin 01 H', 41.0, 4.3, mark=0, exact=True)
+for x, y in [(37.5, 12.2), (48.5, 12.2), (37.5, 4.3)]:
+    put(P + 'Stone Lantern 01', x, y, mark=0, exact=True)
+put(P + 'Statue 01', 46.5, 7.7, 2, mark=0, exact=True)            # on the mausoleum
+put(P + 'Rune Pillar Broken', 49.0, 9.2, mark=0, exact=True)
+put(ST + 'Gate 01', 44.0, 15.1, exact=True)                       # archway over the north ramp
+put(P + 'Stone Bench 01 S', 40.0, 17.2, mark=0, exact=True)       # mourners' bench outside
+put(P + 'Stone Bench 01 S', 48.0, 17.2, mark=0, exact=True)
 
-# Trees: around the outside of the town and between quarters, never over roads or plazas
-tree_spots = [(2, 37), (2, 24), (2, 15), (2, 3), (11, 2), (20, 2), (23, 6), (33, 15), (21, 25), (24, 34),
-              (33, 37), (53, 37), (53, 29), (53, 15), (53, 8), (36, 16), (46, 16), (18, 9), (31, 2), (6, 22),
-              (16, 22), (45, 22), (24, 11), (31, 29)]
+# --- Trees: the town edge and between quarters, never over roads, plazas or right under a cliff
+tree_spots = [(4, 27), (3, 22), (3, 6), (13, 2), (17, 3), (26, 5), (31, 13), (21, 25), (23, 32),
+              (31, 36), (40, 36), (52, 32), (51, 21), (50, 16), (34, 15), (20, 12), (6, 24), (16, 24),
+              (24, 9), (46, 21), (40, 18), (26, 33), (11, 26), (31, 4)]
+def canopy_clear(x, y):
+    """A tree's crown covers about 3x4 tiles above its trunk: keep that off roads, plazas and the pit."""
+    return all(at(x + dx, y + dy) in '.,' for dy in range(0, 4) for dx in range(-1, 2))
+
+
 for x, y in tree_spots:
-    if ground_ok(x, y) and free(x, y, 1):
+    if ground_ok(x, y) and canopy_clear(x, y) and free(x, y, 1):
         put(PL + 'Tree 0' + str(1 + (x * 7 + y) % 3), x, y, mark=1)
 
-# Bushes, rocks, flowers and grass tufts to make the ground feel alive (low, never blocks the view)
-for _ in range(2000):
-    if len(props) > 260:
+# --- Low greenery everywhere else (bushes, rocks, flowers, grass tufts)
+for _ in range(3000):
+    if len(props) > 300:
         break
     x, y = rng.randrange(2, W - 2), rng.randrange(2, H - 2)
-    if not free(x, y, 0):
+    if not free(x, y, 0) or near_outline(x, y, 1):
         continue
     ch = at(x, y)
     if ch in '.,s' and ground_ok(x, y):
@@ -236,7 +283,7 @@ for _ in range(2000):
         if roll < 0.12:
             name = PL + 'Bush 0' + str(rng.randrange(1, 7))
         elif roll < 0.2:
-            name = P + 'Stone 0' + str(rng.randrange(1, 6))
+            name = P + 'Stone 0' + str(rng.randrange(1, 8))
         elif roll < 0.3:
             name = PL + 'Flower 01'
         else:
@@ -371,7 +418,7 @@ for n in range(8):
     catalog['tiles']['pavement_%d' % n] = tile_ref('TP Grass', 'TX Tileset Grass Pavement %d' % n)
 for n in range(50):
     catalog['tiles']['stone_%d' % n] = tile_ref('TP Stone Ground', 'TX Tileset Stone Ground_%d' % n)
-for name in sorted({p['p'] for p in props} | {'Props/PF Struct - Stairs S 01 M'}):
+for name in sorted({p['p'] for p in props} | {'Props/PF Struct - Stairs S 01 M', 'Props/PF Props - Altar 01'}):
     catalog['prefabs'][name] = prefab_parts(name)
 catalog['tiles'] = {k: v for k, v in catalog['tiles'].items() if v}
 with open(os.path.join(ROOT, 'docs/ui-design/cainos-catalog.json'), 'w') as f:
