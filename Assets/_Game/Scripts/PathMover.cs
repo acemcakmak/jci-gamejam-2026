@@ -12,6 +12,7 @@ namespace Komur
         private readonly List<Vector2> path = new List<Vector2>();
         private int index;
         private Vector2 destination;
+        private int destinationFloor = -1;
         private bool hasDestination;
         private float nextRepathAt;
         private Vector3 lastProgressPos;
@@ -24,12 +25,14 @@ namespace Komur
         public bool Arrived => hasDestination && index >= path.Count;
         public Vector2 Destination => destination;
 
-        // Returns false if no path exists right now.
-        public bool SetDestination(Vector2 target, bool force = false)
+        // Returns false if no route exists right now. targetFloor < 0 means "my own floor";
+        // other floors are reached via stairs (FloorRouter).
+        public bool SetDestination(Vector2 target, bool force = false, int targetFloor = -1)
         {
-            if (!force && hasDestination && (target - destination).sqrMagnitude < 0.25f && Time.time < nextRepathAt)
+            if (!force && hasDestination && (target - destination).sqrMagnitude < 0.25f && targetFloor == destinationFloor && Time.time < nextRepathAt)
                 return true;
             destination = target;
+            destinationFloor = targetFloor;
             hasDestination = true;
             return Repath();
         }
@@ -45,14 +48,16 @@ namespace Komur
         {
             nextRepathAt = Time.time + repathInterval * Random.Range(0.8f, 1.2f);
             index = 0;
-            var grid = NavGrid.For(FloorAgent.FloorOf(gameObject));
+            int myFloor = FloorAgent.FloorOf(gameObject);
+            var grid = NavGrid.For(myFloor);
             if (grid == null)
             {
                 path.Clear();
                 path.Add(destination);
                 return true;
             }
-            if (grid.FindPath(transform.position, destination, path)) return true;
+            int toFloor = destinationFloor < 0 ? myFloor : destinationFloor;
+            if (FloorRouter.Route(transform.position, myFloor, destination, toFloor, path)) return true;
             // No path on the grid: head straight for it rather than standing still (walls still block physically).
             path.Clear();
             path.Add(destination);

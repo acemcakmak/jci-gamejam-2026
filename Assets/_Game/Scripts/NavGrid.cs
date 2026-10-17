@@ -148,7 +148,9 @@ namespace Komur
                 foreach (var apothecary in FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
                     seeds.Add(apothecary.transform.position);
             }
-            ComputeReachable(seeds);
+            // Areas of one floor can be linked only through another floor's stairs (see FloorRouter),
+            // so every walkable cell counts as usable; the seeds just feed the log below.
+            System.Array.Copy(walkable, reachable, walkable.Length);
 
             if (Application.isPlaying)
             {

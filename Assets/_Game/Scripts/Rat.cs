@@ -42,6 +42,7 @@ namespace Komur
         private FloorAgent floorAgent;
         private Villager target;
         private Vector3 home;
+        private int homeFloor = 1;
         private bool fleeing;
         private float nextRetargetAt;
         private float invulnerableUntil;
@@ -79,6 +80,7 @@ namespace Komur
         public void Init(Vector3 homePosition, float moveSpeed, RatKind kind, int floor)
         {
             home = homePosition;
+            homeFloor = floor;
             speed = moveSpeed;
             Kind = kind;
             floorAgent.SetFloor(floor);
@@ -131,7 +133,7 @@ namespace Komur
             if (fleeing)
             {
                 currentSpeed *= fleeSpeedMultiplier;
-                mover.SetDestination(home);
+                mover.SetDestination(home, false, homeFloor);
                 if ((home - transform.position).sqrMagnitude < 0.09f || mover.Arrived)
                 {
                     Destroy(gameObject);
@@ -165,11 +167,11 @@ namespace Komur
                 }
                 else
                 {
-                    mover.SetDestination(target.transform.position);
+                    mover.SetDestination(target.transform.position, false, target.Floor);
                 }
 
                 Vector3 toTarget = target.transform.position - transform.position;
-                if (toTarget.sqrMagnitude <= biteRange * biteRange && Sight.Clear(transform.position, target.transform.position, Floor))
+                if (target.Floor == Floor && toTarget.sqrMagnitude <= biteRange * biteRange && Sight.Clear(transform.position, target.transform.position, Floor))
                 {
                     Bite(gm);
                     return;
@@ -222,8 +224,8 @@ namespace Komur
         {
             fleeing = true;
             target = null;
-            home = gm.NearestRatHole(transform.position, Floor);
-            mover.SetDestination(home, true);
+            // Run back to the hole it came out of (possibly on another floor).
+            mover.SetDestination(home, true, homeFloor);
         }
 
         // Called by Kömür's pounce: flash, knock the health bar down, die at zero. Returns true if the rat died.

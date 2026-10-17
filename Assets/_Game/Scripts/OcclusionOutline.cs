@@ -61,6 +61,8 @@ namespace Komur
             foreach (var sr in FindObjectsByType<SpriteRenderer>(FindObjectsSortMode.None))
             {
                 if (sr.sprite == null || sr.name.Contains("Shadow")) continue;
+                // Stairs sprites are big mostly-transparent boxes that characters walk over, not behind.
+                if (sr.transform.root.name.Contains("Stairs") || (sr.transform.parent != null && sr.transform.parent.name.Contains("Stairs"))) continue;
                 if (sr.GetComponentInParent<KomurController>() || sr.GetComponentInParent<Villager>() || sr.GetComponentInParent<Rat>()
                     || sr.GetComponentInParent<RatHole>() || sr.GetComponentInParent<ThrownStone>()) continue;
                 if (sr.bounds.size.y < 0.9f) continue;

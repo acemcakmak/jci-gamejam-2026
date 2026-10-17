@@ -281,15 +281,17 @@ namespace Komur
         {
             candidateBuffer.Clear();
             int floor = rat.Floor;
-            foreach (var v in villagers) if (v.CanBeBitten && v.Floor == floor) candidateBuffer.Add(v);
+            foreach (var v in villagers) if (v.CanBeBitten) candidateBuffer.Add(v);
             Vector3 from = rat.transform.position;
-            candidateBuffer.Sort((a, b) => (a.transform.position - from).sqrMagnitude.CompareTo((b.transform.position - from).sqrMagnitude));
+            // Nearest first; villagers on other floors count as a bit further away (stairs to climb).
+            float Cost(Villager v) => (v.transform.position - from).sqrMagnitude * (v.Floor == floor ? 1f : 2f);
+            candidateBuffer.Sort((a, b) => Cost(a).CompareTo(Cost(b)));
             for (int i = 0; i < candidateBuffer.Count && i < 3; i++)
-                if (mover.SetDestination(candidateBuffer[i].transform.position, true)) return candidateBuffer[i];
-            // Nobody reachable by path: go for the nearest anyway (straight line) so rats never stand idle.
+                if (mover.SetDestination(candidateBuffer[i].transform.position, true, candidateBuffer[i].Floor)) return candidateBuffer[i];
+            // Nobody reachable: go for the nearest anyway (straight line) so rats never stand idle.
             if (candidateBuffer.Count > 0)
             {
-                mover.SetDestination(candidateBuffer[0].transform.position, true);
+                mover.SetDestination(candidateBuffer[0].transform.position, true, candidateBuffer[0].Floor);
                 return candidateBuffer[0];
             }
             return null;

@@ -11,6 +11,23 @@ namespace Komur
 
         public static string LayerName(int floor) => "Layer " + floor;
 
+        // Cainos stairs move whatever walks through them onto "Layer N" (physics + sorting). For our
+        // characters, turn that into a floor change and put them back on the Characters layer.
+        private void LateUpdate()
+        {
+            int current = gameObject.layer;
+            for (int f = 1; f <= 3; f++)
+            {
+                if (current != LayerMask.NameToLayer(LayerName(f))) continue;
+                int characters = LayerMask.NameToLayer("Characters");
+                if (characters < 0 || GetComponent<Collider2D>() == null) return;
+                gameObject.layer = characters;
+                if (f != floor) SetFloor(f);
+                else Apply();
+                return;
+            }
+        }
+
         private void Awake()
         {
             Apply();

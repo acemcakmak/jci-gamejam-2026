@@ -496,8 +496,8 @@ namespace Komur.EditorTools
             mat.shader = shader;
             foreach (var k in new[] { "OUTBASE_ON", "ONLYOUTLINE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
             mat.SetColor("_OutlineColor", Color.white);
-            mat.SetFloat("_OutlineAlpha", 1f);
-            mat.SetFloat("_OutlineGlow", 1.5f);
+            mat.SetFloat("_OutlineAlpha", 0.6f);      // softer so the 1-texel line reads thinner
+            mat.SetFloat("_OutlineGlow", 1f);
             mat.SetFloat("_OutlinePixelWidth", 1f);
             EditorUtility.SetDirty(mat);
             return mat;
