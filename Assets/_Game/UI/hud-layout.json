@@ -129,7 +129,7 @@
     ],
     "size": [
       1180,
-      240
+      150
     ],
     "fontSize": 40,
     "padding": 10
@@ -200,5 +200,22 @@
   "camera": {
     "gameplaySize": 5,
     "titleSize": 3
+  },
+  "controlsPanel": {
+    "anchor": [
+      0.5,
+      0
+    ],
+    "pos": [
+      0,
+      318
+    ],
+    "size": [
+      1180,
+      150
+    ],
+    "fontSize": 34,
+    "iconSize": 64,
+    "padding": 12
   }
 }

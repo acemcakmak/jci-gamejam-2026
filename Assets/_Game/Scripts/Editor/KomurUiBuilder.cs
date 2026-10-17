@@ -152,14 +152,8 @@ namespace Komur.EditorTools
             var storyText = FitText(story, "Story",
                 "THE TOWN SAYS BLACK CATS BRING BAD LUCK.\nBUT THE PLAGUE RATS ARE COMING - ONLY KOMUR CAN STOP THEM.",
                 L.storyPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.storyPanel));
-            SetAnchors(storyText.rectTransform, new Vector2(0, 0.46f), Vector2.one, Inset(L.storyPanel));
             storyText.fontSizeMin = L.storyPanel.fontSize * 0.7f;
-            var controls = FitText(story, "Controls",
-                "WASD  MOVE        SPACE  POUNCE        P  PAUSE\nBRING MEDICINE TO THE SICK  -  STAY OUT OF THEIR SIGHT",
-                L.storyPanel.fontSize * 0.72f, TextAlignmentOptions.Center, new Color(ink.r, ink.g, ink.b, 0.85f), Inset(L.storyPanel));
-            controls.fontSizeMin = L.storyPanel.fontSize * 0.55f;
-            controls.lineSpacing = 10f;
-            SetAnchors(controls.rectTransform, Vector2.zero, new Vector2(1, 0.46f), Inset(L.storyPanel));
+            ControlsStrip(title, L.controlsPanel);
             hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, L.playButton.Anchor, L.playButton.Pos, L.playButton.Size, null, ink);
 
             // --- End screen ---
@@ -204,6 +198,86 @@ namespace Komur.EditorTools
         }
 
         // ---------- UI helpers ----------
+
+        // ---------- Title screen controls: pixel keyboard keys ----------
+
+        private const string KeysRoot = "Assets/ThirdPartyAssets/Controllers and Keyboard";
+        private const int KeyCell = 16;
+
+        // Dark see-through strip above the story panel: [W][A][S][D] MOVE  [SPACE] POUNCE  [P] PAUSE, and the
+        // goals underneath, in white. Keys tap themselves (W-A-S-D in sequence, SPACE on a beat).
+        private static void ControlsStrip(Transform parent, HudLayout.Element e)
+        {
+            if (e == null) return;
+            string lettersPath = KeysRoot + "/kb_light_alphanumeric.png", symbolsPath = KeysRoot + "/kb_light_symbols.png";
+            MakePixelArt(lettersPath);
+            MakePixelArt(symbolsPath);
+            var letters = AssetDatabase.LoadAssetAtPath<Texture2D>(lettersPath);
+            var symbols = AssetDatabase.LoadAssetAtPath<Texture2D>(symbolsPath);
+
+            var strip = UIImage(parent, "Controls", null, e.Anchor, e.Pos, e.Size);
+            strip.GetComponent<UnityEngine.UI.Image>().color = new Color(0f, 0f, 0f, 0.5f);
+
+            var keys = NewRect("Keys", strip);
+            keys.anchorMin = new Vector2(0f, 0.4f);
+            keys.anchorMax = Vector2.one;
+            keys.offsetMin = new Vector2(e.padding, 0f);
+            keys.offsetMax = new Vector2(-e.padding, -e.padding);
+            var row = keys.gameObject.AddComponent<UnityEngine.UI.HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.spacing = 8f;
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = row.childForceExpandHeight = false;
+
+            float k = e.iconSize, fs = e.fontSize;
+            if (letters != null)
+            {
+                foreach (var (letter, i) in new[] { ('W', 0), ('A', 1), ('S', 2), ('D', 3) })
+                    Key(keys, letters, letter - 'A', k, i * 0.22f, 1.6f);
+            }
+            KeyLabel(keys, "MOVE", fs);
+            KeyGap(keys, 56f);
+            if (symbols != null) Key(keys, symbols, 8, k, 0.3f, 1.1f);          // spacebar
+            KeyLabel(keys, "POUNCE", fs);
+            KeyGap(keys, 56f);
+            if (letters != null) Key(keys, letters, 'P' - 'A', k, 0.9f, 2.4f);
+            KeyLabel(keys, "PAUSE", fs);
+
+            var goals = UIText(strip, "Goals", "BRING MEDICINE TO THE SICK  -  STAY OUT OF THEIR SIGHT", fs * 0.85f,
+                TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero, Color.white);
+            SetAnchors(goals.rectTransform, Vector2.zero, new Vector2(1f, 0.4f), e.padding);
+        }
+
+        private static void Key(Transform row, Texture2D sheet, int sheetRow, float size, float phase, float period)
+        {
+            var rt = NewRect("Key", row);
+            var raw = rt.gameObject.AddComponent<UnityEngine.UI.RawImage>();
+            raw.texture = sheet;
+            raw.raycastTarget = false;
+            Rect Cell(int col) => new Rect(col * KeyCell / (float)sheet.width, 1f - (sheetRow + 1) * KeyCell / (float)sheet.height,
+                KeyCell / (float)sheet.width, KeyCell / (float)sheet.height);
+            var press = rt.gameObject.AddComponent<KeyPress>();
+            press.normalUv = Cell(0);
+            press.pressedUv = Cell(2);
+            press.phase = phase;
+            press.period = period;
+            raw.uvRect = press.normalUv;
+            var le = rt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.preferredWidth = le.preferredHeight = size;
+        }
+
+        private static void KeyLabel(Transform row, string text, float size)
+        {
+            var label = UIText(row, text, text, size, TextAlignmentOptions.Left, new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero, Color.white);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.margin = new Vector4(6f, 0f, 0f, 0f);
+        }
+
+        private static void KeyGap(Transform row, float width)
+        {
+            var le = NewRect("Gap", row).gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.preferredWidth = width;
+        }
 
         private static RectTransform NewRect(string name, Transform parent)
         {

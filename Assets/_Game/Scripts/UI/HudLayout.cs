@@ -39,7 +39,7 @@ namespace Komur
 
         public Element wavePanel, townPanel, minimap, banner, hint;
         public IndicatorSpec indicator;
-        public Element title, subtitle, storyPanel, playButton, endPanel, endTitle, againButton;
+        public Element title, subtitle, storyPanel, controlsPanel, playButton, endPanel, endTitle, againButton;
         public BattleTextSpec battleText;
         public CameraSpec camera;
 
