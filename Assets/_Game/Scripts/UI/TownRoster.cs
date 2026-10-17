@@ -12,7 +12,7 @@ namespace Komur
         public int columns = 4;
         public float cell = 60f;
         public float gap = 10f;
-        public float padding = 12f;
+        public float padding = 20f;     // clears the panel's frame
         public float fps = 5f;
 
         [Header("Looks")]
