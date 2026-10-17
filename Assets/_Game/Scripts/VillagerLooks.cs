@@ -91,10 +91,14 @@ namespace Komur
             frames = new Sprite[count];
             int c = look.cell;
             float y = look.sheet.height - (row + 1) * c;
+            // Trim one texel off the left, right and top of the cell: the outline shader samples one texel
+            // past the sprite's edge, which would otherwise outline the neighbouring frames (e.g. the feet
+            // of the row above showed as a red strip over angry villagers). Feet sit on the bottom row.
+            var pivot = new Vector2((look.pivot.x * c - 1f) / (c - 2f), look.pivot.y * c / (c - 1f));
             for (int i = 0; i < count; i++)
             {
-                var rect = new Rect(i * c, y, c, c);
-                frames[i] = Sprite.Create(look.sheet, rect, look.pivot, pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                var rect = new Rect(i * c + 1, y, c - 2, c - 1);
+                frames[i] = Sprite.Create(look.sheet, rect, pivot, pixelsPerUnit, 0, SpriteMeshType.FullRect);
                 frames[i].name = $"{look.sheet.name}_{row}_{i}";
             }
             cache[key] = frames;

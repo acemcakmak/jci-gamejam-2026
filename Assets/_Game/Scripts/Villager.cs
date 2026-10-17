@@ -257,6 +257,8 @@ namespace Komur
 
         [Header("Anger outline")]
         public Color angerColor = new Color(1f, 0.15f, 0.1f, 1f);
+        [Tooltip("Subtle outline + wash while this villager likes Kömür (cured by the cat).")]
+        public Color fondColor = new Color(1f, 0.55f, 0.8f, 0.7f);
 
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
@@ -271,21 +273,40 @@ namespace Komur
         {
             if (visualSprite == null) return;
             float anger = 0f;
+            bool fond = Friendly && State != VillagerState.Dead;
             if (State == VillagerState.Healthy && !Friendly)
             {
                 if (Time.time < fleeUntil) anger = 0.75f + 0.25f * Mathf.Sin(Time.time * 18f);
                 else anger = fearBuildTime > 0f ? fear / fearBuildTime : 0f;
             }
-            if (Mathf.Abs(anger - shownAnger) < 0.01f) return;
-            shownAnger = anger;
+            // Fondness breathes gently; anger takes over the same channels.
+            float key = fond ? 2f + Mathf.Round(Mathf.Sin(Time.time * 2f) * 10f) / 10f : anger;
+            if (Mathf.Abs(key - shownAnger) < 0.01f) return;
+            shownAnger = key;
             angerBlock ??= new MaterialPropertyBlock();
             visualSprite.GetPropertyBlock(angerBlock);
-            var c = angerColor;
-            c.a = anger > 0.02f ? Mathf.Lerp(0.45f, 1f, anger) : 0f;
-            angerBlock.SetColor(OutlineColorId, c);
-            angerBlock.SetFloat(OutlineWidthId, anger > 0.6f ? 2f : 1f);
-            angerBlock.SetColor(HitColorId, angerColor);
-            angerBlock.SetFloat(HitBlendId, anger * 0.22f);
+            Color outline, wash;
+            float washAmount, width = 1f;
+            if (fond)
+            {
+                float breathe = 0.5f + 0.5f * Mathf.Sin(Time.time * 2f);
+                outline = fondColor;
+                outline.a = fondColor.a * Mathf.Lerp(0.6f, 1f, breathe);
+                wash = fondColor;
+                washAmount = 0.08f;
+            }
+            else
+            {
+                outline = angerColor;
+                outline.a = anger > 0.02f ? Mathf.Lerp(0.45f, 1f, anger) : 0f;
+                wash = angerColor;
+                washAmount = anger * 0.22f;
+                if (anger > 0.6f) width = 2f;
+            }
+            angerBlock.SetColor(OutlineColorId, outline);
+            angerBlock.SetFloat(OutlineWidthId, width);
+            angerBlock.SetColor(HitColorId, wash);
+            angerBlock.SetFloat(HitBlendId, washAmount);
             visualSprite.SetPropertyBlock(angerBlock);
         }
 
@@ -309,6 +330,15 @@ namespace Komur
             if (!moving) return;
             if (Mathf.Abs(velocity.x) > Mathf.Abs(velocity.y)) animator.SetInteger("Direction", velocity.x > 0f ? 2 : 3);
             else animator.SetInteger("Direction", velocity.y > 0f ? 1 : 0);
+        }
+
+        // Someone died: the town blames the black cat again, even those it saved.
+        public void LoseTrust()
+        {
+            if (!Friendly || State == VillagerState.Dead) return;
+            Friendly = false;
+            fear = 0f;
+            shownAnger = -1f;
         }
 
         public void Infect(float duration)
@@ -366,6 +396,8 @@ namespace Komur
             if (gravestonePrefab != null)
             {
                 var grave = Instantiate(gravestonePrefab, transform.position, Quaternion.identity);
+                // A marker, not a wall: a grave in a narrow passage must never cut the map in two.
+                foreach (var col in grave.GetComponentsInChildren<Collider2D>(true)) Destroy(col);
                 int layer = LayerMask.NameToLayer(FloorAgent.LayerName(Floor));
                 foreach (var t in grave.GetComponentsInChildren<Transform>(true)) if (layer >= 0) t.gameObject.layer = layer;
                 foreach (var r in grave.GetComponentsInChildren<Renderer>(true)) r.sortingLayerName = FloorAgent.LayerName(Floor);

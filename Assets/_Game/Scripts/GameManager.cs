@@ -64,7 +64,19 @@ namespace Komur
 
         // True while the camera shows a newly opened rat hole: characters freeze.
         public bool IsCinematic { get; private set; }
-        public bool IsSimulating => State == GameState.Playing && !IsCinematic;
+        public bool IsSimulating => State == GameState.Playing && !IsCinematic && !IsPaused;
+        public bool IsPaused { get; private set; }
+
+        // Pause (Esc / P / the pause button): time stops, the overlay shows.
+        public void SetPaused(bool paused)
+        {
+            if (paused && State != GameState.Playing) return;
+            IsPaused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+            if (hud != null) hud.ShowPause(paused);
+        }
+
+        public void TogglePause() => SetPaused(!IsPaused);
 
         // False on the frame the intro is dismissed, so that Space press doesn't also pounce.
         public bool AcceptsGameplayInput => IsSimulating && Time.frameCount > playingSinceFrame;
@@ -92,11 +104,11 @@ namespace Komur
         {
             return new List<Wave>
             {
-                new Wave { rats = 2, spawnInterval = 4.0f, ratSpeed = 1.2f, sickDuration = 40f },
-                new Wave { rats = 4, spawnInterval = 3.2f, ratSpeed = 1.3f, sickDuration = 36f },
-                new Wave { rats = 6, spawnInterval = 2.6f, ratSpeed = 1.45f, sickDuration = 32f, fastRatChance = 0.15f },
-                new Wave { rats = 8, spawnInterval = 2.2f, ratSpeed = 1.55f, sickDuration = 28f, fastRatChance = 0.2f },
-                new Wave { rats = 10, spawnInterval = 1.9f, ratSpeed = 1.65f, sickDuration = 25f, fastRatChance = 0.25f, ratKing = true },
+                new Wave { rats = 3, spawnInterval = 3.6f, ratSpeed = 1.25f, sickDuration = 38f, fastRatChance = 0.05f },
+                new Wave { rats = 5, spawnInterval = 2.9f, ratSpeed = 1.4f, sickDuration = 33f, fastRatChance = 0.1f },
+                new Wave { rats = 7, spawnInterval = 2.4f, ratSpeed = 1.5f, sickDuration = 29f, fastRatChance = 0.2f },
+                new Wave { rats = 9, spawnInterval = 2.0f, ratSpeed = 1.6f, sickDuration = 25f, fastRatChance = 0.25f },
+                new Wave { rats = 12, spawnInterval = 1.7f, ratSpeed = 1.7f, sickDuration = 22f, fastRatChance = 0.3f, ratKing = true },
             };
         }
 
@@ -181,6 +193,7 @@ namespace Komur
 
         public void Restart()
         {
+            Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -190,6 +203,10 @@ namespace Komur
             {
                 case GameState.Intro:
                     if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) StartGame();
+                    break;
+                case GameState.Playing:
+                    if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P)) TogglePause();
+                    else if (IsPaused && Input.GetKeyDown(KeyCode.R)) Restart();
                     break;
                 case GameState.Won:
                 case GameState.Lost:
@@ -374,6 +391,7 @@ namespace Komur
         public void OnVillagerDied()
         {
             Dead++;
+            foreach (var v in villagers) v.LoseTrust();
             if (State == GameState.Playing && Alive == 0) End(false);
             else if (State == GameState.Playing && hud != null) hud.ShowBanner("The town panics...");
         }

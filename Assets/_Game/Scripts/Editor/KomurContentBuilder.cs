@@ -56,9 +56,12 @@ namespace Komur.EditorTools
         private static void ConfigureSceneContent()
         {
             var potions = PotionSprites();
+            var glow = PotionGlowMaterial();
             foreach (var apothecary in Object.FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
             {
                 apothecary.potionSprites = potions;
+                apothecary.potionGlowMaterial = glow;
+                apothecary.potionOffset = Vector2.zero;
                 EditorUtility.SetDirty(apothecary);
             }
 
@@ -81,6 +84,36 @@ namespace Komur.EditorTools
         }
 
         // ---------- Potions ----------
+
+        // All In 1 Sprite Shader: pixel-perfect golden rim (8 directions) plus a shine sweep; the Potion
+        // script animates the shine and the rim's glow.
+        private static Material PotionGlowMaterial()
+        {
+            var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
+            if (shader == null) { Debug.LogWarning("[Kömür] All In 1 Sprite Shader not found; potions use the soft halo."); return null; }
+            string dir = GameRoot + "/Art/Materials";
+            Directory.CreateDirectory(dir);
+            string path = dir + "/Potion Glow.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = shader;
+            foreach (var k in new[] { "OUTBASE_ON", "OUTBASEPIXELPERF_ON", "OUTBASE8DIR_ON", "SHINE_ON" }) mat.EnableKeyword(k);
+            mat.SetColor("_OutlineColor", new Color(1f, 0.82f, 0.35f, 1f));
+            mat.SetFloat("_OutlineAlpha", 1f);
+            mat.SetFloat("_OutlineGlow", 3f);
+            mat.SetInt("_OutlinePixelWidth", 1);
+            mat.SetColor("_ShineColor", new Color(1f, 1f, 0.9f, 1f));
+            mat.SetFloat("_ShineWidth", 0.12f);
+            mat.SetFloat("_ShineGlow", 2.5f);
+            mat.SetFloat("_ShineRotate", 0.6f);
+            mat.SetFloat("_ShineLocation", 0f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
 
         private static Sprite[] PotionSprites()
         {

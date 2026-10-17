@@ -16,7 +16,9 @@ namespace Komur
         [Tooltip("One is picked at random for every dose (looks only; they all cure the same).")]
         public Sprite[] potionSprites;
         [Tooltip("Where the potion floats, relative to the centre of the altar sprite.")]
-        public Vector2 potionOffset = new Vector2(0f, 0.15f);
+        public Vector2 potionOffset = Vector2.zero;
+        [Tooltip("All In 1 Sprite Shader material for the potion's glowing rim and shine (optional).")]
+        public Material potionGlowMaterial;
 
         public bool IsReady => !Blocked && Time.time >= readyAt;
         public bool Blocked => GameManager.I != null && GameManager.I.BossAlive;
@@ -101,7 +103,7 @@ namespace Komur
             Vector3 centre = altar.center + (Vector3)potionOffset;
             var gm = GameManager.I;
             Material material = gm != null && gm.komur != null && gm.komur.visual != null ? gm.komur.visual.sharedMaterial : null;
-            potion = Potion.Create(sprite, material, centre + Vector3.down * lift, layer, order + 1, lift);
+            potion = Potion.Create(sprite, material, potionGlowMaterial, centre + Vector3.down * lift, layer, order + 1, lift);
         }
 
         private void OnDrawGizmosSelected()

@@ -42,15 +42,24 @@ namespace Komur
 
         private static Sprite glowSprite;
 
-        public static Potion Create(Sprite sprite, Material material, Vector3 groundPosition, int sortingLayerId, int sortingOrder, float height)
+        // glowMaterial: an All In 1 Sprite Shader material (outline glow + shine). Without it the potion
+        // falls back to a soft halo sprite.
+        public static Potion Create(Sprite sprite, Material material, Material glowMaterial, Vector3 groundPosition, int sortingLayerId, int sortingOrder, float height)
         {
             var go = new GameObject("Potion");
             go.transform.position = groundPosition;
             var potion = go.AddComponent<Potion>();
             potion.altarHeight = height;
+            potion.glowMaterial = glowMaterial;
             potion.Build(sprite, material, sortingLayerId, sortingOrder);
             return potion;
         }
+
+        private Material glowMaterial;
+        private MaterialPropertyBlock glowBlock;
+        private static readonly int ShineLocationId = Shader.PropertyToID("_ShineLocation");
+        private static readonly int OutlineGlowId = Shader.PropertyToID("_OutlineGlow");
+        private static readonly int OutlineAlphaId = Shader.PropertyToID("_OutlineAlpha");
 
         private void Build(Sprite sprite, Material material, int sortingLayerId, int sortingOrder)
         {
@@ -78,7 +87,14 @@ namespace Komur
             bottleRenderer.transform.SetParent(bottle, false);
             bottleRenderer.sprite = sprite;
             bottleRenderer.sortingOrder = 1;
-            if (material != null) bottleRenderer.sharedMaterial = material;
+            if (glowMaterial != null)
+            {
+                bottleRenderer.sharedMaterial = glowMaterial;
+                glowRenderer.enabled = false;
+                coreRenderer.enabled = false;
+                glowBlock = new MaterialPropertyBlock();
+            }
+            else if (material != null) bottleRenderer.sharedMaterial = material;
             float h = sprite != null ? Mathf.Max(0.01f, sprite.bounds.size.y) : 1f;
             bottleRenderer.transform.localScale = Vector3.one * (size / h);
 
@@ -151,6 +167,18 @@ namespace Komur
 
             bottle.localScale = Vector3.one * scale;
             bottle.localRotation = Quaternion.Euler(0f, 0f, mode == Mode.Altar ? 6f * Mathf.Sin(t * 1.7f) : 0f);
+            if (glowBlock != null)
+            {
+                // Golden rim that breathes, and a shine sweeping across the bottle every couple of seconds.
+                float sweep = Mathf.Repeat((t - spawnedAt) / 2.2f, 1f);
+                bottleRenderer.GetPropertyBlock(glowBlock);
+                glowBlock.SetFloat(ShineLocationId, Mathf.Clamp01(sweep * 1.6f - 0.3f));
+                glowBlock.SetFloat(OutlineGlowId, Mathf.Lerp(2f, 4.5f, pulse));
+                glowBlock.SetFloat(OutlineAlphaId, Mathf.Lerp(0.7f, 1f, pulse));
+                bottleRenderer.SetPropertyBlock(glowBlock);
+                bottleRenderer.color = Color.white;
+                return;
+            }
             var g = glowColor;
             g.a *= Mathf.Lerp(0.55f, 1f, pulse);
             glowRenderer.color = g;

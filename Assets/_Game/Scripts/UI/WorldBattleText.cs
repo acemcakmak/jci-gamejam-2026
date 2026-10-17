@@ -13,6 +13,8 @@ namespace Komur
         private const int SortingOrder = 200;
 
         private PixelBattleText.TextAnimation anim;
+        private Transform follow;
+        private float height;
         private float pixelSize;
         private float startTime;
         private readonly List<TextMeshPro> fills = new List<TextMeshPro>();
@@ -22,17 +24,14 @@ namespace Komur
         public static void Spawn(string word, PixelBattleText.TextAnimation animation, Vector3 position, Transform follow, float height, float pixelSize)
         {
             if (animation == null || string.IsNullOrEmpty(word)) return;
+            // Not parented to the character: its Sorting Group would draw the text in the character's
+            // slot, under any wall in front of it. Instead it follows the character's position.
             var go = new GameObject("Battle Text " + word);
-            if (follow != null)
-            {
-                go.transform.SetParent(follow, false);
-                go.transform.localPosition = Vector3.up * height;
-            }
-            else
-            {
-                go.transform.position = position + Vector3.up * height;
-            }
-            go.AddComponent<WorldBattleText>().Init(word, animation, pixelSize);
+            go.transform.position = (follow != null ? follow.position : position) + Vector3.up * height;
+            var text = go.AddComponent<WorldBattleText>();
+            text.follow = follow;
+            text.height = height;
+            text.Init(word, animation, pixelSize);
         }
 
         private void Init(string word, PixelBattleText.TextAnimation animation, float size)
@@ -71,6 +70,7 @@ namespace Komur
 
         private void Update()
         {
+            if (follow != null) transform.position = follow.position + Vector3.up * height;
             float elapsed = Time.time - startTime;
             int n = fills.Count;
             bool done = true;

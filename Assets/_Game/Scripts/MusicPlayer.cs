@@ -53,7 +53,7 @@ namespace Komur
 
             var gm = GameManager.I;
             bool over = gm != null && (gm.State == GameState.Won || gm.State == GameState.Lost);
-            source.volume = volume * fade * (over ? endVolume : 1f);
+            source.volume = volume * fade * (over ? endVolume : 1f) * (gm != null && gm.IsPaused ? 0.5f : 1f);
 
             if (source.isPlaying) heardPlaying = true;
             else if (!source.loop && heardPlaying) Next();
