@@ -41,6 +41,12 @@ namespace Komur
             spriteRenderer.sprite = clip.frames[0];
         }
 
+        public float ClipLength(string clipName)
+        {
+            var clip = Array.Find(clips, c => c.name == clipName);
+            return clip == null || clip.frames == null || clip.fps <= 0f ? 0f : clip.frames.Length / clip.fps;
+        }
+
         private void Update()
         {
             if (current == null) return;

@@ -28,9 +28,13 @@ namespace Komur
 
         [Header("Waves")]
         public List<Wave> waves = DefaultWaves();
-        public float timeBetweenWaves = 4f;
-        public float maxWaveDuration = 30f;
-        public int maxDeaths = 3;
+        public float timeBetweenWaves = 6f;
+        public float maxWaveDuration = 40f;
+        public int maxDeaths = 4;
+
+        [Header("New rat hole reveal")]
+        public float revealPanTime = 0.8f;
+        public float revealHoldTime = 1.2f;
         [Tooltip("Each villager death makes uncured villagers scare this much more easily.")]
         public float panicPerDeath = 0.2f;
 
@@ -51,8 +55,12 @@ namespace Komur
         public GameState State { get; private set; } = GameState.Intro;
         private int playingSinceFrame = int.MaxValue;
 
+        // True while the camera shows a newly opened rat hole: characters freeze.
+        public bool IsCinematic { get; private set; }
+        public bool IsSimulating => State == GameState.Playing && !IsCinematic;
+
         // False on the frame the intro is dismissed, so that Space press doesn't also pounce.
-        public bool AcceptsGameplayInput => State == GameState.Playing && Time.frameCount > playingSinceFrame;
+        public bool AcceptsGameplayInput => IsSimulating && Time.frameCount > playingSinceFrame;
         public int WaveNumber { get; private set; }
         public int WaveCount => waves.Count;
         public int Dead { get; private set; }
@@ -70,11 +78,11 @@ namespace Komur
         {
             return new List<Wave>
             {
-                new Wave { rats = 3, spawnInterval = 3.0f, ratSpeed = 1.4f, sickDuration = 30f },
-                new Wave { rats = 6, spawnInterval = 2.2f, ratSpeed = 1.6f, sickDuration = 26f },
-                new Wave { rats = 9, spawnInterval = 1.6f, ratSpeed = 1.8f, sickDuration = 22f, fastRatChance = 0.25f },
-                new Wave { rats = 12, spawnInterval = 1.2f, ratSpeed = 2.0f, sickDuration = 18f, fastRatChance = 0.35f },
-                new Wave { rats = 15, spawnInterval = 1.0f, ratSpeed = 2.1f, sickDuration = 15f, fastRatChance = 0.4f, ratKing = true },
+                new Wave { rats = 2, spawnInterval = 4.0f, ratSpeed = 1.2f, sickDuration = 40f },
+                new Wave { rats = 4, spawnInterval = 3.2f, ratSpeed = 1.3f, sickDuration = 36f },
+                new Wave { rats = 6, spawnInterval = 2.6f, ratSpeed = 1.45f, sickDuration = 32f, fastRatChance = 0.15f },
+                new Wave { rats = 8, spawnInterval = 2.2f, ratSpeed = 1.55f, sickDuration = 28f, fastRatChance = 0.2f },
+                new Wave { rats = 10, spawnInterval = 1.9f, ratSpeed = 1.65f, sickDuration = 25f, fastRatChance = 0.25f, ratKing = true },
             };
         }
 
@@ -166,14 +174,15 @@ namespace Komur
             {
                 WaveNumber = i + 1;
                 var wave = waves[i];
-                bool newHole = OpenRatHoles(WaveNumber);
                 if (hud != null) hud.ShowBanner($"Wave {WaveNumber}/{waves.Count}");
                 GameFeedbacks.Play(FeedbackId.WaveStart, komur != null ? komur.transform.position : Vector3.zero);
                 yield return new WaitForSeconds(1.5f);
-                if (newHole && WaveNumber > 1 && hud != null)
+
+                // Show each newly opened hole before any rat comes out of it.
+                foreach (var hole in HolesOpeningAt(WaveNumber))
                 {
-                    hud.ShowBanner("A new rat hole appeared!");
-                    yield return new WaitForSeconds(1.2f);
+                    if (State != GameState.Playing) yield break;
+                    yield return RevealHole(hole);
                 }
 
                 if (wave.ratKing)
@@ -216,25 +225,28 @@ namespace Komur
             if (State == GameState.Playing) End(true);
         }
 
-        // Opens holes whose activeFromWave has been reached. Returns true if any opened this wave.
-        private bool OpenRatHoles(int wave)
+        // Holes that should open this wave (plus a fallback so at least one is always open).
+        private List<RatHole> HolesOpeningAt(int wave)
         {
-            bool opened = false;
-            foreach (var hole in RatHole.All)
-            {
-                if (hole.IsOpen || hole.activeFromWave > wave) continue;
-                hole.SetOpen(true);
-                opened = true;
-                GameFeedbacks.Play(FeedbackId.WaveStart, hole.transform.position);
-            }
+            var opening = RatHole.All.Where(h => !h.IsOpen && h.activeFromWave <= wave).OrderBy(h => h.activeFromWave).ToList();
+            if (opening.Count == 0 && !RatHole.All.Any(h => h.IsOpen) && RatHole.All.Count > 0)
+                opening.Add(RatHole.All.OrderBy(h => h.activeFromWave).First());
+            return opening;
+        }
 
-            // Safety net: always have at least one open hole.
-            if (!RatHole.All.Any(h => h.IsOpen) && RatHole.All.Count > 0)
-            {
-                RatHole.All.OrderBy(h => h.activeFromWave).First().SetOpen(true);
-                opened = true;
-            }
-            return opened;
+        // Pan the camera to the hole, pop it open, then pan back to Kömür. Characters freeze meanwhile.
+        private IEnumerator RevealHole(RatHole hole)
+        {
+            IsCinematic = true;
+            if (hud != null) hud.ShowBanner("A new rat hole appeared!", revealPanTime + revealHoldTime);
+            CameraFollow2D.Focus(hole.transform.position);
+            yield return new WaitForSeconds(revealPanTime);
+            hole.SetOpen(true);
+            GameFeedbacks.Play(FeedbackId.HoleOpened, hole.transform.position, hole.transform);
+            yield return new WaitForSeconds(revealHoldTime);
+            CameraFollow2D.Focus(null);
+            yield return new WaitForSeconds(revealPanTime);
+            IsCinematic = false;
         }
 
         private void SpawnRat(float speed, RatKind kind)

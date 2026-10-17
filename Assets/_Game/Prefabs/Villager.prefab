@@ -751,6 +751,8 @@ MonoBehaviour:
   stunDuration: 1
   stonePrefab: {fileID: 6661952696258507460, guid: d9b1f2f7d6e68410495e59f6a695ef3b,
     type: 3}
+  ratFearRadius: 2.6
+  ratFleeSpeed: 1.3
   animator: {fileID: 8740786018744080258}
   sickBar: {fileID: 6826186467289462128}
   icon: {fileID: 8304537473991271978}

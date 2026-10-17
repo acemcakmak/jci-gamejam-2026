@@ -17,7 +17,9 @@ namespace Komur
         VillagerScared,
         WaveStart,
         Won,
-        Lost
+        Lost,
+        HoleOpened,
+        RatHit
     }
 
     // One place to hook juice to game events: drop an Epic Toon FX prefab into vfxPrefab,

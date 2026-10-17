@@ -101,7 +101,7 @@ namespace Komur
         private void Update()
         {
             var gm = GameManager.I;
-            bool playing = gm == null || gm.State == GameState.Playing;
+            bool playing = gm == null || gm.IsSimulating;
 
             if (State == VillagerState.Sick && playing)
             {
@@ -157,7 +157,7 @@ namespace Komur
         private void FixedUpdate()
         {
             var gm = GameManager.I;
-            bool playing = gm == null || gm.State == GameState.Playing;
+            bool playing = gm == null || gm.IsSimulating;
             Vector2 velocity = Vector2.zero;
 
             if (playing && State == VillagerState.Healthy)

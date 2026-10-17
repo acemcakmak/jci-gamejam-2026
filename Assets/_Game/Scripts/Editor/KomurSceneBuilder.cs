@@ -82,7 +82,22 @@ namespace Komur.EditorTools
                 gm.ratPrefab = prefabs.rat;
                 gm.bossPrefab = prefabs.boss;
                 gm.waves = GameManager.DefaultWaves();
+                gm.maxDeaths = 4;
+                gm.maxWaveDuration = 40f;
+                gm.timeBetweenWaves = 6f;
                 EnsureNavGrids(gm);
+                foreach (var apothecary in Object.FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
+                {
+                    apothecary.brewTime = 2f;
+                    EditorUtility.SetDirty(apothecary);
+                }
+                var sceneFeedbacks = Object.FindFirstObjectByType<GameFeedbacks>();
+                if (sceneFeedbacks != null)
+                {
+                    ConfigureEnemyFeedbacks(sceneFeedbacks);
+                    ConfigureBattleTexts(sceneFeedbacks);
+                    EditorUtility.SetDirty(sceneFeedbacks);
+                }
                 foreach (var tmp in Object.FindObjectsByType<TextMeshPro>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 {
                     tmp.font = WorldFont();
@@ -351,6 +366,7 @@ namespace Komur.EditorTools
                     new SpriteFlipbook.Clip { name = "Run", frames = run, fps = 14f },
                     new SpriteFlipbook.Clip { name = "Idle", frames = SheetFrames(MonstersRoot + "/Rat/idle.png"), fps = 10f },
                     new SpriteFlipbook.Clip { name = "Bite", frames = SheetFrames(MonstersRoot + "/Rat/attack_bite.png"), fps = 24f, loop = false },
+                    new SpriteFlipbook.Clip { name = "Death", frames = SheetFrames(MonstersRoot + "/Rat/rat-death.png"), fps = 12f, loop = false },
                 };
                 sr.sprite = run[0];
             }
@@ -364,6 +380,8 @@ namespace Komur.EditorTools
             var rat = go.AddComponent<Rat>();
             rat.visual = sr;
             rat.flipbook = visual.GetComponent<SpriteFlipbook>();
+            rat.health = 1;
+            AddEnemyEffects(rat, sr, 0.75f, 0.6f, 0.3f);
             return SavePrefab(go, "Rat").GetComponent<Rat>();
         }
 
@@ -385,12 +403,96 @@ namespace Komur.EditorTools
                 new SpriteFlipbook.Clip { name = "Run", frames = walk, fps = 8f },
                 new SpriteFlipbook.Clip { name = "Idle", frames = SheetFrames(MonstersRoot + "/Slime/idle.png"), fps = 10f },
                 new SpriteFlipbook.Clip { name = "Bite", frames = SheetFrames(MonstersRoot + "/Slime/attack.png"), fps = 24f, loop = false },
+                new SpriteFlipbook.Clip { name = "Death", frames = SheetFrames(MonstersRoot + "/Slime/death.png"), fps = 14f, loop = false },
             };
             var boss = go.AddComponent<Rat>();
             boss.visual = sr;
             boss.flipbook = flipbook;
             boss.isBoss = true;
+            boss.health = 3;
+            AddEnemyEffects(boss, sr, 1.9f, 1.4f, 0.7f);
             return SavePrefab(go, "Plague Slime").GetComponent<Rat>();
+        }
+
+        // Plagued look (All In 1 Sprite Shader), health bar with drain, and a trailing stink cloud (Epic Toon FX).
+        private static void AddEnemyEffects(Rat rat, SpriteRenderer sr, float barHeight, float barWidth, float cloudScale)
+        {
+            var mat = PlaguedMaterial();
+            if (mat != null) sr.sharedMaterial = mat;
+
+            var square = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderDir + "/square.png");
+            var barGo = new GameObject("Health Bar");
+            barGo.transform.SetParent(rat.transform, false);
+            barGo.transform.localPosition = new Vector3(0f, barHeight, 0f);
+            AddSprite(barGo.transform, "Background", square, new Color(0.1f, 0.05f, 0.05f, 0.85f), new Vector3(barWidth + 0.06f, 0.12f, 1f), 30);
+            var chip = AddSprite(barGo.transform, "Chip", square, new Color(1f, 0.92f, 0.6f), new Vector3(barWidth, 0.07f, 1f), 31);
+            var fill = AddSprite(barGo.transform, "Fill", square, new Color(0.85f, 0.2f, 0.2f), new Vector3(barWidth, 0.07f, 1f), 32);
+            var bar = barGo.AddComponent<WorldBar>();
+            bar.background = barGo.transform.Find("Background").GetComponent<SpriteRenderer>();
+            bar.fill = fill;
+            bar.chip = chip;
+            bar.width = barWidth;
+            bar.colors = new Gradient();
+            bar.colors.SetKeys(
+                new[] { new GradientColorKey(new Color(0.9f, 0.15f, 0.15f), 0f), new GradientColorKey(new Color(0.55f, 0.85f, 0.25f), 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
+            rat.healthBar = bar;
+
+            var cloudPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EtfxRoot + "/Environment/Smoke/StinkyCloudTrail.prefab");
+            if (cloudPrefab != null)
+            {
+                var cloud = (GameObject)PrefabUtility.InstantiatePrefab(cloudPrefab);
+                cloud.transform.SetParent(rat.transform, false);
+                cloud.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+                cloud.transform.localScale = Vector3.one * cloudScale;
+                foreach (var ps in cloud.GetComponentsInChildren<ParticleSystem>(true))
+                {
+                    var main = ps.main;
+                    main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                }
+                foreach (var r in cloud.GetComponentsInChildren<Renderer>(true))
+                {
+                    r.sortingLayerName = CharacterSortingLayer;
+                    r.sortingOrder = 1;
+                }
+                rat.plagueEffect = cloud.GetComponentInChildren<ParticleSystem>();
+            }
+        }
+
+        // Desaturated, green-tinted sprite with a sickly green pixel outline; also carries the hit flash
+        // (_HitEffectBlend) and dissolve (_FadeAmount) the Rat script animates.
+        private static Material PlaguedMaterial()
+        {
+            string path = GameRoot + "/Art/Materials/Plagued.mat";
+            var shader = Shader.Find("AllIn1SpriteShader/AllIn1Urp2dRenderer");
+            if (shader == null) return null;
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                Directory.CreateDirectory(GameRoot + "/Art/Materials");
+                mat = new Material(shader) { name = "Plagued" };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            mat.shader = shader;
+            foreach (var k in new[] { "OUTBASE_ON", "OUTBASEPIXELPERF_ON", "GREYSCALE_ON", "HITEFFECT_ON", "FADE_ON" }) mat.EnableKeyword(k);
+            mat.SetColor("_OutlineColor", new Color(0.55f, 1f, 0.25f, 1f));
+            mat.SetFloat("_OutlineAlpha", 1f);
+            mat.SetFloat("_OutlineGlow", 2f);
+            mat.SetFloat("_OutlinePixelWidth", 1f);
+            mat.SetColor("_GreyscaleTintColor", new Color(0.72f, 0.95f, 0.55f, 1f));
+            mat.SetFloat("_GreyscaleBlend", 0.55f);
+            mat.SetFloat("_GreyscaleLuminosity", 0.05f);
+            mat.SetColor("_HitEffectColor", Color.white);
+            mat.SetFloat("_HitEffectGlow", 5f);
+            mat.SetFloat("_HitEffectBlend", 0f);
+            mat.SetFloat("_FadeAmount", -0.1f);
+            mat.SetColor("_FadeBurnColor", new Color(0.5f, 1f, 0.2f, 1f));
+            mat.SetFloat("_FadeBurnWidth", 0.08f);
+            mat.SetFloat("_FadeBurnGlow", 5f);
+            var noise = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Plugins/AllIn1SpriteShader/Textures/seamlessNoise.png");
+            if (noise != null) mat.SetTexture("_FadeTex", noise);
+            EditorUtility.SetDirty(mat);
+            return mat;
         }
 
         private static GameObject BuildEnemyBase(string name, int layer, float radius)
@@ -519,19 +621,32 @@ namespace Komur.EditorTools
         {
             feedbacks.EnsureAllEntries();
             SetFeedback(feedbacks, FeedbackId.Pounce, "Environment/Dust/DustDirtyPoofSoft.prefab", 0.3f, 0f);
-            SetFeedback(feedbacks, FeedbackId.RatKilled, "Combat/Explosions (Misc)/HitDustExplosion.prefab", 0.35f, 0.08f);
+            SetFeedback(feedbacks, FeedbackId.RatKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 0.45f, 0.08f);
             SetFeedback(feedbacks, FeedbackId.Bite, "Environment/Smoke/StinkyCloud.prefab", 0.3f, 0.05f);
             SetFeedback(feedbacks, FeedbackId.Cured, "Interactive/Hearts/HeartPoof.prefab", 0.4f, 0f);
             SetFeedback(feedbacks, FeedbackId.VillagerDied, "Environment/Smoke/Dark/SmokeBurstDark.prefab", 0.5f, 0.15f);
             SetFeedback(feedbacks, FeedbackId.Stunned, "Interactive/Stars/StarPoof.prefab", 0.35f, 0.1f);
             SetFeedback(feedbacks, FeedbackId.MedicinePicked, "Interactive/Sparkle/SparkleSolo/SparkleSoloGreen.prefab", 0.5f, 0f);
+            ConfigureEnemyFeedbacks(feedbacks);
             ConfigureBattleTexts(feedbacks);
+        }
+
+        // Feedbacks added later (hole reveal, rat hit); also used to upgrade existing scenes.
+        private static void ConfigureEnemyFeedbacks(GameFeedbacks feedbacks)
+        {
+            feedbacks.EnsureAllEntries();
+            SetFeedback(feedbacks, FeedbackId.RatKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 0.45f, 0.08f);
+            SetFeedback(feedbacks, FeedbackId.RatHit, "Combat/Explosions (Misc)/HitDustExplosion.prefab", 0.3f, 0.06f);
+            SetFeedback(feedbacks, FeedbackId.HoleOpened, "Environment/Dust/DustDirtyPoof.prefab", 0.7f, 0.12f);
         }
 
         private static void SetFeedback(GameFeedbacks feedbacks, FeedbackId id, string etfxPath, float scale, float shake)
         {
             var entry = feedbacks.entries.First(e => e.id == id);
-            entry.vfxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EtfxRoot + "/" + etfxPath);
+            string full = etfxPath.StartsWith("2D/")
+                ? "Assets/ThirdPartyAssets/Epic Toon FX/Prefabs 2D/" + etfxPath.Substring(3)
+                : EtfxRoot + "/" + etfxPath;
+            entry.vfxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(full);
             entry.vfxScale = scale;
             entry.cameraShake = shake;
             if (entry.vfxPrefab == null) Debug.LogWarning($"[Kömür] Epic Toon FX prefab not found: {etfxPath}");

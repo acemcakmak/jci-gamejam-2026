@@ -188,6 +188,7 @@ namespace Komur.EditorTools
             SetBattleText(feedbacks, FeedbackId.MedicinePicked, "MEDICINE", "premium", 1f);
             SetBattleText(feedbacks, FeedbackId.VillagerScared, "EEK!", "spooky", 1.6f);
             SetBattleText(feedbacks, FeedbackId.Won, "SAVED!", "lvlUp", 1.2f);
+            SetBattleText(feedbacks, FeedbackId.HoleOpened, "RAT HOLE!", "venom", 1f);
         }
 
         private static void SetBattleText(GameFeedbacks feedbacks, FeedbackId id, string text, string preset, float height)

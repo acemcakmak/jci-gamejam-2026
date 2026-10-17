@@ -30,10 +30,33 @@ namespace Komur
             SetOpen(false);
         }
 
+        private Vector3 baseScale;
+
+        private void Awake()
+        {
+            baseScale = transform.localScale;
+        }
+
         public void SetOpen(bool open)
         {
+            bool wasOpen = IsOpen;
             IsOpen = open;
             if (visual != null) visual.enabled = open;
+            if (open && !wasOpen && Application.isPlaying) StartCoroutine(Pop());
+        }
+
+        // The hole bursts open: grows past its size and settles back.
+        private System.Collections.IEnumerator Pop()
+        {
+            const float duration = 0.45f;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = t / duration;
+                float overshoot = 1f + 0.35f * Mathf.Sin(k * Mathf.PI) * (1f - k);
+                transform.localScale = baseScale * Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, k * 1.6f)) * overshoot;
+                yield return null;
+            }
+            transform.localScale = baseScale;
         }
 
         public Vector3 SpawnPosition

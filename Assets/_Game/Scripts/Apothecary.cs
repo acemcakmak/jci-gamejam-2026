@@ -7,7 +7,7 @@ namespace Komur
     {
         public float pickupRange = 1.3f;
         [Tooltip("Seconds to brew the next dose after one is taken.")]
-        public float brewTime = 3f;
+        public float brewTime = 2f;
         public TextMeshPro statusText;
         public Color readyColor = new Color(0.3f, 1f, 0.4f);
         public Color brewingColor = new Color(1f, 0.85f, 0.3f);
@@ -31,7 +31,7 @@ namespace Komur
             UpdateStatus();
 
             var gm = GameManager.I;
-            if (gm == null || gm.State != GameState.Playing || gm.komur == null) return;
+            if (gm == null || !gm.IsSimulating || gm.komur == null) return;
             if (gm.komur.HasMedicine || !IsReady || gm.komur.Floor != Floor) return;
             if ((gm.komur.transform.position - transform.position).sqrMagnitude <= pickupRange * pickupRange)
             {

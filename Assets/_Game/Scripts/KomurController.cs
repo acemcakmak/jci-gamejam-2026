@@ -57,6 +57,7 @@ namespace Komur
         {
             var gm = GameManager.I;
             bool playing = gm == null || gm.AcceptsGameplayInput;
+            if (gm != null && !gm.IsSimulating) pounceEndsAt = 0f;
 
             input = playing && !IsStunned
                 ? new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized

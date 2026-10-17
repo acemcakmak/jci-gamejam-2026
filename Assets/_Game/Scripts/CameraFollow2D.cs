@@ -23,6 +23,15 @@ namespace Komur
             if (cam != null && gameplaySize <= 0f) gameplaySize = cam.orthographicSize;
         }
 
+        private Vector3? focus;
+
+        // Temporarily look at a point (null = back to the target). Pans more slowly than normal following.
+        public static void Focus(Vector3? point)
+        {
+            if (instance == null) return;
+            instance.focus = point;
+        }
+
         public static float GameplaySize => instance != null ? instance.gameplaySize : 5f;
 
         // Smoothly change the orthographic size (used by the title screen zoom).
@@ -47,8 +56,9 @@ namespace Komur
         {
             if (target == null) return;
 
-            Vector3 goal = new Vector3(target.position.x, target.position.y, transform.position.z);
-            Vector3 pos = Vector3.SmoothDamp(transform.position, goal, ref velocity, smoothTime);
+            Vector3 look = focus ?? target.position;
+            Vector3 goal = new Vector3(look.x, look.y, transform.position.z);
+            Vector3 pos = Vector3.SmoothDamp(transform.position, goal, ref velocity, focus.HasValue ? 0.35f : smoothTime);
 
             if (shakeTimeLeft > 0f)
             {

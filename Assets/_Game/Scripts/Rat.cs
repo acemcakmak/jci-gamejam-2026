@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace Komur
@@ -24,6 +25,15 @@ namespace Komur
         public int kingHealth = 3;
         public float kingBiteRadius = 1.6f;
 
+        [Header("Health and death")]
+        public int health = 1;
+        public WorldBar healthBar;
+        public float hitFlashTime = 0.15f;
+        public float hitStunTime = 0.25f;
+        public float deathFadeTime = 0.5f;
+        [Tooltip("Looping plague effect (Epic Toon FX); stopped when the rat dies.")]
+        public ParticleSystem plagueEffect;
+
         public RatKind Kind { get; private set; } = RatKind.Normal;
         public int Floor => FloorAgent.FloorOf(gameObject);
 
@@ -34,8 +44,16 @@ namespace Komur
         private Vector3 home;
         private bool fleeing;
         private float nextRetargetAt;
-        private int health = 1;
         private float invulnerableUntil;
+        private int maxHealth = 1;
+        private bool dying;
+        private float hitFlashUntil;
+        private float hitStunUntil;
+        private MaterialPropertyBlock block;
+        private static readonly int HitBlend = Shader.PropertyToID("_HitEffectBlend");
+        private static readonly int FadeAmount = Shader.PropertyToID("_FadeAmount");
+
+        public bool IsDying => dying;
         private float noTargetSince = -1f;
         private float bitingUntil;
 
@@ -77,7 +95,7 @@ namespace Komur
                     break;
                 case RatKind.King:
                     speed *= 0.75f;
-                    health = kingHealth;
+                    health = Mathf.Max(health, kingHealth);
                     if (visual != null && !isBoss)
                     {
                         visual.color = kingTint;
@@ -85,12 +103,24 @@ namespace Komur
                     }
                     break;
             }
+            maxHealth = Mathf.Max(1, health);
+            if (healthBar != null) healthBar.SetFill(1f);
+        }
+
+        private void Update()
+        {
+            if (visual == null) return;
+            block ??= new MaterialPropertyBlock();
+            visual.GetPropertyBlock(block);
+            block.SetFloat(HitBlend, Mathf.Clamp01((hitFlashUntil - Time.time) / Mathf.Max(0.01f, hitFlashTime)));
+            visual.SetPropertyBlock(block);
         }
 
         private void FixedUpdate()
         {
+            if (dying) return;
             var gm = GameManager.I;
-            if (gm == null || gm.State != GameState.Playing)
+            if (gm == null || !gm.IsSimulating || Time.time < hitStunUntil)
             {
                 body.linearVelocity = Vector2.zero;
                 return;
@@ -196,27 +226,61 @@ namespace Komur
             mover.SetDestination(home, true);
         }
 
-        // Called by Kömür's pounce. Returns true if the rat died.
+        // Called by Kömür's pounce: flash, knock the health bar down, die at zero. Returns true if the rat died.
         public bool Hit()
         {
-            if (Time.time < invulnerableUntil) return false;
+            if (dying || Time.time < invulnerableUntil) return false;
             health--;
+            hitFlashUntil = Time.time + hitFlashTime;
+            hitStunUntil = Time.time + hitStunTime;
+            body.linearVelocity = Vector2.zero;
+            if (healthBar != null) healthBar.SetFill((float)health / maxHealth);
             if (health <= 0)
             {
                 Kill();
                 return true;
             }
             invulnerableUntil = Time.time + 0.4f;
-            GameFeedbacks.Play(FeedbackId.RatKilled, transform.position);
+            GameFeedbacks.Play(FeedbackId.RatHit, transform.position, transform);
             CameraFollow2D.Shake(0.12f, 0.15f);
             return false;
         }
 
+        // Death: stop counting as a live rat at once, play the death frames, burst, then dissolve.
         public void Kill()
         {
-            if (!gameObject.activeSelf) return;
+            if (dying) return;
+            dying = true;
+            if (GameManager.I != null) GameManager.I.rats.Remove(this);
+            hitFlashUntil = Time.time + hitFlashTime;
+            body.linearVelocity = Vector2.zero;
+            body.simulated = false;
+            if (plagueEffect != null) plagueEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            if (flipbook != null) flipbook.Play("Death", true);
             GameFeedbacks.Play(FeedbackId.RatKilled, transform.position);
-            gameObject.SetActive(false); // unregisters immediately via OnDisable
+            StartCoroutine(DeathSequence());
+        }
+
+        private IEnumerator DeathSequence()
+        {
+            float clip = flipbook != null ? flipbook.ClipLength("Death") : 0f;
+            yield return new WaitForSeconds(Mathf.Max(0.35f, clip));
+            if (healthBar != null) healthBar.SetVisible(false);
+
+            float t = 0f;
+            Color start = visual != null ? visual.color : Color.white;
+            while (t < deathFadeTime && visual != null)
+            {
+                t += Time.deltaTime;
+                float k = Mathf.Clamp01(t / deathFadeTime);
+                visual.GetPropertyBlock(block ??= new MaterialPropertyBlock());
+                block.SetFloat(FadeAmount, k);
+                visual.SetPropertyBlock(block);
+                // Fallback for materials without the dissolve: fade the sprite out.
+                if (!visual.sharedMaterial.IsKeywordEnabled("FADE_ON"))
+                    visual.color = new Color(start.r, start.g, start.b, 1f - k);
+                yield return null;
+            }
             Destroy(gameObject);
         }
     }
