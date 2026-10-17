@@ -51,6 +51,7 @@ namespace Komur
                 foreach (var col in GetComponents<Collider2D>()) col.excludeLayers |= 1 << characters;
             // Cainos StairsLayerTrigger expects a SpriteRenderer on the root.
             if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
+            sortingGroup = CharacterSorting.Ensure(gameObject, visual);
         }
 
         private void Update()
@@ -131,8 +132,13 @@ namespace Komur
             GameFeedbacks.Play(FeedbackId.Stunned, transform.position, transform);
         }
 
+        private UnityEngine.Rendering.SortingGroup sortingGroup;
+
         private void LateUpdate()
         {
+            // Cainos stairs change the sprites' sorting layer; the group must follow.
+            if (sortingGroup != null && visual != null && sortingGroup.sortingLayerID != visual.sortingLayerID)
+                sortingGroup.sortingLayerID = visual.sortingLayerID;
             // Keep the medicine icon on the same sorting layer as the cat when the stairs change it.
             if (medicineIcon != null && visual != null && medicineIcon.TryGetComponent(out Renderer iconRenderer))
                 iconRenderer.sortingLayerID = visual.sortingLayerID;

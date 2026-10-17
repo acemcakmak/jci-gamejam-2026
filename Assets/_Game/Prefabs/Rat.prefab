@@ -229,10 +229,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   source: {fileID: 2059992543873173198}
-  outlineMaterial: {fileID: 2100000, guid: 26cbf9e9e6bc54b55997ab9f01c6bf3c, type: 2}
+  outlineMaterial: {fileID: 2100000, guid: 1439a68ac2ab942f7a27b838cc00b8c3, type: 2}
   color: {r: 1, g: 0.3, b: 0.25, a: 1}
-  alwaysOn: 0
-  checkInterval: 0.1
+  opacity: 0.55
 --- !u!1 &1433419898434355843
 GameObject:
   m_ObjectHideFlags: 0

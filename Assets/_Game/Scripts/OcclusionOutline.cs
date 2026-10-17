@@ -24,8 +24,9 @@ namespace Komur
         {
             if (source == null) source = GetComponentInChildren<SpriteRenderer>();
             if (source == null || outlineMaterial == null) return;
-            var go = new GameObject("Hidden Silhouette");
-            go.transform.SetParent(source.transform, false);
+            // Not a child: the character's Sorting Group would keep it inside the group's draw slot,
+            // but the silhouette must be drawn after everything else.
+            var go = new GameObject("Hidden Silhouette (" + name + ")");
             silhouette = go.AddComponent<SpriteRenderer>();
             silhouette.sharedMaterial = outlineMaterial;
             silhouette.sortingLayerName = OverlayLayer;
@@ -33,12 +34,25 @@ namespace Komur
             block = new MaterialPropertyBlock();
         }
 
+        private void OnDestroy()
+        {
+            if (silhouette != null) Destroy(silhouette.gameObject);
+        }
+
+        private void OnDisable()
+        {
+            if (silhouette != null) silhouette.enabled = false;
+        }
+
         private void LateUpdate()
         {
             if (silhouette == null) return;
-            bool show = source.enabled && source.gameObject.activeInHierarchy && source.sprite != null;
+            bool show = source != null && source.enabled && source.gameObject.activeInHierarchy && source.sprite != null;
             silhouette.enabled = show;
             if (!show) return;
+            var t = silhouette.transform;
+            t.SetPositionAndRotation(source.transform.position, source.transform.rotation);
+            t.localScale = source.transform.lossyScale;
             silhouette.sprite = source.sprite;
             silhouette.flipX = source.flipX;
             silhouette.GetPropertyBlock(block);

@@ -55,6 +55,8 @@ namespace Komur
             int id = SortingLayer.NameToID(LayerName(floor));
             if (!SortingLayer.IsValid(id)) return;
             foreach (var r in GetComponentsInChildren<Renderer>(true)) r.sortingLayerID = id;
+            var group = GetComponent<UnityEngine.Rendering.SortingGroup>();
+            if (group != null) group.sortingLayerID = id;
         }
 
         private void ApplyCollision()

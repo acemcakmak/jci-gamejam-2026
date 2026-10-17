@@ -66,6 +66,7 @@ namespace Komur
             if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
             if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
             if (!TryGetComponent<FloorAgent>(out _)) gameObject.AddComponent<FloorAgent>();
+            CharacterSorting.Ensure(gameObject, visualRoot != null ? visualRoot.GetComponent<SpriteRenderer>() : null);
             home = transform.position;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
             {

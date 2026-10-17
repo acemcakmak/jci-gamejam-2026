@@ -490,7 +490,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a9f84881abde25b48904c0ff67bca145, type: 2}
+  - {fileID: 2100000, guid: 503654840be3141e59594e3e4728786f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -776,10 +776,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   source: {fileID: 9113331353050774883}
-  outlineMaterial: {fileID: 2100000, guid: 26cbf9e9e6bc54b55997ab9f01c6bf3c, type: 2}
+  outlineMaterial: {fileID: 2100000, guid: 1439a68ac2ab942f7a27b838cc00b8c3, type: 2}
   color: {r: 0.95, g: 0.95, b: 0.85, a: 1}
-  alwaysOn: 0
-  checkInterval: 0.1
+  opacity: 0.55
 --- !u!1 &9136305722933131641
 GameObject:
   m_ObjectHideFlags: 0

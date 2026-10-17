@@ -742,10 +742,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   source: {fileID: 5674401323104365844}
-  outlineMaterial: {fileID: 2100000, guid: 26cbf9e9e6bc54b55997ab9f01c6bf3c, type: 2}
+  outlineMaterial: {fileID: 2100000, guid: 1439a68ac2ab942f7a27b838cc00b8c3, type: 2}
   color: {r: 0.75, g: 0.35, b: 1, a: 1}
-  alwaysOn: 0
-  checkInterval: 0.1
+  opacity: 0.55
 --- !u!1001 &4675749371192781430
 PrefabInstance:
   m_ObjectHideFlags: 0

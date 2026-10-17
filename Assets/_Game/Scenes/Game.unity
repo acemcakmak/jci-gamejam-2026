@@ -21560,6 +21560,7 @@ MonoBehaviour:
   ratSpawns: []
   komur: {fileID: 1495441939}
   hud: {fileID: 1740590573}
+  sceneryMaterial: {fileID: 2100000, guid: f815c026e43874a94a14bc3b122856c0, type: 2}
   titleCameraSize: 3
   titleZoomOutTime: 1.4
 --- !u!4 &1035173741

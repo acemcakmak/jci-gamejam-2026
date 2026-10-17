@@ -8,17 +8,11 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Plagued
-  m_Shader: {fileID: 4800000, guid: a36b7719ff0465b42ab1407d67672c5f, type: 3}
+  m_Shader: {fileID: 4800000, guid: ddae36563ef804b4ca7f3f99ab8395b0, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - FADE_ON
-  - GREYSCALE_ON
-  - HITEFFECT_ON
-  - OUTBASEPIXELPERF_ON
-  - OUTBASE_ON
-  m_InvalidKeywords:
-  - _GLOWAFFECTLIGHT_ON
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -117,6 +111,7 @@ Material:
     - _ColorSwapRedLuminosity: 0.5
     - _Contrast: 1
     - _CullingOption: 0
+    - _Cutoff: 0.1
     - _DistortAmount: 0.5
     - _DistortTexXSpeed: 5
     - _DistortTexYSpeed: 5
@@ -147,6 +142,7 @@ Material:
     - _GrassRadialBend: 0.1
     - _GrassSpeed: 2
     - _GrassWind: 20
+    - _GreyBlend: 0.55
     - _GreyscaleBlend: 0.55
     - _GreyscaleLuminosity: 0.05
     - _GreyscaleOutline: 0
@@ -217,6 +213,10 @@ Material:
     - _ShineLocation: 0.5
     - _ShineRotate: 0
     - _ShineWidth: 0.1
+    - _Silhouette: 0
+    - _StencilComp: 8
+    - _StencilOp: 2
+    - _StencilRef: 1
     - _TextureScrollXSpeed: 1
     - _TextureScrollYSpeed: 0
     - _TwistUvAmount: 1
@@ -255,6 +255,7 @@ Material:
     - _GradBotRightCol: {r: 0, g: 1, b: 0, a: 1}
     - _GradTopLeftCol: {r: 1, g: 0, b: 0, a: 1}
     - _GradTopRightCol: {r: 1, g: 1, b: 0, a: 1}
+    - _GreyTint: {r: 0.72, g: 0.95, b: 0.55, a: 1}
     - _GreyscaleTintColor: {r: 0.72, g: 0.95, b: 0.55, a: 1}
     - _HitEffectColor: {r: 1, g: 1, b: 1, a: 1}
     - _HologramStripeColor: {r: 0, g: 1, b: 1, a: 1}
@@ -267,5 +268,6 @@ Material:
     - _OverlayTex_ScaleAndTiling: {r: 1, g: 1, b: 0, a: 0}
     - _ShadowColor: {r: 0, g: 0, b: 0, a: 1}
     - _ShineColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SilhouetteColor: {r: 1, g: 1, b: 1, a: 0.5}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -29,20 +29,21 @@ namespace Komur.EditorTools
         // Floors: 1 = courtyards and plazas, 2 = the middle terrace, 3 = the statue platform.
         private static readonly Vector3 DemoApothecary = new Vector3(3.0f, 2.6f, 0f);   // central courtyard
         private static readonly Vector3 DemoKomurStart = new Vector3(3.5f, -0.5f, 0f);
+        // Only areas that are connected: the central courtyard and the south strip (joined by the corridor at
+        // x 8..10) on the ground, and the middle terrace reached by the courtyard's stairs.
         private static readonly Vector3[] DemoHoles =
         {
-            new Vector3(-8.5f, -8.5f, 1),   // wave 1: south strip
-            new Vector3(13.5f, 2.5f, 1),    // wave 2: east column
-            new Vector3(6.5f, 15.5f, 1),    // wave 3: north plaza
+            new Vector3(-8.5f, -8.5f, 1),   // wave 1: west end of the south strip
+            new Vector3(8.5f, -1.5f, 1),    // wave 2: east side of the courtyard
+            new Vector3(-3.5f, 0.5f, 1),    // wave 3: west side of the courtyard
             new Vector3(9.5f, 9.5f, 2),     // wave 4: middle terrace (upper floor)
         };
         private static readonly Vector3[] DemoVillagers =
         {
-            new Vector3(-3.5f, 2.5f, 1), new Vector3(6.5f, -1.5f, 1),     // central courtyard
+            new Vector3(-1.5f, 2.5f, 1), new Vector3(4.5f, -1.5f, 1),     // central courtyard
             new Vector3(-2.5f, -8.5f, 1), new Vector3(6.5f, -8.5f, 1),    // south strip
-            new Vector3(-10.5f, 4.5f, 1),                                // west ledge
-            new Vector3(-2.5f, 8.5f, 2), new Vector3(4.5f, 8.5f, 2),      // middle terrace
-            new Vector3(0.5f, 14.5f, 1),                                 // north plaza
+            new Vector3(9.5f, -4.5f, 1),                                 // corridor between them
+            new Vector3(-2.5f, 8.5f, 2), new Vector3(4.5f, 8.5f, 2), new Vector3(0.5f, 9.5f, 2),  // middle terrace
         };
 
         [MenuItem("Kömür/Build Game Scene (from Cainos demo)", priority = 0)]

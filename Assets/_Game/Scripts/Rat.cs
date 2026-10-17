@@ -57,6 +57,9 @@ namespace Komur
         public bool IsDying => dying;
         private float noTargetSince = -1f;
         private float bitingUntil;
+        private Vector3 lastStuckCheckPos;
+        private float nextStuckCheckAt;
+        private int stuckSeconds;
 
         private void Awake()
         {
@@ -64,6 +67,7 @@ namespace Komur
             if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
             if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
             if (!TryGetComponent(out floorAgent)) floorAgent = gameObject.AddComponent<FloorAgent>();
+            CharacterSorting.Ensure(gameObject, visual);
             home = transform.position;
         }
 
@@ -181,6 +185,26 @@ namespace Komur
             Vector2 dir = Time.time < bitingUntil ? Vector2.zero : mover.NextDirection();
             body.linearVelocity = dir * currentSpeed;
             Animate(dir);
+            CheckStuck(dir);
+        }
+
+        // A rat that tries to move but hasn't budged for a few seconds burrows away (counts as gone),
+        // so nobody ever sees a rat grinding against a wall.
+        private void CheckStuck(Vector2 dir)
+        {
+            if (Time.time < nextStuckCheckAt) return;
+            nextStuckCheckAt = Time.time + 1f;
+            bool trying = dir.sqrMagnitude > 0.01f;
+            stuckSeconds = trying && (transform.position - lastStuckCheckPos).sqrMagnitude < 0.04f ? stuckSeconds + 1 : 0;
+            lastStuckCheckPos = transform.position;
+            if (stuckSeconds >= 4 && !isBoss) Burrow();
+        }
+
+        private void Burrow()
+        {
+            GameFeedbacks.Play(FeedbackId.Pounce, transform.position);   // dust poof
+            gameObject.SetActive(false);
+            Destroy(gameObject);
         }
 
         private void Animate(Vector2 dir)
