@@ -34,6 +34,7 @@ namespace Komur.EditorTools
             (FeedbackId.HoleOpened, EtfxSound + "etfx_explosion_dark01.wav", 0.6f),
             (FeedbackId.BossArrived, EtfxSound + "etfx_explosion_slime.wav", 0.9f),
             (FeedbackId.BossKilled, EtfxSound + "etfx_explosion_slime2.wav", 0.9f),
+            (FeedbackId.StoneImpact, EtfxSound + "etfx_explosion_bullet.wav", 0.4f),
             (FeedbackId.Won, CozySound + "cozy_fx_36.ogg", 0.9f),
             (FeedbackId.Lost, CozySound + "cozy_fx_12.ogg", 0.9f),
         };
@@ -92,7 +93,9 @@ namespace Komur.EditorTools
 
         // ---------- Spirits ----------
 
-        // All In 1 Sprite Shader "Ghost" (see-through, brightened) with a pale cyan glowing rim.
+        // All In 1 Sprite Shader: the villager washed into a pale, brightened cyan (greyscale + tint) with a
+        // soft glowing rim; see-through comes from the sprite colour's alpha (VillagerGhost). The shader's
+        // own "Ghost" effect is off: it erased the darker pixels and left only the rim.
         private static Material GhostMaterial()
         {
             var shader = Shader.Find("AllIn1SpriteShader/AllIn1SpriteShader");
@@ -107,10 +110,11 @@ namespace Komur.EditorTools
                 AssetDatabase.CreateAsset(mat, path);
             }
             mat.shader = shader;
-            foreach (var k in new[] { "GHOST_ON", "OUTBASE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
-            mat.SetFloat("_GhostColorBoost", 1.6f);
-            mat.SetFloat("_GhostTransparency", 0.15f);
-            mat.SetFloat("_GhostBlend", 1f);
+            mat.DisableKeyword("GHOST_ON");
+            foreach (var k in new[] { "GREYSCALE_ON", "OUTBASE_ON", "OUTBASEPIXELPERF_ON" }) mat.EnableKeyword(k);
+            mat.SetFloat("_GreyscaleLuminosity", 0.35f);
+            mat.SetColor("_GreyscaleTintColor", new Color(0.7f, 0.95f, 1f, 1f));
+            mat.SetFloat("_GreyscaleBlend", 1f);
             mat.SetColor("_OutlineColor", new Color(0.6f, 0.95f, 1f, 1f));
             mat.SetFloat("_OutlineAlpha", 0.7f);
             mat.SetFloat("_OutlineGlow", 2f);

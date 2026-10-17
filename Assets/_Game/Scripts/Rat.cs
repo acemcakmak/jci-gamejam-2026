@@ -298,7 +298,9 @@ namespace Komur
 
             target.Infect(gm.CurrentSickDuration);
             GameFeedbacks.Play(FeedbackId.Bite, target.transform.position, target.transform);
-            StartFleeing(gm);
+            // On to the next healthy villager; rats only head home when nobody is left to bite.
+            target = null;
+            nextRetargetAt = 0f;
         }
 
         private void StartFleeing(GameManager gm)

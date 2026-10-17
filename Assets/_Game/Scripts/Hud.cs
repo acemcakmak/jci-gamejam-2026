@@ -91,21 +91,20 @@ namespace Komur
             var crt = (RectTransform)card.transform;
             crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
             crt.anchoredPosition = Vector2.zero;
-            crt.sizeDelta = new Vector2(620f, 640f);
+            crt.sizeDelta = new Vector2(620f, 520f);
             var title = NewText("Title", card.transform, "PAUSED", endTitle != null ? endTitle.font : font, 80f, waveText.color);
             var trt = title.rectTransform;
-            trt.anchorMin = new Vector2(0f, 0.8f);
-            trt.anchorMax = new Vector2(1f, 0.95f);
+            trt.anchorMin = new Vector2(0f, 0.76f);
+            trt.anchorMax = new Vector2(1f, 0.94f);
             var hint = NewText("Hint", card.transform, "ESC OR P TO RESUME", font, 30f, waveText.color);
             var hrt = hint.rectTransform;
-            hrt.anchorMin = new Vector2(0f, 0.7f);
-            hrt.anchorMax = new Vector2(1f, 0.8f);
+            hrt.anchorMin = new Vector2(0f, 0.63f);
+            hrt.anchorMax = new Vector2(1f, 0.76f);
 
             if (againButton != null)
             {
-                PauseMenuButton(card.transform, "Resume", new Vector2(0f, 60f), () => GameManager.I?.SetPaused(false));
-                PauseMenuButton(card.transform, "Restart", new Vector2(0f, -55f), () => GameManager.I?.Restart());
-                PauseMenuButton(card.transform, "Main Menu", new Vector2(0f, -170f), () => GameManager.I?.ReturnToMenu());
+                PauseMenuButton(card.transform, "Resume", new Vector2(0f, -10f), () => GameManager.I?.SetPaused(false));
+                PauseMenuButton(card.transform, "Main Menu", new Vector2(0f, -130f), () => GameManager.I?.ReturnToMenu());
             }
             pauseOverlay.transform.SetAsLastSibling();
             pauseOverlay.SetActive(false);

@@ -15,7 +15,10 @@ namespace Komur
         public Transform shadow;
         [Header("Readability")]
         public float rockSize = 1.9f;                       // scale of the rock sprite
-        public Vector2 shadowSize = new Vector2(0.3f, 0.15f);
+        [Tooltip("Shadow size in world units (width, height).")]
+        public Vector2 shadowSize = new Vector2(0.6f, 0.26f);
+        [Tooltip("After landing: one small bounce, a short roll, then it fades away.")]
+        public float settleTime = 0.7f;
         public Color rim = new Color(0.12f, 0.09f, 0.07f, 1f);   // dark pixel rim so it reads on grass and stone
 
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
@@ -39,7 +42,7 @@ namespace Komur
                 bool isShadow = sr.transform == shadow;
                 sr.sortingOrder = isShadow ? 90 : 100;     // in flight it is above the ground and the characters
                 if (material != null && !isShadow) sr.sharedMaterial = material;
-                if (isShadow) sr.color = new Color(0f, 0f, 0f, 0.25f);
+                if (isShadow) sr.color = new Color(0f, 0f, 0f, 0.3f);
                 else if (material != null)
                 {
                     var block = new MaterialPropertyBlock();
@@ -49,7 +52,12 @@ namespace Komur
                 }
             }
             if (visual != null) visual.localScale = Vector3.one * rockSize;
-            if (shadow != null) shadow.localScale = new Vector3(shadowSize.x, shadowSize.y, 1f);
+            if (shadow != null)
+            {
+                var shadowSprite = shadow.GetComponent<SpriteRenderer>();
+                Vector2 s = shadowSprite != null && shadowSprite.sprite != null ? (Vector2)shadowSprite.sprite.bounds.size : Vector2.one;
+                shadow.localScale = new Vector3(shadowSize.x / Mathf.Max(0.01f, s.x), shadowSize.y / Mathf.Max(0.01f, s.y), 1f);
+            }
             shadowBase = shadow != null ? shadow.localScale : Vector3.one;
             target = komur;
             start = transform.position;
@@ -59,8 +67,40 @@ namespace Komur
             Destroy(gameObject, 4f);
         }
 
+        private float landedAt = -1f;
+        private Vector3 rollDirection;
+
+        // Thud, dust, a little hop and roll, then fade.
+        private void Land(Vector3 bounceAway)
+        {
+            landedAt = Time.time;
+            rollDirection = bounceAway;
+            GameFeedbacks.Play(FeedbackId.StoneImpact, transform.position);
+        }
+
+        private void Settle()
+        {
+            float k = (Time.time - landedAt) / settleTime;
+            if (k >= 1f) { Destroy(gameObject); return; }
+            transform.position += rollDirection * (1f - k) * 1.2f * Time.deltaTime;
+            float hop = 0.22f * Mathf.Max(0f, Mathf.Sin(Mathf.Clamp01(k * 2.2f) * Mathf.PI));
+            if (visual != null)
+            {
+                visual.localPosition = new Vector3(0f, hop, 0f);
+                visual.Rotate(0f, 0f, spinSpeed * 0.3f * (1f - k) * Time.deltaTime);
+            }
+            float alpha = k < 0.55f ? 1f : 1f - (k - 0.55f) / 0.45f;
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
+            {
+                var c = sr.color;
+                c.a = sr.transform == shadow ? 0.3f * alpha : alpha;
+                sr.color = c;
+            }
+        }
+
         private void Update()
         {
+            if (landedAt >= 0f) { Settle(); return; }
             if (target == null) return;
             travelled += speed * Time.deltaTime;
             float t = Mathf.Clamp01(travelled / distance);
@@ -75,14 +115,15 @@ namespace Komur
             if (shadow != null) shadow.localScale = shadowBase * Mathf.Lerp(1f, 0.6f, lift / Mathf.Max(0.01f, arcHeight));
 
             // Only hits once it's coming down near the ground.
+            Vector3 flight = (destination - start).normalized;
             if (t > 0.6f && (target.transform.position - transform.position).sqrMagnitude <= hitRadius * hitRadius)
             {
                 target.Stun(stunDuration);
-                Destroy(gameObject);
+                Land(-flight * 0.8f);          // bounces back off the cat
             }
             else if (t >= 1f)
             {
-                Destroy(gameObject);
+                Land(flight * 0.5f);           // rolls on a little
             }
         }
     }

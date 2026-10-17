@@ -6,7 +6,7 @@ namespace Komur
     // see-through and drawn above everything. No collider, so a death never walls off part of the map.
     public class VillagerGhost : MonoBehaviour
     {
-        public Color tint = new Color(0.7f, 0.95f, 1f, 0.75f);
+        public Color tint = new Color(1f, 1f, 1f, 0.6f);     // the material does the colour; this is see-through
         public float rise = 0.7f;
         public float riseTime = 1.6f;
         public float bob = 0.12f;

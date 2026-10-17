@@ -232,7 +232,6 @@ namespace Komur
                     break;
                 case GameState.Playing:
                     if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P)) TogglePause();
-                    else if (IsPaused && Input.GetKeyDown(KeyCode.R)) Restart();
                     break;
                 case GameState.Won:
                 case GameState.Lost:

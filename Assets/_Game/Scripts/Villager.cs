@@ -11,6 +11,8 @@ namespace Komur
     {
         [Header("Wander")]
         public float walkSpeed = 1.1f;
+        [Tooltip("Sick villagers still shuffle about, slowly.")]
+        public float sickWalkSpeed = 0.6f;
         public float wanderRadius = 3f;
 
         [Header("Sickness")]
@@ -138,7 +140,7 @@ namespace Komur
             if (iconHideAt > 0f && Time.time >= iconHideAt)
             {
                 iconHideAt = 0f;
-                SetIcon(State == VillagerState.Sick ? "+" : "", Color.green);
+                SetIcon("", Color.green);
             }
         }
 
@@ -212,6 +214,23 @@ namespace Komur
                 if ((fleeingNow || nearbyRat == null) && (fleeingNow || Time.time >= idleUntil))
                     velocity = mover.NextDirection() * (fleeingNow ? fleeSpeed : walkSpeed);
             }
+            else if (playing && State == VillagerState.Sick)
+            {
+                // Feverish shuffling between short rests (no fear of cats or rats any more).
+                if (Time.time >= idleUntil && (!mover.HasDestination || mover.Arrived))
+                {
+                    if (mover.HasDestination)
+                    {
+                        mover.Stop();
+                        idleUntil = Time.time + Random.Range(1.5f, 3.5f);
+                    }
+                    else if (Grid != null && Grid.TryRandomWalkableNear(home, wanderRadius, out var goal))
+                    {
+                        if (!mover.SetDestination(goal, true)) mover.Stop();
+                    }
+                }
+                if (Time.time >= idleUntil) velocity = mover.NextDirection() * sickWalkSpeed;
+            }
             else
             {
                 mover.Stop();
@@ -275,7 +294,8 @@ namespace Komur
         {
             if (visualSprite == null) return;
             float anger = 0f;
-            bool fond = Friendly && State != VillagerState.Dead;
+            // Sick green wins over the pink: fondness shows again once they are cured.
+            bool fond = Friendly && State == VillagerState.Healthy;
             if (State == VillagerState.Healthy && !Friendly)
             {
                 if (Time.time < fleeUntil) anger = 0.75f + 0.25f * Mathf.Sin(Time.time * 18f);
@@ -352,7 +372,7 @@ namespace Komur
             fear = 0f;
             fleeUntil = 0f;
             if (sickBar != null) { sickBar.SetVisible(true); sickBar.SetFill(1f); }
-            SetIcon("+", Color.green);
+            SetIcon("", Color.green);     // the green tint already says "sick"
             PlayOnce("Hurt");
         }
 
