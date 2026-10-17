@@ -292,13 +292,41 @@ namespace Komur.EditorTools
         private static ThrownStone BuildStonePrefab(Sprite circle)
         {
             var go = new GameObject("Stone");
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = circle;
-            sr.color = new Color(0.55f, 0.55f, 0.6f);
+            var stone = go.AddComponent<ThrownStone>();
+
+            var shadowGo = new GameObject("Shadow");
+            shadowGo.transform.SetParent(go.transform, false);
+            var shadowSr = shadowGo.AddComponent<SpriteRenderer>();
+            shadowSr.sprite = circle;
+            shadowSr.color = new Color(0f, 0f, 0f, 0.35f);
+            shadowSr.sortingLayerName = CharacterSortingLayer;
+            shadowSr.sortingOrder = 19;
+            shadowGo.transform.localScale = new Vector3(0.35f, 0.18f, 1f);
+
+            // A rock from the Cainos props, falling back to a grey circle.
+            var rockGo = new GameObject("Rock");
+            rockGo.transform.SetParent(go.transform, false);
+            var sr = rockGo.AddComponent<SpriteRenderer>();
+            var cainosRock = AssetDatabase.LoadAssetAtPath<GameObject>(CainosRoot + "/Prefab/Props/PF Props - Stone 01.prefab");
+            var rockSprite = cainosRock != null
+                ? cainosRock.GetComponentsInChildren<SpriteRenderer>(true).Where(r => !r.name.Contains("Shadow")).Select(r => r.sprite).FirstOrDefault()
+                : null;
+            if (rockSprite != null)
+            {
+                sr.sprite = rockSprite;
+                rockGo.transform.localScale = Vector3.one * 0.55f;
+            }
+            else
+            {
+                sr.sprite = circle;
+                sr.color = new Color(0.55f, 0.55f, 0.6f);
+                rockGo.transform.localScale = Vector3.one * 0.3f;
+            }
             sr.sortingLayerName = CharacterSortingLayer;
             sr.sortingOrder = 20;
-            go.transform.localScale = Vector3.one * 0.2f;
-            go.AddComponent<ThrownStone>();
+
+            stone.visual = rockGo.transform;
+            stone.shadow = shadowGo.transform;
             return SavePrefab(go, "Stone").GetComponent<ThrownStone>();
         }
 

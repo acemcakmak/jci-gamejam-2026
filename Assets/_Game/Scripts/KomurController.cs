@@ -119,7 +119,7 @@ namespace Komur
         {
             HasMedicine = has;
             if (medicineIcon != null) medicineIcon.SetActive(has);
-            if (has) GameFeedbacks.Play(FeedbackId.MedicinePicked, transform.position);
+            if (has) GameFeedbacks.Play(FeedbackId.MedicinePicked, transform.position, transform);
         }
 
         public void Stun(float duration)
@@ -127,7 +127,7 @@ namespace Komur
             if (IsStunned) return;
             stunnedUntil = Time.time + duration;
             pounceEndsAt = 0f;
-            GameFeedbacks.Play(FeedbackId.Stunned, transform.position);
+            GameFeedbacks.Play(FeedbackId.Stunned, transform.position, transform);
         }
 
         private void LateUpdate()

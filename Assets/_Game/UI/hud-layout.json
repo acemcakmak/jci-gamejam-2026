@@ -1,0 +1,26 @@
+{
+  "note": "Single source of truth for the HUD. Read by Kömür > Rebuild HUD in Unity and by docs/ui-design/hud-spec.html. Units are canvas pixels at 1920x1080; anchor/pivot (0,0)=bottom-left, (1,1)=top-right; pos is relative to the anchor. Panels are 9-sliced with a 7px border x panelSliceScale; padding is extra space inside that border.",
+  "referenceWidth": 1920,
+  "referenceHeight": 1080,
+  "panelSliceScale": 2,
+  "inkColor": "#5C3A28",
+  "creamColor": "#FFF2D1",
+
+  "wavePanel":  { "anchor": [0, 1],     "pos": [24, -20],  "size": [210, 64],  "fontSize": 34, "padding": 2 },
+  "townPanel":  { "anchor": [0, 1],     "pos": [24, -92],  "size": [210, 52],  "fontSize": 22, "iconSize": 24, "padding": 4 },
+  "minimap":    { "anchor": [1, 1],     "pos": [-24, -20], "size": [276, 194], "padding": 0 },
+  "banner":     { "anchor": [0.5, 0.5], "pos": [0, 230],   "size": [460, 76],  "fontSize": 34, "padding": 4 },
+  "hint":       { "anchor": [0.5, 0],   "pos": [0, 22],    "size": [1100, 40], "fontSize": 26 },
+  "indicator":  { "size": 44, "edgePadding": 40 },
+
+  "title":      { "anchor": [0.5, 1],   "pos": [0, -70],   "size": [1200, 140], "fontSize": 120 },
+  "subtitle":   { "anchor": [0.5, 1],   "pos": [0, -205],  "size": [1200, 60],  "fontSize": 44 },
+  "storyPanel": { "anchor": [0.5, 0],   "pos": [0, 150],   "size": [880, 124],  "fontSize": 28, "padding": 6 },
+  "playButton": { "anchor": [0.5, 0],   "pos": [0, 44],    "size": [276, 87] },
+  "endPanel":   { "anchor": [0.5, 0.5], "pos": [0, 10],    "size": [760, 200],  "fontSize": 32, "padding": 10 },
+  "endTitle":   { "anchor": [0.5, 0.5], "pos": [0, 190],   "size": [1400, 110], "fontSize": 80 },
+  "againButton":{ "anchor": [0.5, 0.5], "pos": [0, -160],  "size": [276, 87] },
+
+  "battleText": { "pixelSize": 0.018, "height": 1.0 },
+  "camera":     { "gameplaySize": 5, "titleSize": 3 }
+}

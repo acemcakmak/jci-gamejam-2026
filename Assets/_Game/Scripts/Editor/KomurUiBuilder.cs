@@ -66,6 +66,9 @@ namespace Komur.EditorTools
             var hud = canvasGo.AddComponent<Hud>();
             var root = (RectTransform)canvasGo.transform;
 
+            var L = LoadLayout();
+            var ink = L.Ink;
+            var cream = L.Cream;
             var tan = TanPanelSprite();
             var playSprite = SpriteFrom($"{SproutRoot}/Sprite sheets/UI Big Play Button.png", "UI Big Play Button_2");
             var playPressed = SpriteFrom($"{SproutRoot}/Sprite sheets/UI Big Play Button.png", "UI Big Play Button_3");
@@ -73,12 +76,15 @@ namespace Komur.EditorTools
             var blankPressed = SpriteFrom($"{SproutRoot}/Sprite sheets/UI Big Play Button.png", "UI Big Play Button_1");
             var basicSheet = $"{SproutRoot}/Sprite sheets/Sprite sheet for Basic Pack.png";
             var iconSheet = $"{SproutRoot}/Sprite sheets/Icons/All Icons.png";
+            sliceScale = L.panelSliceScale;
+            scaler.referenceResolution = new Vector2(L.referenceWidth, L.referenceHeight);
 
             // --- Gameplay HUD (faded out on the title screen) ---
             var gameplay = Stretch(NewRect("Gameplay", root));
             hud.gameplayGroup = gameplay.gameObject.AddComponent<CanvasGroup>();
             hud.gameplayGroup.blocksRaycasts = false;
 
+            // Arrows sit under the panels so they never cover them, and they route around them.
             var arrowsRect = Stretch(NewRect("Offscreen Indicators", gameplay));
             var arrows = arrowsRect.gameObject.AddComponent<OffscreenIndicators>();
             arrows.container = arrowsRect;
@@ -86,23 +92,27 @@ namespace Komur.EditorTools
             arrows.sickIcon = SpriteFrom(iconSheet, "All Icons_42");
             arrows.apothecaryIcon = SpriteFrom(iconSheet, "All Icons_44");
             arrows.backgroundSprite = tan;
+            arrows.size = L.indicator.size;
+            arrows.edgePadding = L.indicator.edgePadding;
 
-            // Wave panel (top-left)
-            var wave = Panel(gameplay, "Wave Panel", tan, new Vector2(0, 1), new Vector2(28, -24), new Vector2(300, 96));
-            hud.waveText = FitText(wave, "Wave", "WAVE 1/5", 56, TextAlignmentOptions.Center, UiInk, 20f);
+            // Wave panel
+            var wave = Panel(gameplay, "Wave Panel", tan, L.wavePanel);
+            hud.waveText = FitText(wave, "Wave", "WAVE 1/5", L.wavePanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.wavePanel));
 
-            // Town panel (under the wave panel): villagers / sick / lost, each with an icon you can swap
-            var town = Panel(gameplay, "Town Panel", tan, new Vector2(0, 1), new Vector2(28, -128), new Vector2(300, 84));
-            hud.aliveIcon = CounterIcon(town, 0, SpriteFrom($"{CainosRoot}/Texture/TX Player.png", "TX Player F"), Color.white);
-            hud.aliveText = CounterText(town, 0, UiInk);
-            hud.sickIcon = CounterIcon(town, 1, SpriteFrom(iconSheet, "All Icons_42"), new Color(0.3f, 0.75f, 0.25f));
-            hud.sickText = CounterText(town, 1, new Color(0.25f, 0.55f, 0.2f));
-            hud.lostIcon = CounterIcon(town, 2, SpriteFrom(iconSheet, "All Icons_2"), new Color(0.6f, 0.25f, 0.25f));
-            hud.lostText = CounterText(town, 2, new Color(0.6f, 0.2f, 0.2f));
+            // Town panel: villagers / sick / lost, each with an icon you can swap
+            var town = Panel(gameplay, "Town Panel", tan, L.townPanel);
+            float icon = L.townPanel.iconSize, pad = Inset(L.townPanel), fs = L.townPanel.fontSize;
+            hud.aliveIcon = CounterIcon(town, 0, SpriteFrom($"{CainosRoot}/Texture/TX Player.png", "TX Player F"), Color.white, icon, pad);
+            hud.aliveText = CounterText(town, 0, ink, icon, fs);
+            hud.sickIcon = CounterIcon(town, 1, SpriteFrom(iconSheet, "All Icons_42"), new Color(0.3f, 0.75f, 0.25f), icon, pad);
+            hud.sickText = CounterText(town, 1, new Color(0.25f, 0.55f, 0.2f), icon, fs);
+            hud.lostIcon = CounterIcon(town, 2, SpriteFrom(iconSheet, "All Icons_2"), new Color(0.6f, 0.25f, 0.25f), icon, pad);
+            hud.lostText = CounterText(town, 2, new Color(0.6f, 0.2f, 0.2f), icon, fs);
 
-            // Minimap (top-right): parchment frame around a map painted from the tiles
-            var mm = Panel(gameplay, "Minimap", tan, new Vector2(1, 1), new Vector2(-28, -24), new Vector2(432, 300));
-            var mapRect = Stretch(NewRect("Map", mm), 24f);
+            // Minimap: parchment frame; the map sits in an inset area so the border stays visible
+            var mm = Panel(gameplay, "Minimap", tan, L.minimap);
+            var mapArea = Stretch(NewRect("Map Area", mm), Inset(L.minimap));
+            var mapRect = Stretch(NewRect("Map", mapArea));
             var map = mapRect.gameObject.AddComponent<UnityEngine.UI.RawImage>();
             map.raycastTarget = false;
             var fitter = mapRect.gameObject.AddComponent<UnityEngine.UI.AspectRatioFitter>();
@@ -117,69 +127,56 @@ namespace Komur.EditorTools
             minimap.sickSprite = SpriteFrom(iconSheet, "All Icons_42");
             minimap.deadSprite = SpriteFrom(iconSheet, "All Icons_2");
             minimap.apothecarySprite = SpriteFrom(iconSheet, "All Icons_44");
+            minimap.villagerSize = 8f;
+            minimap.ratSize = 6f;
+            minimap.iconSize = 14f;
+            arrows.avoid = new[] { wave, town, mm };
 
-            // Hint (bottom-centre)
-            hud.hintText = UIText(gameplay, "Hint", "", 34, TextAlignmentOptions.Bottom, new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(1500, 60), UiCream);
+            // Hint
+            hud.hintText = UIText(gameplay, "Hint", "", L.hint.fontSize, TextAlignmentOptions.Bottom, L.hint.Anchor, L.hint.Pos, L.hint.Size, cream);
             Outline(hud.hintText);
 
-            // Banner A: parchment strip
-            var banner = Panel(root, "Banner", tan, new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(900, 150));
+            // Banner A: short parchment strip
+            var banner = Panel(root, "Banner", tan, L.banner);
             hud.bannerRoot = banner.gameObject;
-            hud.bannerText = FitText(banner, "Text", "", 64, TextAlignmentOptions.Center, UiInk, 26f);
+            hud.bannerText = FitText(banner, "Text", "", L.banner.fontSize, TextAlignmentOptions.Center, ink, Inset(L.banner));
 
-            // --- Title screen (Classic): title on top, Kömür sitting in the middle, story strip, Play ---
+            // --- Title screen (Classic) ---
             var title = Stretch(NewRect("Title Screen", root));
             hud.introPanel = title.gameObject;
-            var titleText = UIText(title, "Title", "KOMUR", 160, TextAlignmentOptions.Center, new Vector2(0.5f, 1), new Vector2(0, -50), new Vector2(1400, 190), UiCream);
+            var titleText = UIText(title, "Title", "KOMUR", L.title.fontSize, TextAlignmentOptions.Center, L.title.Anchor, L.title.Pos, L.title.Size, cream);
             Outline(titleText, 0.3f);
-            var subtitle = UIText(title, "Subtitle", "AND THE PLAGUE RATS", 56, TextAlignmentOptions.Center, new Vector2(0.5f, 1), new Vector2(0, -230), new Vector2(1400, 80), new Color(0.66f, 0.95f, 0.5f));
+            var subtitle = UIText(title, "Subtitle", "AND THE PLAGUE RATS", L.subtitle.fontSize, TextAlignmentOptions.Center, L.subtitle.Anchor, L.subtitle.Pos, L.subtitle.Size, new Color(0.66f, 0.95f, 0.5f));
             Outline(subtitle);
-            var story = Panel(title, "Story Panel", tan, new Vector2(0.5f, 0), new Vector2(0, 170), new Vector2(1180, 170));
+            var story = Panel(title, "Story Panel", tan, L.storyPanel);
             var storyText = FitText(story, "Story",
                 "THE TOWN SAYS BLACK CATS BRING BAD LUCK.\nBUT THE PLAGUE RATS ARE COMING - ONLY KOMUR CAN STOP THEM.",
-                34, TextAlignmentOptions.Center, UiInk, 24f);
-            SetAnchors(storyText.rectTransform, new Vector2(0, 0.42f), Vector2.one, 24f);
+                L.storyPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.storyPanel));
+            SetAnchors(storyText.rectTransform, new Vector2(0, 0.4f), Vector2.one, Inset(L.storyPanel));
             var controls = FitText(story, "Controls",
-                "WASD MOVE   SPACE POUNCE   BRING MEDICINE TO THE SICK   STAY OUT OF THE VILLAGERS' SIGHT",
-                24, TextAlignmentOptions.Center, UiInk * 0.8f, 24f);
-            SetAnchors(controls.rectTransform, Vector2.zero, new Vector2(1, 0.42f), 24f);
-            hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, new Vector2(0.5f, 0), new Vector2(0, 46), new Vector2(92, 29) * 3.4f, null);
+                "WASD MOVE   SPACE POUNCE   BRING MEDICINE TO THE SICK   STAY OUT OF SIGHT",
+                L.storyPanel.fontSize * 0.75f, TextAlignmentOptions.Center, ink * 0.8f, Inset(L.storyPanel));
+            SetAnchors(controls.rectTransform, Vector2.zero, new Vector2(1, 0.4f), Inset(L.storyPanel));
+            hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, L.playButton.Anchor, L.playButton.Pos, L.playButton.Size, null, ink);
 
             // --- End screen ---
             var end = Stretch(NewRect("End Screen", root));
             var dim = end.gameObject.AddComponent<UnityEngine.UI.Image>();
             dim.color = new Color(0.05f, 0.04f, 0.08f, 0.6f);
-            hud.endTitle = UIText(end, "Title", "", 96, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0, 250), new Vector2(1600, 130), UiCream);
+            hud.endTitle = UIText(end, "Title", "", L.endTitle.fontSize, TextAlignmentOptions.Center, L.endTitle.Anchor, L.endTitle.Pos, L.endTitle.Size, cream);
             Outline(hud.endTitle, 0.3f);
-            var endPanel = Panel(end, "Panel", tan, new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(1100, 300));
-            hud.endBody = FitText(endPanel, "Body", "", 40, TextAlignmentOptions.Center, UiInk, 30f);
-            hud.againButton = UIButton(end, "Again Button", blankButton, blankPressed, new Vector2(0.5f, 0.5f), new Vector2(0, -210), new Vector2(92, 29) * 3.4f, "AGAIN");
+            var endPanel = Panel(end, "Panel", tan, L.endPanel);
+            hud.endBody = FitText(endPanel, "Body", "", L.endPanel.fontSize, TextAlignmentOptions.Center, ink, Inset(L.endPanel));
+            hud.againButton = UIButton(end, "Again Button", blankButton, blankPressed, L.againButton.Anchor, L.againButton.Pos, L.againButton.Size, "AGAIN", ink);
             hud.endPanel = end.gameObject;
             end.gameObject.SetActive(false);
 
-            BuildBattleTextCanvas();
+            ApplyCameraLayout(L);
             EnsureEventSystem();
             return hud;
         }
 
         // ---------- Battle texts ----------
-
-        // PixelBattleText is designed for a low-resolution canvas: 480x270 makes its 16px letters crisp and readable.
-        private static void BuildBattleTextCanvas()
-        {
-            var go = new GameObject("Battle Text Canvas", typeof(RectTransform));
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 5;
-            var scaler = go.AddComponent<UnityEngine.UI.CanvasScaler>();
-            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(480f, 270f);
-            scaler.matchWidthOrHeight = 0.5f;
-            var layer = Stretch(NewRect("Battle Text Layer", go.transform));
-            var controller = layer.gameObject.AddComponent<PixelBattleText.PixelBattleTextController>();
-            controller.canvas = layer;
-            controller.snapToPixelGrid = true;
-        }
 
         private static void ConfigureBattleTexts(GameFeedbacks feedbacks)
         {
@@ -256,7 +253,7 @@ namespace Komur.EditorTools
         }
 
         private static UnityEngine.UI.Button UIButton(Transform parent, string name, Sprite normal, Sprite pressed,
-            Vector2 anchor, Vector2 position, Vector2 size, string label)
+            Vector2 anchor, Vector2 position, Vector2 size, string label, Color labelColor)
         {
             var rt = Place(NewRect(name, parent), anchor, position, size);
             var image = rt.gameObject.AddComponent<UnityEngine.UI.Image>();
@@ -266,17 +263,40 @@ namespace Komur.EditorTools
             button.transition = UnityEngine.UI.Selectable.Transition.SpriteSwap;
             button.spriteState = new UnityEngine.UI.SpriteState { pressedSprite = pressed, highlightedSprite = pressed, selectedSprite = normal };
             if (!string.IsNullOrEmpty(label))
-                UIText(rt, "Label", label, 52, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0, 4), size, UiInk);
+                UIText(rt, "Label", label, size.y * 0.6f, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(0, 4), size, labelColor);
             return button;
         }
 
-        // Sprout Lands tan panel, 9-sliced with chunky 3x pixel borders.
-        private static RectTransform Panel(Transform parent, string name, Sprite sprite, Vector2 anchor, Vector2 position, Vector2 size)
+        private static float sliceScale = 3f;
+        private const string LayoutPath = GameRoot + "/UI/hud-layout.json";
+
+        private static HudLayout LoadLayout()
         {
-            var rt = UIImage(parent, name, sprite, anchor, position, size);
+            var json = AssetDatabase.LoadAssetAtPath<TextAsset>(LayoutPath);
+            if (json == null) throw new System.Exception("[Kömür] Missing " + LayoutPath);
+            return HudLayout.FromJson(json.text);
+        }
+
+        // Content inset of a panel: the 9-slice border plus the element's extra padding (same rule as hud-spec.html).
+        private static float Inset(HudLayout.Element e) => 7f * sliceScale + e.padding;
+
+        private static void ApplyCameraLayout(HudLayout L)
+        {
+            var follow = Object.FindFirstObjectByType<CameraFollow2D>();
+            if (follow != null) { follow.gameplaySize = L.camera.gameplaySize; EditorUtility.SetDirty(follow); }
+            var gm = Object.FindFirstObjectByType<GameManager>();
+            if (gm != null) { gm.titleCameraSize = L.camera.titleSize; EditorUtility.SetDirty(gm); }
+            var feedbacks = Object.FindFirstObjectByType<GameFeedbacks>();
+            if (feedbacks != null) { feedbacks.battleTextPixelSize = L.battleText.pixelSize; EditorUtility.SetDirty(feedbacks); }
+        }
+
+        // Sprout Lands tan panel, 9-sliced with chunky pixel borders (panelSliceScale x the source pixels).
+        private static RectTransform Panel(Transform parent, string name, Sprite sprite, HudLayout.Element e)
+        {
+            var rt = UIImage(parent, name, sprite, e.Anchor, e.Pos, e.Size);
             var image = rt.GetComponent<UnityEngine.UI.Image>();
             image.type = UnityEngine.UI.Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier = 1f / 3f;
+            image.pixelsPerUnitMultiplier = 1f / sliceScale;
             return rt;
         }
 
@@ -302,14 +322,15 @@ namespace Komur.EditorTools
         }
 
         // One of three equal columns in the town panel: icon on the left, number on the right.
-        private static UnityEngine.UI.Image CounterIcon(RectTransform panel, int column, Sprite sprite, Color color)
+        private static UnityEngine.UI.Image CounterIcon(RectTransform panel, int column, Sprite sprite, Color color, float iconSize, float padding)
         {
             var cell = NewRect("Counter " + column, panel);
             cell.anchorMin = new Vector2(column / 3f, 0f);
             cell.anchorMax = new Vector2((column + 1) / 3f, 1f);
-            cell.offsetMin = new Vector2(column == 0 ? 20f : 4f, 18f);
-            cell.offsetMax = new Vector2(column == 2 ? -20f : -4f, -18f);
-            var icon = Place(NewRect("Icon", cell), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(40f, 40f));
+            float border = 7f * sliceScale;
+            cell.offsetMin = new Vector2(column == 0 ? padding : 2f, border);
+            cell.offsetMax = new Vector2(column == 2 ? -padding : -2f, -border);
+            var icon = Place(NewRect("Icon", cell), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(iconSize, iconSize));
             var image = icon.gameObject.AddComponent<UnityEngine.UI.Image>();
             image.sprite = sprite;
             image.color = color;
@@ -318,18 +339,18 @@ namespace Komur.EditorTools
             return image;
         }
 
-        private static TextMeshProUGUI CounterText(RectTransform panel, int column, Color color)
+        private static TextMeshProUGUI CounterText(RectTransform panel, int column, Color color, float iconSize, float fontSize)
         {
             var cell = (RectTransform)panel.Find("Counter " + column);
-            var tmp = UIText(cell, "Count", "0", 36, TextAlignmentOptions.Left, new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero, color);
+            var tmp = UIText(cell, "Count", "0", fontSize, TextAlignmentOptions.Left, new Vector2(0f, 0.5f), Vector2.zero, Vector2.zero, color);
             var rt = tmp.rectTransform;
             rt.anchorMin = new Vector2(0f, 0f);
             rt.anchorMax = new Vector2(1f, 1f);
-            rt.offsetMin = new Vector2(46f, 0f);
+            rt.offsetMin = new Vector2(iconSize + 4f, 0f);
             rt.offsetMax = Vector2.zero;
             tmp.enableAutoSizing = true;
-            tmp.fontSizeMin = 12f;
-            tmp.fontSizeMax = 36f;
+            tmp.fontSizeMin = 10f;
+            tmp.fontSizeMax = fontSize;
             return tmp;
         }
 

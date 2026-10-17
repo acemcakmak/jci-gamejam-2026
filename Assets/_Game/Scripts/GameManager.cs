@@ -292,7 +292,7 @@ namespace Komur
         private void End(bool won)
         {
             State = won ? GameState.Won : GameState.Lost;
-            GameFeedbacks.Play(won ? FeedbackId.Won : FeedbackId.Lost, komur != null ? komur.transform.position : Vector3.zero);
+            GameFeedbacks.Play(won ? FeedbackId.Won : FeedbackId.Lost, komur != null ? komur.transform.position : Vector3.zero, komur != null ? komur.transform : null);
             if (hud != null) hud.ShowEnd(won, Alive, Cured, Dead);
         }
     }

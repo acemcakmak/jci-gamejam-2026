@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kömür HUD Spec</title>
+<style>
+  @font-face { font-family: Sprout; src: url('../../Assets/ThirdPartyAssets/Sprout Lands - UI Pack - Basic pack/fonts/pixelFont-7-8x14-sproutLands.ttf'); }
+  @font-face { font-family: Alphapix; src: url('../../Assets/ThirdPartyAssets/PixelBattleText/Fonts/Alphapix.ttf'); }
+  :root { --bg: #1d1a17; --fg: #f3ead7; --muted: #b8ab93; --card: #2a2622; --line: #3d372f; --accent: #e9c46a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font: 400 38px Sprout, monospace; margin: 8px 0 4px; }
+  h2 { font: 400 24px Sprout, monospace; margin: 36px 0 6px; color: var(--accent); }
+  p { color: var(--muted); margin: 0 0 10px; max-width: 820px; }
+  code { background: #3a332b; padding: 1px 6px; border-radius: 4px; color: var(--fg); }
+  .frame-wrap { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #000; }
+  .frame { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; }
+  .abs { position: absolute; }
+  canvas { display: block; image-rendering: pixelated; }
+  .pix { image-rendering: pixelated; }
+  .sprout { font-family: Sprout, monospace; -webkit-font-smoothing: none; }
+  .fit { display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; line-height: 1.05; white-space: pre-line; }
+  .outline { text-shadow: 3px 0 #28190f, -3px 0 #28190f, 0 3px #28190f, 0 -3px #28190f, 3px 3px #28190f, -3px 3px #28190f, 3px -3px #28190f, -3px -3px #28190f; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
+  .legend div { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; color: var(--muted); }
+  .legend b { color: var(--fg); }
+</style>
+</head>
+<body>
+<main>
+  <h1>KOMUR HUD SPEC</h1>
+  <p>Rendered from <code>Assets/_Game/UI/hud-layout.json</code>, the same file <b>Kömür → Rebuild HUD</b> reads in Unity. Positions, sizes, fonts and 9-slice borders are in 1920×1080 canvas pixels. The world is drawn at the real camera scale: orthographic size 5, so 108 px per tile. Change a number in the JSON, reload this page and rebuild the HUD, and both stay in sync.</p>
+
+  <h2>Gameplay</h2>
+  <div class="frame-wrap" id="game-wrap"><div class="frame" id="game"></div></div>
+  <div class="legend" id="legend"></div>
+
+  <h2>Title screen</h2>
+  <div class="frame-wrap" id="title-wrap"><div class="frame" id="title"></div></div>
+
+  <h2>Wave banner and end screen</h2>
+  <div class="frame-wrap" id="end-wrap"><div class="frame" id="end"></div></div>
+</main>
+
+<script>
+const ROOT = '../../Assets/ThirdPartyAssets/';
+const SRC = {
+  basic: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/Sprite sheet for Basic Pack.png',
+  play: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/UI Big Play Button.png',
+  icons: ROOT + 'Sprout Lands - UI Pack - Basic pack/Sprite sheets/Icons/All Icons.png',
+  grass: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Tileset Grass.png',
+  player: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Player.png',
+  props: ROOT + 'Cainos/Pixel Art Top Down - Basic/Texture/TX Props.png',
+  catSit: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Sitting.png',
+  catRun: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Run.png',
+  catIdle: ROOT + 'Pet Cats pack/Sprites/Cat-2/Cat-2-Idle.png',
+  rat: ROOT + 'Monsters Creatures Fantasy 2/Sprites/Rat/run.png',
+};
+const R = {
+  tan: [10, 58, 28, 30], arrow: [244, 1, 9, 14], playBtn: [2, 33, 92, 29], blankBtn: [2, 1, 92, 29],
+  plus: [1, 33, 14, 14], house: [33, 34, 14, 13], skull: [33, 2, 14, 13],
+  villager: [6, 10, 21, 48], crate: [160, 18, 32, 46], barrel: [162, 153, 28, 36], well: [420, 359, 58, 49],
+  cat: [0, 0, 50, 50], rat: [0, 0, 70, 70],
+};
+const imgs = {};
+const load = k => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[k] = i); i.onerror = () => rej(k); i.src = SRC[k]; });
+
+function crop(key, r, scale) {
+  const [x, y, w, h] = r, c = document.createElement('canvas');
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(imgs[key], x, y, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+function el(tag, cls, parent, style = {}) { const e = document.createElement(tag); if (cls) e.className = cls; Object.assign(e.style, style); parent.appendChild(e); return e; }
+function sprite(parent, key, r, scale, x, y, extra = {}) { const c = crop(key, r, scale); c.className = 'abs pix'; Object.assign(c.style, { left: x + 'px', top: y + 'px' }, extra); parent.appendChild(c); return c; }
+
+// Unity anchor (0,0 bottom-left) + pivot = anchor + pos (y up) -> CSS left/top in a 1920x1080 frame.
+function place(e, spec, W, H) {
+  const [ax, ay] = spec.anchor, [px, py] = spec.pos, [w, h] = spec.size;
+  const left = ax * W + px - ax * w;
+  const bottom = ay * H + py - ay * h;
+  return { left, top: H - bottom - h, width: w, height: h };
+}
+function box(parent, spec, L, cls = '') {
+  const p = place(null, spec, L.referenceWidth, L.referenceHeight);
+  return el('div', 'abs ' + cls, parent, { left: p.left + 'px', top: p.top + 'px', width: p.width + 'px', height: p.height + 'px' });
+}
+// 9-slice: 7px source border drawn at panelSliceScale (matches Image.pixelsPerUnitMultiplier = 1/scale).
+function tanPanel(node, L) {
+  const s = L.panelSliceScale, url = crop('basic', R.tan, s).toDataURL(), b = 7 * s;
+  Object.assign(node.style, { borderImage: `url(${url}) ${b} fill / ${b}px stretch`, borderStyle: 'solid', borderWidth: b + 'px', imageRendering: 'pixelated' });
+}
+// Mimic TMP auto-size: shrink until the text fits its box.
+function fitText(node, text, maxSize, color, padding = 0) {
+  const t = el('div', 'sprout fit abs', node, { left: padding + 'px', right: padding + 'px', top: padding + 'px', bottom: padding + 'px', color, fontSize: maxSize + 'px' });
+  t.textContent = text;
+  requestAnimationFrame(() => { let s = maxSize; while (s > 10 && (t.scrollHeight > t.clientHeight + 1 || t.scrollWidth > t.clientWidth + 1)) { s -= 1; t.style.fontSize = s + 'px'; } });
+  return t;
+}
+function fitFrame(wrapId, frameId) {
+  const wrap = document.getElementById(wrapId), frame = document.getElementById(frameId);
+  const k = wrap.clientWidth / 1920; frame.style.transform = `scale(${k})`; wrap.style.height = 1080 * k + 'px';
+}
+
+// ---------- world ----------
+const PPU = 1080 / 10; // camera size 5 -> 10 units tall
+function world(frame, camSize, opts = {}) {
+  const ppu = 1080 / (camSize * 2), tile = ppu, s = ppu / 32;
+  const c = el('canvas', 'abs', frame, { left: 0, top: 0 }); c.width = 1920; c.height = 1080;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  for (let y = -tile; y < 1080 + tile; y += tile) for (let x = -tile; x < 1920 + tile; x += tile) {
+    const v = (Math.abs(Math.round(x / tile) * 7 + Math.round(y / tile) * 13) % 4) * 32;
+    g.drawImage(imgs.grass, v, (Math.abs(Math.round(y / tile)) % 4) * 32, 32, 32, Math.round(x), Math.round(y), Math.ceil(tile), Math.ceil(tile));
+  }
+  // stone square centred on the camera
+  const sq = opts.square || [-5, -4, 10, 8];
+  const sx = 960 + sq[0] * ppu, sy = 540 - (sq[1] + sq[3]) * ppu;
+  g.fillStyle = '#8b887d'; g.fillRect(sx, sy, sq[2] * ppu, sq[3] * ppu);
+  g.strokeStyle = '#5f4c3d'; g.lineWidth = 4 * s; g.strokeRect(sx + 2 * s, sy + 2 * s, sq[2] * ppu - 4 * s, sq[3] * ppu - 4 * s);
+  return { ppu, s, at: (wx, wy) => [960 + wx * ppu, 540 - wy * ppu] };
+}
+function drawSprite(frame, W, key, r, ppuSprite, scale, wx, wy, pivotY = 0.5) {
+  const pxScale = W.ppu / ppuSprite * scale; const [cx, cy] = W.at(wx, wy);
+  return sprite(frame, key, r, pxScale, cx - r[2] * pxScale / 2, cy - r[3] * pxScale * (1 - pivotY));
+}
+function battleWord(frame, W, L, text, wx, wy, fill, border) {
+  const px = L.battleText.pixelSize * W.ppu; // screen px per battle-text pixel
+  const [cx, cy] = W.at(wx, wy + L.battleText.height);
+  const sh = [[1,0],[-1,0],[0,1],[0,-1]].map(([x,y]) => `${x*px}px ${y*px}px 0 ${border}`).join(',');
+  const e = el('div', 'abs', frame, { left: cx + 'px', top: cy + 'px', transform: 'translate(-50%,-50%)', fontFamily: 'Alphapix', fontSize: 16 * px + 'px', letterSpacing: (9 - 8) * px + 'px', color: fill, textShadow: sh, whiteSpace: 'nowrap' });
+  e.textContent = text;
+}
+
+// ---------- minimap (same palette as Minimap.cs) ----------
+const PLATFORMS = [[3, 20, 15, 10], [38, 25, 8, 6], [9, 8, 4, 4], [40, 8, 5, 4], [28, 22, 4, 4], [17, 3, 4, 4]];
+const TREES = [[2,18],[2,12],[20,27],[29,29],[30,7],[21,7],[45,12],[45,18],[19,22],[21,3],[27,3],[10,18],[15,18],[35,18],[41,18],[33,12],[2,2],[36,2],[27,9],[20,29],[34,29],[4,22],[16,22],[29,24],[18,5],[10,10]];
+const COL = { grass: [112,140,58], grassDark: [96,124,48], upper: [146,176,82], cobble: [150,146,120], stone: [168,163,150], stoneEdge: [112,96,80], wallTop: [84,66,54], brick: [120,102,88], brickDark: [92,76,64], tree: [58,92,34], treeLight: [86,124,46] };
+function cell(x, y) {
+  if (x === 0 || x === 47 || y === 31) return 'wallTop';
+  if (y === 1) return 'wallTop'; if (y === 0) return 'brick';
+  for (const [px, py, pw, ph] of PLATFORMS) if (x >= px && x < px + pw && y >= py && y < py + ph) {
+    if (y === py) return 'brick'; if (y === py + 1 || y === py + ph - 1 || x === px || x === px + pw - 1) return 'wallTop'; return 'upper';
+  }
+  if (x >= 19 && x <= 28 && y >= 12 && y <= 19) return 'stone';
+  if (((x >= 23 && x <= 25) && y >= 2 && y < 30) || (y >= 14 && y <= 16 && x >= 1 && x < 47)) return 'cobble';
+  return 'grass';
+}
+function noise(x, y) { let h = (x * 73856093) ^ (y * 19349663); h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return (h & 0xffff) / 65535; }
+function paintMinimap(canvas, ppt = 6) {
+  const W = 48 * ppt, H = 32 * ppt; canvas.width = W; canvas.height = H;
+  const g = canvas.getContext('2d'), img = g.createImageData(W, H);
+  const put = (x, y, c, a = 1) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = ((H - 1 - y) * W + x) * 4; for (let k = 0; k < 3; k++) img.data[i + k] = img.data[i + k] * (1 - a) + c[k] * a; img.data[i + 3] = 255; };
+  for (let ty = 0; ty < 32; ty++) for (let tx = 0; tx < 48; tx++) {
+    const t = cell(tx, ty);
+    for (let py = 0; py < ppt; py++) for (let px = 0; px < ppt; px++) {
+      const x = tx * ppt + px, y = ty * ppt + py; let c;
+      if (t === 'brick') c = ((Math.floor(y / 2) + (py < 3 ? 0 : 1) * Math.floor(x / 3)) % 2 === 0) ? COL.brick : COL.brickDark;
+      else if (t === 'wallTop') c = COL.wallTop;
+      else if (t === 'upper') c = noise(x, y) < 0.2 ? COL.upper.map(v => v + (255 - v) * 0.12) : COL.upper;
+      else if (t === 'stone') c = (px === 0 || py === 0) ? COL.stone.map((v, i) => v * 0.75 + COL.stoneEdge[i] * 0.25) : COL.stone;
+      else if (t === 'cobble') c = ((px + py) % 3 === 0) ? COL.cobble.map((v, i) => (v + COL.grass[i]) / 2) : COL.cobble;
+      else c = noise(x, y) < 0.25 ? COL.grassDark : COL.grass;
+      put(x, y, c);
+    }
+  }
+  for (const [tx, ty] of TREES) {
+    const cx = tx * ppt + ppt / 2, cy = ty * ppt + ppt / 2, r = 1.5 * ppt;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (dx * dx + dy * dy <= r * r) put(Math.round(cx + dx + 2), Math.round(cy + dy - 2), [0, 0, 0], 0.28);
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const d = dx * dx + dy * dy; if (d > r * r) continue; put(Math.round(cx + dx), Math.round(cy + dy), (dx < 0 && dy > 0 && d < r * r * 0.45) ? COL.treeLight : COL.tree); }
+  }
+  g.putImageData(img, 0, 0);
+}
+function minimapIcons(layer, w, h) {
+  const at = (x, y) => [x / 48 * w, (1 - y / 32) * h];
+  const dot = (x, y, d, col) => { const [cx, cy] = at(x, y); el('div', 'abs', layer, { left: cx - d / 2 + 'px', top: cy - d / 2 + 'px', width: d + 'px', height: d + 'px', borderRadius: '50%', background: col }); };
+  const icon = (x, y, key, r, size, filter) => { const [cx, cy] = at(x, y); const c = crop(key, r, size / Math.max(r[2], r[3])); c.className = 'abs pix'; Object.assign(c.style, { left: cx - c.width / 2 + 'px', top: cy - c.height / 2 + 'px', filter: filter || '' }); layer.appendChild(c); };
+  [[24, 3], [45, 24], [2, 9]].forEach(([x, y]) => dot(x, y, 9, '#33190d'));
+  icon(24, 16.5, 'icons', R.house, 14, 'sepia(1) saturate(4) brightness(1.1)');
+  [[7, 26], [35, 25], [7, 7], [38, 6], [21, 17]].forEach(([x, y]) => dot(x, y, 8, '#f2f2d9'));
+  [[13, 24], [13, 4]].forEach(([x, y]) => dot(x, y, 8, '#ff99cc'));
+  icon(41, 22, 'icons', R.plus, 14, 'sepia(1) saturate(8) hue-rotate(60deg)');
+  [[30, 15], [26, 6], [39, 23], [10, 15]].forEach(([x, y]) => dot(x, y, 6, '#e63333'));
+  icon(24, 13, 'catIdle', R.cat, 18);
+}
+
+// ---------- HUD ----------
+function hud(frame, L) {
+  const ink = L.inkColor, cream = L.creamColor;
+  const wave = box(frame, L.wavePanel, L); tanPanel(wave, L);
+  fitText(wave, 'WAVE 3/5', L.wavePanel.fontSize, ink, L.wavePanel.padding);
+
+  const town = box(frame, L.townPanel, L); tanPanel(town, L);
+  const tp = L.townPanel.padding;
+  const inner = el('div', 'abs', town, { left: tp + 'px', right: tp + 'px', top: 0, bottom: 0, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center' });
+  const counter = (key, r, text, color, filter) => {
+    const g = el('div', null, inner, { display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' });
+    const c = crop(key, r, L.townPanel.iconSize / Math.max(r[2], r[3])); c.className = 'pix'; c.style.filter = filter || ''; g.appendChild(c);
+    el('span', 'sprout', g, { fontSize: L.townPanel.fontSize + 'px', color }).textContent = text;
+  };
+  counter('player', R.villager, '7', ink);
+  counter('icons', R.plus, '1', '#408c33', 'sepia(1) saturate(8) hue-rotate(60deg) brightness(.9)');
+  counter('icons', R.skull, '1/3', '#993333', 'sepia(1) saturate(6) hue-rotate(-30deg) brightness(.8)');
+
+  const mm = box(frame, L.minimap, L); tanPanel(mm, L);
+  const pad = L.minimap.padding; // extra space inside the 9-slice border
+  const area = el('div', 'abs', mm, { left: pad + 'px', right: pad + 'px', top: pad + 'px', bottom: pad + 'px' });
+  requestAnimationFrame(() => {
+    const aw = area.clientWidth, ah = area.clientHeight, k = Math.min(aw / 288, ah / 192), w = 288 * k, h = 192 * k;
+    const holder = el('div', 'abs', area, { left: (aw - w) / 2 + 'px', top: (ah - h) / 2 + 'px', width: w + 'px', height: h + 'px' });
+    const c = el('canvas', 'abs', holder, { width: w + 'px', height: h + 'px' }); paintMinimap(c);
+    minimapIcons(el('div', 'abs', holder, { left: 0, top: 0, width: w + 'px', height: h + 'px' }), w, h);
+  });
+
+  const hint = box(frame, L.hint, L, 'sprout outline fit');
+  Object.assign(hint.style, { fontSize: L.hint.fontSize + 'px', color: cream, alignItems: 'flex-end' });
+  hint.textContent = 'SOMEONE IS SICK! GRAB MEDICINE AT THE APOTHECARY.';
+  return { mm, wave, town };
+}
+function indicator(frame, L, x, y, angleDeg, iconKey, iconR, tint) {
+  const s = L.indicator.size;
+  const root = el('div', 'abs', frame, { left: x - s / 2 + 'px', top: y - s / 2 + 'px', width: s + 'px', height: s + 'px' });
+  const bg = crop('basic', R.tan, s / 30); bg.className = 'abs pix'; Object.assign(bg.style, { left: '0', top: '0', width: s + 'px', height: s + 'px' }); root.appendChild(bg);
+  const ic = crop(iconKey, iconR, s * 0.5 / 14); ic.className = 'abs pix'; Object.assign(ic.style, { left: (s - ic.width) / 2 + 'px', top: (s - ic.height) / 2 + 'px', filter: tint }); root.appendChild(ic);
+  const ar = crop('basic', R.arrow, s * 0.45 / 14); ar.className = 'abs pix';
+  const rad = angleDeg * Math.PI / 180, d = s * 0.55;
+  Object.assign(ar.style, { left: s / 2 + Math.cos(rad) * d - ar.width / 2 + 'px', top: s / 2 - Math.sin(rad) * d - ar.height / 2 + 'px', transform: `rotate(${-angleDeg}deg)`, filter: tint }); root.appendChild(ar);
+}
+
+function buildGame(L) {
+  const f = document.getElementById('game');
+  const W = world(f, L.camera.gameplaySize);
+  const sc = 1080 / (L.camera.gameplaySize * 2) / 32;
+  sprite(f, 'props', R.well, sc, ...W.at(3.2, 2.6));
+  sprite(f, 'props', R.barrel, sc, ...W.at(-4.4, 0.4));
+  sprite(f, 'props', R.crate, sc, ...W.at(4.0, -0.6));
+  // characters at prefab scales (Kömür x5, rat x2, Cainos villager)
+  drawSprite(f, W, 'player', R.villager, 32, 1, -3.0, 1.6, 0.15);
+  drawSprite(f, W, 'player', R.villager, 32, 1, 2.5, -1.8, 0.15);
+  drawSprite(f, W, 'catRun', R.cat, 100, 5, 0, 0.4, 0.35);
+  drawSprite(f, W, 'rat', R.rat, 100, 2, -1.2, -2.4, 0.3);
+  battleWord(f, W, L, 'CURED!', -3.0, 1.6, '#7dffb0', '#0f4a2f');
+  battleWord(f, W, L, 'SQUEAK!', -1.2, -2.6, '#ffcf3f', '#7a1f12');
+  battleWord(f, W, L, 'EEK!', 2.5, -1.8, '#e8b4ff', '#2b0f3a');
+  const h = hud(f, L);
+  // edge arrows: one on the right edge pushed below the minimap, one bottom-left
+  requestAnimationFrame(() => {
+    const mmRect = place(null, L.minimap, 1920, 1080), m = L.indicator.size * 0.6;
+    indicator(f, L, 1920 - L.indicator.edgePadding, mmRect.top + mmRect.height + m, 15, 'icons', R.plus, 'sepia(1) saturate(8) hue-rotate(60deg)');
+    indicator(f, L, L.indicator.edgePadding, 1080 - L.indicator.edgePadding, 215, 'icons', R.plus, 'sepia(1) saturate(9) hue-rotate(-40deg)');
+  });
+  const legend = document.getElementById('legend');
+  [['Wave panel', L.wavePanel], ['Town panel', L.townPanel], ['Minimap', L.minimap], ['Hint', L.hint]].forEach(([n, e]) => {
+    el('div', null, legend).innerHTML = `<b>${n}</b> · ${e.size[0]}×${e.size[1]} at (${e.pos.join(', ')})${e.fontSize ? ' · font ' + e.fontSize : ''}`;
+  });
+  el('div', null, legend).innerHTML = `<b>Battle text</b> · ${L.battleText.pixelSize} units/pixel → ${(16 * L.battleText.pixelSize * 1080 / (L.camera.gameplaySize * 2)).toFixed(0)} px letters, anchored ${L.battleText.height} above the character`;
+  el('div', null, legend).innerHTML = `<b>Panels</b> · Sprout tan 9-slice, 7 px border × ${L.panelSliceScale}`;
+}
+
+function buildTitle(L) {
+  const f = document.getElementById('title');
+  const W = world(f, L.camera.titleSize, { square: [-5, -4, 10, 8] });
+  const sc = 1080 / (L.camera.titleSize * 2) / 32;
+  sprite(f, 'props', R.well, sc, ...W.at(3.2, 1.2));
+  sprite(f, 'props', R.barrel, sc, ...W.at(-4.4, 0.4));
+  drawSprite(f, W, 'catSit', R.cat, 100, 5, 0, 0, 0.3);
+  const t = box(f, L.title, L, 'sprout outline fit'); Object.assign(t.style, { fontSize: L.title.fontSize + 'px', color: L.creamColor }); t.textContent = 'KOMUR';
+  const s = box(f, L.subtitle, L, 'sprout outline fit'); Object.assign(s.style, { fontSize: L.subtitle.fontSize + 'px', color: '#a8f27e' }); s.textContent = 'AND THE PLAGUE RATS';
+  const story = box(f, L.storyPanel, L); tanPanel(story, L);
+  const sp = L.storyPanel.padding;
+  const inner = el('div', 'abs', story, { left: sp + 'px', right: sp + 'px', top: sp + 'px', bottom: sp + 'px', display: 'flex', flexDirection: 'column', justifyContent: 'center' });
+  const st = el('div', 'sprout', inner, { textAlign: 'center', color: L.inkColor, fontSize: L.storyPanel.fontSize + 'px', lineHeight: 1.1 });
+  st.textContent = 'THE TOWN SAYS BLACK CATS BRING BAD LUCK.\nBUT THE PLAGUE RATS ARE COMING - ONLY KOMUR CAN STOP THEM.'; st.style.whiteSpace = 'pre-line';
+  el('div', 'sprout', inner, { textAlign: 'center', color: L.inkColor, opacity: .8, fontSize: L.storyPanel.fontSize * 0.75 + 'px', marginTop: '6px' }).textContent = 'WASD MOVE   SPACE POUNCE   BRING MEDICINE TO THE SICK   STAY OUT OF SIGHT';
+  const pb = place(null, L.playButton, 1920, 1080); sprite(f, 'play', R.playBtn, pb.width / 92, pb.left, pb.top);
+}
+
+function buildEnd(L) {
+  const f = document.getElementById('end');
+  const W = world(f, L.camera.gameplaySize);
+  drawSprite(f, W, 'catIdle', R.cat, 100, 5, 0, 0, 0.3);
+  const b = box(f, L.banner, L); tanPanel(b, L);
+  fitText(b, 'A NEW RAT HOLE APPEARED!', L.banner.fontSize, L.inkColor, L.banner.padding);
+  el('div', 'abs', f, { left: 0, top: 0, width: '1920px', height: '1080px', background: 'rgba(13,10,20,.35)' });
+  const t = box(f, L.endTitle, L, 'sprout outline fit'); Object.assign(t.style, { fontSize: L.endTitle.fontSize + 'px', color: L.creamColor }); t.textContent = 'THE TOWN IS SAVED!';
+  const p = box(f, L.endPanel, L); tanPanel(p, L);
+  fitText(p, '6 VILLAGERS SURVIVED, 4 CURED BY KOMUR.\nTHEY WILL NEVER FEAR A BLACK CAT AGAIN.', L.endPanel.fontSize, L.inkColor, L.endPanel.padding);
+  const ab = place(null, L.againButton, 1920, 1080); sprite(f, 'play', R.blankBtn, ab.width / 92, ab.left, ab.top);
+  el('div', 'abs sprout fit', f, { left: ab.left + 'px', top: ab.top + 'px', width: ab.width + 'px', height: ab.height + 'px', fontSize: ab.height * 0.6 + 'px', color: L.inkColor }).textContent = 'AGAIN';
+}
+
+Promise.all([fetch('../../Assets/_Game/UI/hud-layout.json').then(r => r.json()), ...Object.keys(SRC).map(load), document.fonts.load('20px Sprout'), document.fonts.load('20px Alphapix')])
+  .then(([L]) => {
+    buildGame(L); buildTitle(L); buildEnd(L);
+    const resize = () => { fitFrame('game-wrap', 'game'); fitFrame('title-wrap', 'title'); fitFrame('end-wrap', 'end'); };
+    resize(); new ResizeObserver(resize).observe(document.querySelector('main'));
+  })
+  .catch(e => document.querySelector('main').insertAdjacentHTML('beforeend', `<p style="color:#f88">Load failed: ${e}. Serve from the repo root.</p>`));
+</script>
+</body>
+</html>

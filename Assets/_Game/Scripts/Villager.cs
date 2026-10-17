@@ -27,6 +27,11 @@ namespace Komur
         public float stunDuration = 1f;
         public ThrownStone stonePrefab;
 
+        [Header("Fear of rats")]
+        [Tooltip("Healthy villagers back away from rats within this radius, a bit slower than the rats.")]
+        public float ratFearRadius = 2.6f;
+        public float ratFleeSpeed = 1.3f;
+
         [Header("References")]
         public Animator animator;
         public WorldBar sickBar;
@@ -52,6 +57,8 @@ namespace Komur
         private float fleeUntil;
         private float nextThrowAt;
         private float iconHideAt;
+        private float nextRatCheckAt;
+        private Rat nearbyRat;
 
         private void Awake()
         {
@@ -136,7 +143,7 @@ namespace Komur
                 Vector2 fleeTo = (Vector2)transform.position + away * 4f;
                 if (Grid != null && Grid.TryNearestWalkable(fleeTo, 6, out var safe)) fleeTo = safe;
                 mover.SetDestination(fleeTo, true);
-                GameFeedbacks.Play(FeedbackId.VillagerScared, transform.position);
+                GameFeedbacks.Play(FeedbackId.VillagerScared, transform.position, transform);
                 ShowIconFor("!", Color.red, fleeDuration);
                 if (stonePrefab != null && Time.time >= nextThrowAt)
                 {
@@ -156,7 +163,23 @@ namespace Komur
             if (playing && State == VillagerState.Healthy)
             {
                 bool fleeingNow = Time.time < fleeUntil;
-                if (!fleeingNow && Time.time >= idleUntil && (!mover.HasDestination || mover.Arrived))
+                if (!fleeingNow && Time.time >= nextRatCheckAt)
+                {
+                    nextRatCheckAt = Time.time + 0.3f;
+                    nearbyRat = NearestRat(gm);
+                    if (nearbyRat != null)
+                    {
+                        Vector2 away = (transform.position - nearbyRat.transform.position).normalized;
+                        Vector2 runTo = (Vector2)transform.position + away * 3f;
+                        if (Grid != null && Grid.TryNearestWalkable(runTo, 6, out var safe)) runTo = safe;
+                        mover.SetDestination(runTo);
+                    }
+                }
+                if (!fleeingNow && nearbyRat != null)
+                {
+                    velocity = mover.NextDirection() * ratFleeSpeed;
+                }
+                else if (!fleeingNow && Time.time >= idleUntil && (!mover.HasDestination || mover.Arrived))
                 {
                     if (mover.HasDestination)
                     {
@@ -168,7 +191,7 @@ namespace Komur
                         if (!mover.SetDestination(goal, true)) mover.Stop();
                     }
                 }
-                if (fleeingNow || Time.time >= idleUntil)
+                if ((fleeingNow || nearbyRat == null) && (fleeingNow || Time.time >= idleUntil))
                     velocity = mover.NextDirection() * (fleeingNow ? fleeSpeed : walkSpeed);
             }
             else
@@ -178,6 +201,21 @@ namespace Komur
 
             body.linearVelocity = velocity;
             UpdateAnimator(velocity);
+        }
+
+        private Rat NearestRat(GameManager gm)
+        {
+            if (gm == null) return null;
+            Rat best = null;
+            float bestD = ratFearRadius * ratFearRadius;
+            int floor = Floor;
+            foreach (var rat in gm.rats)
+            {
+                if (rat.Floor != floor) continue;
+                float d = (rat.transform.position - transform.position).sqrMagnitude;
+                if (d < bestD) { bestD = d; best = rat; }
+            }
+            return best;
         }
 
         private void UpdateAnimator(Vector2 velocity)
@@ -210,7 +248,7 @@ namespace Komur
             if (sickBar != null) sickBar.SetVisible(false);
             SetTint(Color.white);
             SetIcon("", Color.white); // the CURED! battle text replaces the old "Thanks!"
-            GameFeedbacks.Play(FeedbackId.Cured, transform.position);
+            GameFeedbacks.Play(FeedbackId.Cured, transform.position, transform);
             if (GameManager.I != null) GameManager.I.OnVillagerCured();
         }
 

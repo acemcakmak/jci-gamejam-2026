@@ -47,6 +47,8 @@ namespace Komur
         public List<Entry> entries = new List<Entry>();
         public string vfxSortingLayer = "Layer 1";
         public int vfxSortingOrder = 50;
+        [Tooltip("World units per PixelBattleText pixel (set from hud-layout.json).")]
+        public float battleTextPixelSize = 0.018f;
 
         private AudioSource audioSource;
 
@@ -56,13 +58,14 @@ namespace Komur
             audioSource = GetComponent<AudioSource>();
         }
 
-        public static void Play(FeedbackId id, Vector3 position)
+        // follow: the character the effect belongs to; floating words stick to it.
+        public static void Play(FeedbackId id, Vector3 position, Transform follow = null)
         {
             if (I == null) return;
-            I.PlayInternal(id, position);
+            I.PlayInternal(id, position, follow);
         }
 
-        private void PlayInternal(FeedbackId id, Vector3 position)
+        private void PlayInternal(FeedbackId id, Vector3 position, Transform follow)
         {
             foreach (var entry in entries)
             {
@@ -86,20 +89,10 @@ namespace Komur
                 }
                 if (entry.sfx != null) audioSource.PlayOneShot(entry.sfx, entry.volume);
                 if (entry.cameraShake > 0f) CameraFollow2D.Shake(entry.cameraShake, 0.15f);
-                if (!string.IsNullOrEmpty(entry.battleText)) ShowBattleText(entry.battleText, entry.battleTextAnimation, position + Vector3.up * entry.battleTextHeight);
+                if (!string.IsNullOrEmpty(entry.battleText))
+                    WorldBattleText.Spawn(entry.battleText, entry.battleTextAnimation, position, follow, entry.battleTextHeight, battleTextPixelSize);
                 entry.onPlay?.Invoke(position);
             }
-        }
-
-        // Floating pixel text at a world position (PixelBattleText takes normalized screen coordinates).
-        public static void ShowBattleText(string text, PixelBattleText.TextAnimation animation, Vector3 world)
-        {
-            if (animation == null || PixelBattleText.PixelBattleTextController.singleton == null) return;
-            var cam = Camera.main;
-            if (cam == null) return;
-            Vector3 vp = cam.WorldToViewportPoint(world);
-            if (vp.z < 0f || vp.x < -0.1f || vp.x > 1.1f || vp.y < -0.1f || vp.y > 1.1f) return;
-            PixelBattleText.PixelBattleTextController.DisplayText(text, animation, new Vector2(vp.x, vp.y));
         }
 
         public void EnsureAllEntries()

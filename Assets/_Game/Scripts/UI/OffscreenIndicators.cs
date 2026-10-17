@@ -17,6 +17,8 @@ namespace Komur
         public Color apothecaryColor = new Color(1f, 0.85f, 0.45f);
         [Tooltip("Show a pointer to the apothecary when villagers are sick and Kömür carries no medicine.")]
         public bool pointToApothecary = true;
+        [Tooltip("HUD panels the arrows must not hide under (minimap, wave and town panels).")]
+        public RectTransform[] avoid;
 
         private class Indicator
         {
@@ -77,7 +79,7 @@ namespace Komur
             // Push the point out along dir until it touches the padded screen edge.
             float halfW = rect.width * 0.5f - edgePadding, halfH = rect.height * 0.5f - edgePadding;
             float t = Mathf.Min(halfW / Mathf.Max(0.0001f, Mathf.Abs(dir.x)), halfH / Mathf.Max(0.0001f, Mathf.Abs(dir.y)));
-            ind.root.anchoredPosition = dir * t;
+            ind.root.anchoredPosition = AvoidPanels(dir * t);
             ind.root.localScale = Vector3.one * scale;
 
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
@@ -87,6 +89,27 @@ namespace Komur
             ind.icon.sprite = icon;
             ind.icon.color = color;
             return true;
+        }
+
+        private readonly Vector3[] corners = new Vector3[4];
+
+        // If the edge point lands under a HUD panel, slide it along the screen edge to just below that panel.
+        private Vector2 AvoidPanels(Vector2 p)
+        {
+            if (avoid == null) return p;
+            float margin = size * 0.6f;
+            for (int pass = 0; pass < 2; pass++)
+            foreach (var rt in avoid)
+            {
+                if (rt == null || !rt.gameObject.activeInHierarchy) continue;
+                rt.GetWorldCorners(corners);
+                Vector2 min = container.InverseTransformPoint(corners[0]);
+                Vector2 max = container.InverseTransformPoint(corners[2]);
+                // container pivot is the centre, so local space matches anchoredPosition space
+                if (p.x > min.x - margin && p.x < max.x + margin && p.y > min.y - margin && p.y < max.y + margin)
+                    p.y = min.y - margin;
+            }
+            return p;
         }
 
         private Indicator Get(int index)

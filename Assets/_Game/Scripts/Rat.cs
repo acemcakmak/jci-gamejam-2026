@@ -176,7 +176,7 @@ namespace Komur
                     if (v.Floor != Floor || !v.CanBeBitten) continue;
                     if ((v.transform.position - transform.position).sqrMagnitude > r2) continue;
                     v.Infect(gm.CurrentSickDuration);
-                    GameFeedbacks.Play(FeedbackId.Bite, v.transform.position);
+                    GameFeedbacks.Play(FeedbackId.Bite, v.transform.position, v.transform);
                 }
                 target = null;
                 nextRetargetAt = 0f;
@@ -184,7 +184,7 @@ namespace Komur
             }
 
             target.Infect(gm.CurrentSickDuration);
-            GameFeedbacks.Play(FeedbackId.Bite, target.transform.position);
+            GameFeedbacks.Play(FeedbackId.Bite, target.transform.position, target.transform);
             StartFleeing(gm);
         }
 
