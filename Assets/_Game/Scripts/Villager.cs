@@ -187,9 +187,9 @@ namespace Komur
                         mover.Stop();
                         idleUntil = Time.time + Random.Range(1f, 3f);
                     }
-                    else if (Grid != null && Grid.TryRandomWalkableNear(home, wanderRadius, out var goal))
+                    else if (PickWanderGoal(out var goal, out int goalFloor))
                     {
-                        if (!mover.SetDestination(goal, true)) mover.Stop();
+                        if (!mover.SetDestination(goal, true, goalFloor)) mover.Stop();
                     }
                 }
                 if ((fleeingNow || nearbyRat == null) && (fleeingNow || Time.time >= idleUntil))
@@ -202,6 +202,27 @@ namespace Komur
 
             body.linearVelocity = velocity;
             UpdateAnimator(velocity);
+        }
+
+        [Header("Wander between floors")]
+        [Range(0f, 1f)] public float otherFloorChance = 0.3f;
+
+        // Mostly stroll near home; sometimes take the stairs to another floor nearby.
+        private bool PickWanderGoal(out Vector2 goal, out int goalFloor)
+        {
+            goalFloor = Floor;
+            if (Random.value < otherFloorChance)
+            {
+                int other = Random.Range(1, 4);
+                var otherGrid = NavGrid.For(other);
+                if (other != Floor && otherGrid != null && otherGrid.TryRandomWalkableNear(home, wanderRadius * 3f, out goal))
+                {
+                    goalFloor = other;
+                    return true;
+                }
+            }
+            goal = home;
+            return Grid != null && Grid.TryRandomWalkableNear(home, wanderRadius, out goal);
         }
 
         private Rat NearestRat(GameManager gm)

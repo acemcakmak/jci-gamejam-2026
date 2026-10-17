@@ -63,10 +63,12 @@ namespace Komur
             return -1;
         }
 
-        // Fills result with waypoints from (from, fromFloor) to (to, toFloor). Returns false if unreachable.
-        public static bool Route(Vector2 from, int fromFloor, Vector2 to, int toFloor, List<Vector2> result)
+        // Fills result with waypoints from (from, fromFloor) to (to, toFloor); climbIndices gets the indices of
+        // waypoints reached by climbing or descending a staircase. Returns false if unreachable.
+        public static bool Route(Vector2 from, int fromFloor, Vector2 to, int toFloor, List<Vector2> result, List<int> climbIndices = null)
         {
             result.Clear();
+            climbIndices?.Clear();
             EnsureBuilt();
 
             // Same floor and a direct path: done.
@@ -118,7 +120,11 @@ namespace Komur
                     if (c < dist[v]) { dist[v] = c; prev[v] = u; }
                 }
             }
-            if (prev[1] < 0) return false;
+            if (prev[1] < 0)
+            {
+                LogFailure(from, fromFloor, to, toFloor);
+                return false;
+            }
 
             // Rebuild: walking legs via A*, staircase legs as a straight climb.
             var chain = new List<int>();
@@ -135,10 +141,36 @@ namespace Komur
                 }
                 else
                 {
+                    climbIndices?.Add(result.Count);
                     result.Add(Pos(b));
                 }
             }
+            if (result.Count == 0) LogFailure(from, fromFloor, to, toFloor);
             return result.Count > 0;
+        }
+
+        private static float nextLogAt;
+
+        private static void LogFailure(Vector2 from, int fromFloor, Vector2 to, int toFloor)
+        {
+            if (Time.time < nextLogAt) return;
+            nextLogAt = Time.time + 2f;
+            Debug.LogWarning($"[FloorRouter] no route from {from} (floor {fromFloor}) to {to} (floor {toFloor}); {nodes.Count / 2} staircases known");
+        }
+
+        // Draws every staircase link (bottom -> top) for the NavGrid gizmos.
+        public static void DrawGizmos()
+        {
+            if (!Application.isPlaying) return;
+            EnsureBuilt();
+            for (int i = 0; i + 1 < nodes.Count; i += 2)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawLine(nodes[i].pos, nodes[i + 1].pos);
+                Gizmos.DrawWireSphere(nodes[i].pos, 0.2f);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(nodes[i + 1].pos, 0.2f);
+            }
         }
 
         private static float PathLength(int floor, Vector2 a, Vector2 b)

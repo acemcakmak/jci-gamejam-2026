@@ -426,6 +426,7 @@ namespace Komur
             if (!drawGizmos) return;
             if (!IsReady && !Application.isPlaying) Build();
             if (!IsReady) return;
+            if (floor == 1) FloorRouter.DrawGizmos();
             for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
