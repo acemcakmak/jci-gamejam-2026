@@ -33,6 +33,14 @@ namespace Komur
         public float villagerSize = 12f;
         public float ratSize = 8f;
         public float iconSize = 20f;
+        [Tooltip("Multiplies every marker size above.")]
+        public float markerScale = 1.6f;
+        [Tooltip("Dark rim around markers so they read against the map.")]
+        public Color markerOutline = new Color(0f, 0f, 0f, 0.85f);
+
+        [Header("Panel")]
+        [Tooltip("Panel area relative to the size it was built with (its shape follows the map).")]
+        public float panelScale = 1.35f;
 
         private Bounds worldBounds;
         private readonly Dictionary<Object, UnityEngine.UI.Image> markers = new Dictionary<Object, UnityEngine.UI.Image>();
@@ -176,7 +184,7 @@ namespace Komur
             if (panel == null || area == null || panel.anchorMin != panel.anchorMax) return;
             Vector2 border = area.offsetMin - area.offsetMax;          // inset on both sides
             Vector2 inner = panel.sizeDelta - border;
-            float a = inner.x * inner.y;
+            float a = inner.x * inner.y * panelScale * panelScale;
             if (a <= 0f) return;
             var size = new Vector2(Mathf.Sqrt(a * aspect), Mathf.Sqrt(a / aspect));
             panel.sizeDelta = size + border;
@@ -310,6 +318,9 @@ namespace Komur
                 image = go.GetComponent<UnityEngine.UI.Image>();
                 image.raycastTarget = false;
                 image.preserveAspect = true;
+                var rim = go.AddComponent<UnityEngine.UI.Outline>();
+                rim.effectColor = markerOutline;
+                rim.effectDistance = new Vector2(1.5f, -1.5f);
                 var rt = image.rectTransform;
                 rt.anchorMin = rt.anchorMax = Vector2.zero;
                 rt.pivot = new Vector2(0.5f, 0.5f);
@@ -318,7 +329,7 @@ namespace Komur
 
             image.sprite = sprite;
             image.color = color;
-            image.rectTransform.sizeDelta = new Vector2(size, size);
+            image.rectTransform.sizeDelta = new Vector2(size, size) * markerScale;
 
             Rect rect = markerLayer.rect;
             float nx = Mathf.InverseLerp(worldBounds.min.x, worldBounds.max.x, world.x);

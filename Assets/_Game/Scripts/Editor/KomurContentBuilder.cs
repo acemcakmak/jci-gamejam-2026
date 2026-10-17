@@ -14,6 +14,43 @@ namespace Komur.EditorTools
         private const string MusicDir = MinifolkRoot + "/Cozy Tunes/Audio/ogg";
         private const string DataDir = GameRoot + "/Data";
         private static readonly string[] DefaultMusic = { "Wanderer's Tale", "Sunlight Through Leaves", "Whispering Woods" };
+        private const string EtfxSound = "Assets/ThirdPartyAssets/Epic Toon FX/Sound/";
+        private const string CozySound = "Assets/ThirdPartyAssets/Cozy FX/Audio/Sound Effects/";
+
+        // First guesses by file name (Cozy FX is only numbered, so victory/defeat are picks to audition).
+        // Only empty slots are filled: anything you assign yourself is kept.
+        private static readonly (FeedbackId id, string clip, float volume)[] DefaultSounds =
+        {
+            (FeedbackId.Pounce, EtfxSound + "etfx_explosion_poof.wav", 0.5f),
+            (FeedbackId.RatHit, EtfxSound + "etfx_target_hit.wav", 0.6f),
+            (FeedbackId.RatKilled, EtfxSound + "etfx_explosion_liquid.wav", 0.6f),
+            (FeedbackId.Bite, EtfxSound + "etfx_explosion_poisoncloud.wav", 0.6f),
+            (FeedbackId.MedicinePicked, EtfxSound + "etfx_explosion_sparkle2.wav", 0.7f),
+            (FeedbackId.Cured, EtfxSound + "etfx_explosion_magic2.wav", 0.7f),
+            (FeedbackId.VillagerDied, EtfxSound + "etfx_explosion_soul.wav", 0.7f),
+            (FeedbackId.VillagerScared, EtfxSound + "etfx_shoot_snowball.wav", 0.5f),
+            (FeedbackId.Stunned, EtfxSound + "etfx_stun01.wav", 0.6f),
+            (FeedbackId.WaveStart, EtfxSound + "etfx_spawn.wav", 0.6f),
+            (FeedbackId.HoleOpened, EtfxSound + "etfx_explosion_dark01.wav", 0.6f),
+            (FeedbackId.BossArrived, EtfxSound + "etfx_explosion_slime.wav", 0.9f),
+            (FeedbackId.BossKilled, EtfxSound + "etfx_explosion_slime2.wav", 0.9f),
+            (FeedbackId.Won, CozySound + "cozy_fx_36.ogg", 0.9f),
+            (FeedbackId.Lost, CozySound + "cozy_fx_12.ogg", 0.9f),
+        };
+
+        private static void AssignDefaultSounds(GameFeedbacks feedbacks)
+        {
+            feedbacks.EnsureAllEntries();
+            foreach (var (id, clipPath, volume) in DefaultSounds)
+            {
+                var entry = feedbacks.entries.FirstOrDefault(e => e.id == id);
+                if (entry == null || entry.sfx != null) continue;
+                entry.sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(clipPath);
+                entry.volume = volume;
+                if (entry.sfx == null) Debug.LogWarning($"[Kömür] Sound not found for {id}: {clipPath}");
+            }
+            EditorUtility.SetDirty(feedbacks);
+        }
 
         // Called from scene setup and "Update Prefabs and Settings".
         private static void ConfigureSceneContent()
@@ -24,6 +61,9 @@ namespace Komur.EditorTools
                 apothecary.potionSprites = potions;
                 EditorUtility.SetDirty(apothecary);
             }
+
+            var feedbacks = Object.FindFirstObjectByType<GameFeedbacks>();
+            if (feedbacks != null) AssignDefaultSounds(feedbacks);
 
             var music = Object.FindFirstObjectByType<MusicPlayer>();
             if (music == null)

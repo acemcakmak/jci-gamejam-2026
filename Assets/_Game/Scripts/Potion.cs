@@ -12,8 +12,10 @@ namespace Komur
 
         [Header("Look")]
         public float size = 0.6f;
-        public Color glowColor = new Color(1f, 0.95f, 0.6f, 0.55f);
-        public float glowSize = 1.5f;
+        public Color glowColor = new Color(1f, 0.92f, 0.55f, 0.85f);
+        public float glowSize = 2.2f;
+        public Color coreColor = new Color(1f, 1f, 0.85f, 0.9f);
+        public float coreSize = 0.9f;
 
         [Header("On the altar")]
         public float altarHeight = 1.1f;
@@ -31,7 +33,7 @@ namespace Komur
 
         private Mode mode;
         private Transform bottle;
-        private SpriteRenderer bottleRenderer, glowRenderer;
+        private SpriteRenderer bottleRenderer, glowRenderer, coreRenderer;
         private SortingGroup group;
         private Transform target;
         private SortingGroup sortSource;
@@ -40,11 +42,12 @@ namespace Komur
 
         private static Sprite glowSprite;
 
-        public static Potion Create(Sprite sprite, Material material, Vector3 groundPosition, int sortingLayerId, int sortingOrder)
+        public static Potion Create(Sprite sprite, Material material, Vector3 groundPosition, int sortingLayerId, int sortingOrder, float height)
         {
             var go = new GameObject("Potion");
             go.transform.position = groundPosition;
             var potion = go.AddComponent<Potion>();
+            potion.altarHeight = height;
             potion.Build(sprite, material, sortingLayerId, sortingOrder);
             return potion;
         }
@@ -64,6 +67,12 @@ namespace Komur
             glowRenderer.color = glowColor;
             glowRenderer.sortingOrder = 0;
             if (material != null) glowRenderer.sharedMaterial = material;
+
+            coreRenderer = new GameObject("Core").AddComponent<SpriteRenderer>();
+            coreRenderer.transform.SetParent(bottle, false);
+            coreRenderer.sprite = GlowSprite();
+            coreRenderer.sortingOrder = 0;
+            if (material != null) coreRenderer.sharedMaterial = material;
 
             bottleRenderer = new GameObject("Sprite").AddComponent<SpriteRenderer>();
             bottleRenderer.transform.SetParent(bottle, false);
@@ -145,7 +154,12 @@ namespace Komur
             var g = glowColor;
             g.a *= Mathf.Lerp(0.55f, 1f, pulse);
             glowRenderer.color = g;
-            glowRenderer.transform.localScale = Vector3.one * (glowSize * Mathf.Lerp(0.85f, 1.1f, pulse) * (mode == Mode.Orbit ? 0.7f : 1f));
+            float glowScale = mode == Mode.Orbit ? 0.7f : 1f;
+            glowRenderer.transform.localScale = Vector3.one * (glowSize * Mathf.Lerp(0.85f, 1.1f, pulse) * glowScale);
+            var core = coreColor;
+            core.a *= Mathf.Lerp(0.7f, 1f, pulse);
+            coreRenderer.color = core;
+            coreRenderer.transform.localScale = Vector3.one * (coreSize * Mathf.Lerp(0.9f, 1.15f, pulse) * glowScale);
             bottleRenderer.color = Color.Lerp(Color.white, new Color(1.25f, 1.25f, 1.15f), pulse * 0.5f);
         }
 

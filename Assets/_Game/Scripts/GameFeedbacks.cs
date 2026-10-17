@@ -22,7 +22,8 @@ namespace Komur
         RatHit,
         // Added later: keep new ids at the end (scenes store them as numbers).
         RatDig,
-        BossKilled
+        BossKilled,
+        BossArrived
     }
 
     // One place to hook juice to game events: drop an Epic Toon FX prefab into vfxPrefab,

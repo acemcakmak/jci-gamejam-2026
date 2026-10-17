@@ -15,7 +15,8 @@ namespace Komur
         [Header("Potion")]
         [Tooltip("One is picked at random for every dose (looks only; they all cure the same).")]
         public Sprite[] potionSprites;
-        public float potionHeight = 1.1f;
+        [Tooltip("Where the potion floats, relative to the centre of the altar sprite.")]
+        public Vector2 potionOffset = new Vector2(0f, 0.15f);
 
         public bool IsReady => Time.time >= readyAt;
         public int Floor => FloorAgent.FloorOf(gameObject);
@@ -68,17 +69,23 @@ namespace Komur
             if (potionSprites == null || potionSprites.Length == 0) return;
             var sprite = potionSprites[Random.Range(0, potionSprites.Length)];
             if (sprite == null) return;
-            // Sort with the altar, just in front of it.
+            // Float over the middle of the altar sprite (its pivot is not its centre), drawn above it.
             int layer = SortingLayer.NameToID(FloorAgent.LayerName(Floor)), order = 0;
+            Bounds altar = new Bounds(transform.position, Vector3.zero);
+            bool any = false;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
             {
+                if (sr.sprite == null || sr.name.Contains("Shadow")) continue;
                 layer = sr.sortingLayerID;
                 order = Mathf.Max(order, sr.sortingOrder);
+                if (!any) { altar = sr.bounds; any = true; }
+                else altar.Encapsulate(sr.bounds);
             }
+            const float lift = 0.3f;     // ground point just below the bottle, so it sorts with the altar
+            Vector3 centre = altar.center + (Vector3)potionOffset;
             var gm = GameManager.I;
             Material material = gm != null && gm.komur != null && gm.komur.visual != null ? gm.komur.visual.sharedMaterial : null;
-            potion = Potion.Create(sprite, material, transform.position + Vector3.down * 0.05f, layer, order);
-            potion.altarHeight = potionHeight;
+            potion = Potion.Create(sprite, material, centre + Vector3.down * lift, layer, order + 1, lift);
         }
 
         private void OnDrawGizmosSelected()

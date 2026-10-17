@@ -104,7 +104,6 @@ namespace Komur.EditorTools
                 gm.bossPrefab = prefabs.boss;
                 gm.sceneryMaterial = SceneryMaterial();
                 gm.waves = GameManager.DefaultWaves();
-                gm.maxDeaths = 4;
                 gm.maxWaveDuration = 40f;
                 gm.timeBetweenWaves = 6f;
                 EnsureNavGrids(gm);
@@ -723,6 +722,7 @@ namespace Komur.EditorTools
             SetFeedback(feedbacks, FeedbackId.HoleOpened, "Environment/Dust/DustDirtyPoof.prefab", 0.7f, 0.12f);
             SetFeedback(feedbacks, FeedbackId.RatDig, "Environment/Dust/DustDirtyPoofSoft.prefab", 0.3f, 0f);
             SetFeedback(feedbacks, FeedbackId.BossKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 1.1f, 0.35f);
+            SetFeedback(feedbacks, FeedbackId.BossArrived, "Environment/Smoke/StinkyCloud.prefab", 1f, 0.3f);
         }
 
         private static void SetFeedback(GameFeedbacks feedbacks, FeedbackId id, string etfxPath, float scale, float shake)

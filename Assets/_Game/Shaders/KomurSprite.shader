@@ -13,6 +13,7 @@ Shader "Komur/Sprite"
         _GreyBlend ("Grey Blend", Range(0,1)) = 0
         _GreyTint ("Grey Tint", Color) = (1,1,1,1)
         _OutlineColor ("Outline Color (alpha 0 = off)", Color) = (0,0,0,0)
+        _OutlineWidth ("Outline Width (texels)", Range(1,3)) = 1
 
         _HitEffectColor ("Hit Flash Color", Color) = (1,1,1,1)
         _HitEffectBlend ("Hit Flash", Range(0,1)) = 0
@@ -58,6 +59,7 @@ Shader "Komur/Sprite"
             float _GreyBlend;
             fixed4 _GreyTint;
             fixed4 _OutlineColor;
+            float _OutlineWidth;
             fixed4 _HitEffectColor;
             float _HitEffectBlend;
             sampler2D _FadeTex;
@@ -100,6 +102,14 @@ Shader "Komur/Sprite"
                     float2 t = _MainTex_TexelSize.xy;
                     float n = tex2D(_MainTex, i.uv + float2(t.x, 0)).a + tex2D(_MainTex, i.uv - float2(t.x, 0)).a
                             + tex2D(_MainTex, i.uv + float2(0, t.y)).a + tex2D(_MainTex, i.uv - float2(0, t.y)).a;
+                    if (_OutlineWidth > 1.5)
+                    {
+                        float2 w = t * floor(_OutlineWidth + 0.5);
+                        n += tex2D(_MainTex, i.uv + float2(w.x, 0)).a + tex2D(_MainTex, i.uv - float2(w.x, 0)).a
+                           + tex2D(_MainTex, i.uv + float2(0, w.y)).a + tex2D(_MainTex, i.uv - float2(0, w.y)).a
+                           + tex2D(_MainTex, i.uv + t).a + tex2D(_MainTex, i.uv - t).a
+                           + tex2D(_MainTex, i.uv + float2(t.x, -t.y)).a + tex2D(_MainTex, i.uv + float2(-t.x, t.y)).a;
+                    }
                     if (n > 0.1) c = fixed4(_OutlineColor.rgb, _OutlineColor.a * i.color.a);
                 }
 

@@ -21,8 +21,18 @@ namespace Komur
         private float travelled;
         private float distance;
 
-        public void Launch(KomurController komur, float stun)
+        // floor: the thrower's floor (sorting layer); material: an unlit character material so the rock is
+        // drawn like the characters (the default sprite material can render it invisible here).
+        public void Launch(KomurController komur, float stun, int floor = 1, Material material = null)
         {
+            int layer = SortingLayer.NameToID(FloorAgent.LayerName(floor));
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
+            {
+                if (SortingLayer.IsValid(layer)) sr.sortingLayerID = layer;
+                bool isShadow = sr.transform == shadow;
+                sr.sortingOrder = isShadow ? 90 : 100;     // in flight it is above the ground and the characters
+                if (material != null && !isShadow) sr.sharedMaterial = material;
+            }
             target = komur;
             start = transform.position;
             destination = komur.transform.position;

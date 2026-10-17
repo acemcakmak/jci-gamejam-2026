@@ -9,6 +9,9 @@ namespace Komur
 {
     public enum GameState { Intro, Playing, Won, Lost }
 
+    // How the night ends: everyone lost, or the rats beaten - and whether the town noticed who saved it.
+    public enum Ending { AllDead, Loved, UnknownHero }
+
     [DefaultExecutionOrder(-100)]
     public class GameManager : MonoBehaviour
     {
@@ -30,7 +33,9 @@ namespace Komur
         public List<Wave> waves = DefaultWaves();
         public float timeBetweenWaves = 6f;
         public float maxWaveDuration = 40f;
-        public int maxDeaths = 4;
+        [Range(0f, 1f)]
+        [Tooltip("Share of the surviving villagers Kömür must have cured for the town to love the cat.")]
+        public float lovedThreshold = 0.5f;
 
         [Header("New rat hole reveal")]
         public float revealPanTime = 0.8f;
@@ -74,6 +79,10 @@ namespace Komur
         public readonly List<Rat> rats = new List<Rat>();
 
         public int Alive => villagers.Count(v => v.State != VillagerState.Dead);
+        public int Total => villagers.Count;
+        // Survivors who were cured by Kömür (and so stopped fearing the cat).
+        public int Grateful => villagers.Count(v => v.State != VillagerState.Dead && v.Friendly);
+        public Ending Ending { get; private set; }
         public int Sick => villagers.Count(v => v.State == VillagerState.Sick);
 
         public static List<Wave> DefaultWaves()
@@ -205,9 +214,8 @@ namespace Komur
 
                 if (wave.ratKing)
                 {
-                    if (hud != null) hud.ShowBanner(bossPrefab != null ? "The Plague Slime is here!" : "The Rat King is here!");
-                    SpawnRat(wave.ratSpeed, RatKind.King);
-                    yield return new WaitForSeconds(1.5f);
+                    var boss = SpawnRat(wave.ratSpeed, RatKind.King);
+                    if (boss != null) yield return RevealBoss(boss);
                 }
 
                 for (int r = 0; r < wave.rats; r++)
@@ -267,16 +275,31 @@ namespace Komur
             IsCinematic = false;
         }
 
-        private void SpawnRat(float speed, RatKind kind)
+        // Like a hole reveal: pan to the boss as it climbs out, let it roar, pan back.
+        private IEnumerator RevealBoss(Rat boss)
+        {
+            IsCinematic = true;
+            if (hud != null) hud.ShowBanner(bossPrefab != null ? "The Plague Slime is here!" : "The Rat King is here!", revealPanTime * 2f + revealHoldTime + 0.5f);
+            CameraFollow2D.Focus(boss.transform.position);
+            yield return new WaitForSeconds(revealPanTime);
+            if (boss != null) GameFeedbacks.Play(FeedbackId.BossArrived, boss.transform.position, boss.transform);
+            yield return new WaitForSeconds(revealHoldTime + 0.5f);
+            CameraFollow2D.Focus(null);
+            yield return new WaitForSeconds(revealPanTime);
+            IsCinematic = false;
+        }
+
+        private Rat SpawnRat(float speed, RatKind kind)
         {
             var prefab = kind == RatKind.King && bossPrefab != null ? bossPrefab : ratPrefab;
-            if (prefab == null) return;
+            if (prefab == null) return null;
             var open = RatHole.All.Where(h => h.IsOpen).ToList();
-            if (open.Count == 0) return;
+            if (open.Count == 0) return null;
             var hole = open[UnityEngine.Random.Range(0, open.Count)];
             Vector3 pos = hole.SpawnPosition;
             var rat = Instantiate(prefab, pos, Quaternion.identity);
             rat.Init(pos, speed, kind, hole.Floor);
+            return rat;
         }
 
         public Vector3 NearestRatHole(Vector3 from, int floor)
@@ -322,15 +345,18 @@ namespace Komur
         public void OnVillagerDied()
         {
             Dead++;
-            if (State == GameState.Playing && Dead >= maxDeaths) End(false);
+            if (State == GameState.Playing && Alive == 0) End(false);
             else if (State == GameState.Playing && hud != null) hud.ShowBanner("The town panics...");
         }
 
         private void End(bool won)
         {
             State = won ? GameState.Won : GameState.Lost;
+            Ending = !won ? Ending.AllDead
+                : Grateful > 0 && Grateful >= Mathf.CeilToInt(Alive * lovedThreshold + 0.0001f) ? Ending.Loved
+                : Ending.UnknownHero;
             GameFeedbacks.Play(won ? FeedbackId.Won : FeedbackId.Lost, komur != null ? komur.transform.position : Vector3.zero, komur != null ? komur.transform : null);
-            if (hud != null) hud.ShowEnd(won, Alive, Cured, Dead);
+            if (hud != null) hud.ShowEnd(Ending, Alive, Grateful, Dead, Total);
         }
     }
 }

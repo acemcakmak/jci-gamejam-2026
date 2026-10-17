@@ -49,9 +49,9 @@ namespace Komur
                 waveText.text = gm.WaveNumber > 0 ? $"WAVE {gm.WaveNumber}/{gm.WaveCount}" : "GET READY";
             if (aliveText != null) aliveText.text = gm.Alive.ToString();
             if (sickText != null) sickText.text = gm.Sick.ToString();
-            if (lostText != null) lostText.text = $"{gm.Dead}/{gm.maxDeaths}";
+            if (lostText != null) lostText.text = $"{gm.Dead}/{gm.Total}";
             if (villagersText != null)
-                villagersText.text = $"Villagers {gm.Alive}   <color=#7CFF6B>Sick {gm.Sick}</color>   <color=#FF8A8A>Lost {gm.Dead}/{gm.maxDeaths}</color>";
+                villagersText.text = $"Villagers {gm.Alive}   <color=#7CFF6B>Sick {gm.Sick}</color>   <color=#FF8A8A>Lost {gm.Dead}/{gm.Total}</color>";
             if (hintText != null)
             {
                 if (gm.State != GameState.Playing) hintText.text = "";
@@ -92,17 +92,31 @@ namespace Komur
             banner.SetActive(false);
         }
 
-        public void ShowEnd(bool won, int alive, int cured, int dead)
+        public void ShowEnd(Ending ending, int alive, int grateful, int dead, int total)
         {
             if (endPanel == null) return;
             endPanel.SetActive(true);
-            if (endTitle != null) endTitle.text = won ? "THE TOWN IS SAVED!" : "THE PLAGUE TOOK THE TOWN...";
-            if (endBody != null)
+            switch (ending)
             {
-                endBody.text = won
-                    ? $"{alive} VILLAGERS SURVIVED, {cured} CURED BY KOMUR.\nTHEY WILL NEVER FEAR A BLACK CAT AGAIN."
-                    : $"{dead} VILLAGERS WERE LOST.\nTHE TOWNSFOLK STILL BLAME THE BLACK CAT...";
+                case Ending.Loved:
+                    SetEnd("THE VILLAGE LOVES YOU!",
+                        $"{alive} OF {total} VILLAGERS SURVIVED AND {grateful} WERE CURED BY KOMUR.\nTHEY WILL NEVER FEAR A BLACK CAT AGAIN.");
+                    break;
+                case Ending.UnknownHero:
+                    SetEnd("AN UNKNOWN HERO",
+                        $"THE RATS ARE GONE AND {alive} OF {total} VILLAGERS SURVIVED,\nBUT ONLY {grateful} OF THEM KNOW WHO SAVED THEM.\nTHE TOWN STILL HATES THE BLACK CAT... YOU SAVED IT ANYWAY.");
+                    break;
+                default:
+                    SetEnd("THE PLAGUE TOOK THE TOWN...",
+                        $"ALL {total} VILLAGERS WERE LOST.\nTHE TOWNSFOLK WILL BLAME THE BLACK CAT FOREVER...");
+                    break;
             }
+        }
+
+        private void SetEnd(string title, string body)
+        {
+            if (endTitle != null) endTitle.text = title;
+            if (endBody != null) endBody.text = body;
         }
     }
 }

@@ -131,6 +131,7 @@ namespace Komur
             }
 
             if (State == VillagerState.Healthy && playing && fearEnabled && !Friendly) UpdateFear(gm);
+            UpdateAnger();
 
             if (iconHideAt > 0f && Time.time >= iconHideAt)
             {
@@ -150,8 +151,6 @@ namespace Komur
                         && Sight.Clear(eyes, catPos, Floor);
 
             fear = Mathf.Clamp(fear + (near ? Time.deltaTime : -Time.deltaTime), 0f, fearBuildTime);
-            if (Time.time >= fleeUntil && iconHideAt <= 0f)
-                SetIcon(fear > 0.05f ? "!" : "", Color.Lerp(Color.yellow, Color.red, fear / fearBuildTime));
 
             if (fear >= fearBuildTime)
             {
@@ -162,12 +161,11 @@ namespace Komur
                 if (Grid != null && Grid.TryNearestWalkable(fleeTo, 6, out var safe)) fleeTo = safe;
                 mover.SetDestination(fleeTo, true);
                 GameFeedbacks.Play(FeedbackId.VillagerScared, transform.position, transform);
-                ShowIconFor("!", Color.red, fleeDuration);
                 if (stonePrefab != null && Time.time >= nextThrowAt)
                 {
                     nextThrowAt = Time.time + throwCooldown;
                     var stone = Instantiate(stonePrefab, eyes, Quaternion.identity);
-                    stone.Launch(gm.komur, stunDuration);
+                    stone.Launch(gm.komur, stunDuration, Floor, visualSprite != null ? visualSprite.sharedMaterial : null);
                 }
             }
         }
@@ -255,6 +253,40 @@ namespace Komur
                 if (d < bestD) { bestD = d; best = rat; }
             }
             return best;
+        }
+
+        [Header("Anger outline")]
+        public Color angerColor = new Color(1f, 0.15f, 0.1f, 1f);
+
+        private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+        private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
+        private static readonly int HitColorId = Shader.PropertyToID("_HitEffectColor");
+        private static readonly int HitBlendId = Shader.PropertyToID("_HitEffectBlend");
+        private MaterialPropertyBlock angerBlock;
+        private float shownAnger = -1f;
+
+        // Red outline (and a faint red wash) that grows while the villager glares at the cat and
+        // pulses while they flee and throw.
+        private void UpdateAnger()
+        {
+            if (visualSprite == null) return;
+            float anger = 0f;
+            if (State == VillagerState.Healthy && !Friendly)
+            {
+                if (Time.time < fleeUntil) anger = 0.75f + 0.25f * Mathf.Sin(Time.time * 18f);
+                else anger = fearBuildTime > 0f ? fear / fearBuildTime : 0f;
+            }
+            if (Mathf.Abs(anger - shownAnger) < 0.01f) return;
+            shownAnger = anger;
+            angerBlock ??= new MaterialPropertyBlock();
+            visualSprite.GetPropertyBlock(angerBlock);
+            var c = angerColor;
+            c.a = anger > 0.02f ? Mathf.Lerp(0.45f, 1f, anger) : 0f;
+            angerBlock.SetColor(OutlineColorId, c);
+            angerBlock.SetFloat(OutlineWidthId, anger > 0.6f ? 2f : 1f);
+            angerBlock.SetColor(HitColorId, angerColor);
+            angerBlock.SetFloat(HitBlendId, anger * 0.22f);
+            visualSprite.SetPropertyBlock(angerBlock);
         }
 
         private SpriteFlipbook flipbook;
