@@ -34,6 +34,8 @@ namespace Komur
 
         [Header("References")]
         public Animator animator;
+        [Tooltip("Minifolk sheets; each villager gets a different one. Empty = keep the visual as built.")]
+        public VillagerLooks looks;
         public WorldBar sickBar;
         public TextMeshPro icon;
         public GameObject gravestonePrefab;
@@ -66,7 +68,22 @@ namespace Komur
             if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
             if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
             if (!TryGetComponent<FloorAgent>(out _)) gameObject.AddComponent<FloorAgent>();
-            CharacterSorting.Ensure(gameObject, visualRoot != null ? visualRoot.GetComponent<SpriteRenderer>() : null);
+            if (visualRoot != null)
+            {
+                visualSprite = visualRoot.GetComponent<SpriteRenderer>();
+                if (looks != null && visualRoot.TryGetComponent(out flipbook))
+                {
+                    var look = looks.Draw();
+                    if (look != null)
+                    {
+                        flipbook.clips = looks.Clips(look);
+                        if (visualSprite != null) visualSprite.sprite = flipbook.clips[0].frames[0];
+                        if (animator != null) animator.enabled = false;
+                    }
+                    else flipbook = null;
+                }
+            }
+            CharacterSorting.Ensure(gameObject, visualSprite);
             home = transform.position;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
             {
@@ -240,8 +257,20 @@ namespace Komur
             return best;
         }
 
+        private SpriteFlipbook flipbook;
+        private SpriteRenderer visualSprite;
+        private float oneShotUntil;
+
         private void UpdateAnimator(Vector2 velocity)
         {
+            if (flipbook != null)
+            {
+                if (State == VillagerState.Dead || Time.time < oneShotUntil) return;
+                bool walking = velocity.sqrMagnitude > 0.01f;
+                flipbook.Play(walking ? "Walk" : "Idle");
+                if (visualSprite != null && Mathf.Abs(velocity.x) > 0.05f) visualSprite.flipX = velocity.x < 0f;
+                return;
+            }
             if (animator == null) return;
             bool moving = velocity.sqrMagnitude > 0.01f;
             animator.SetBool("IsMoving", moving);
@@ -260,6 +289,7 @@ namespace Komur
             fleeUntil = 0f;
             if (sickBar != null) { sickBar.SetVisible(true); sickBar.SetFill(1f); }
             SetIcon("+", Color.green);
+            PlayOnce("Hurt");
         }
 
         public void Cure()
@@ -281,6 +311,25 @@ namespace Komur
             body.simulated = false;
             if (sickBar != null) sickBar.SetVisible(false);
             SetIcon("", Color.white);
+            GameFeedbacks.Play(FeedbackId.VillagerDied, transform.position);
+            if (GameManager.I != null) GameManager.I.OnVillagerDied();
+            StartCoroutine(BecomeGrave(PlayOnce("Death")));
+        }
+
+        // Plays a one-shot clip (hurt, death); returns its length (0 if there is none).
+        private float PlayOnce(string clip)
+        {
+            if (flipbook == null) return 0f;
+            float length = flipbook.ClipLength(clip);
+            if (length <= 0f) return 0f;
+            flipbook.Play(clip, true);
+            oneShotUntil = Time.time + length + 0.15f;
+            return length;
+        }
+
+        private System.Collections.IEnumerator BecomeGrave(float delay)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay + 0.6f);
             if (visualRoot != null) visualRoot.SetActive(false);
             if (gravestonePrefab != null)
             {
@@ -293,8 +342,6 @@ namespace Komur
                     foreach (var sr in grave.GetComponentsInChildren<SpriteRenderer>(true))
                         if (!sr.name.Contains("Shadow")) sr.sharedMaterial = scenery;
             }
-            GameFeedbacks.Play(FeedbackId.VillagerDied, transform.position);
-            if (GameManager.I != null) GameManager.I.OnVillagerDied();
         }
 
         private void SetTint(Color color)

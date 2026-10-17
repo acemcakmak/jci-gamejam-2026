@@ -23,6 +23,7 @@ namespace Komur
         public SpriteRenderer visual;
 
         public bool HasMedicine { get; private set; }
+        public Potion CarriedPotion { get; private set; }
         public bool IsStunned => Time.time < stunnedUntil;
 
         // Cainos stairs move Kömür between the "Layer 1/2/3" physics layers. Rats and villagers live on the ground.
@@ -112,15 +113,26 @@ namespace Komur
                 if (v.State != VillagerState.Sick || v.Floor != floor) continue;
                 if ((v.transform.position - transform.position).sqrMagnitude > r2) continue;
                 v.Cure();
+                if (CarriedPotion != null) CarriedPotion.DeliverTo(v.transform);
+                CarriedPotion = null;
                 SetMedicine(false);
                 return;
             }
         }
 
+        // Picked up at the apothecary: the potion (if any) starts orbiting the cat.
+        public void TakePotion(Potion potion)
+        {
+            CarriedPotion = potion;
+            if (potion != null) potion.Orbit(transform);
+            SetMedicine(true);
+        }
+
         public void SetMedicine(bool has)
         {
             HasMedicine = has;
-            if (medicineIcon != null) medicineIcon.SetActive(has);
+            if (!has && CarriedPotion != null) { Destroy(CarriedPotion.gameObject); CarriedPotion = null; }
+            if (medicineIcon != null) medicineIcon.SetActive(has && CarriedPotion == null);
             if (has) GameFeedbacks.Play(FeedbackId.MedicinePicked, transform.position, transform);
         }
 

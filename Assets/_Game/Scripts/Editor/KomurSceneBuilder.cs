@@ -108,6 +108,7 @@ namespace Komur.EditorTools
                 gm.maxWaveDuration = 40f;
                 gm.timeBetweenWaves = 6f;
                 EnsureNavGrids(gm);
+                ConfigureSceneContent();
                 foreach (var apothecary in Object.FindObjectsByType<Apothecary>(FindObjectsSortMode.None))
                 {
                     apothecary.brewTime = 2f;
@@ -262,6 +263,7 @@ namespace Komur.EditorTools
             gm.komur = komurController;
             gm.hud = hud;
             EnsureNavGrids(gm);
+            ConfigureSceneContent();
             EditorUtility.SetDirty(gm);
             return apothecaryGo;
         }
@@ -581,21 +583,40 @@ namespace Komur.EditorTools
             go.AddComponent<PathMover>();
             go.AddComponent<FloorAgent>();
 
-            var pfPlayer = AssetDatabase.LoadAssetAtPath<GameObject>(CainosRoot + "/Prefab/Player/PF Player.prefab");
-            var visual = (GameObject)PrefabUtility.InstantiatePrefab(pfPlayer);
-            PrefabUtility.UnpackPrefabInstance(visual, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            visual.name = "Visual";
-            visual.transform.SetParent(go.transform, false);
-            visual.transform.localPosition = Vector3.zero;
-            foreach (var mb in visual.GetComponentsInChildren<MonoBehaviour>())
-                if (mb.GetType().Name == "TopDownCharacterController") Object.DestroyImmediate(mb);
-            foreach (var c in visual.GetComponentsInChildren<Collider2D>()) Object.DestroyImmediate(c);
-            foreach (var rb in visual.GetComponentsInChildren<Rigidbody2D>()) Object.DestroyImmediate(rb);
+            // Minifolk villagers (a different sheet each, picked at runtime); the Cainos player if the pack is missing.
+            var looks = VillagerLooksAsset();
+            bool minifolk = looks.looks.Count > 0;
+            GameObject visual;
+            if (minifolk)
+            {
+                visual = new GameObject("Visual");
+                visual.transform.SetParent(go.transform, false);
+                var vsr = visual.AddComponent<SpriteRenderer>();
+                vsr.sortingLayerName = CharacterSortingLayer;
+                vsr.sortingOrder = 2;
+                var vfb = visual.AddComponent<SpriteFlipbook>();
+                vfb.clips = looks.Clips(looks.looks[0]);
+                vsr.sprite = vfb.clips[0].frames[0];
+            }
+            else
+            {
+                var pfPlayer = AssetDatabase.LoadAssetAtPath<GameObject>(CainosRoot + "/Prefab/Player/PF Player.prefab");
+                visual = (GameObject)PrefabUtility.InstantiatePrefab(pfPlayer);
+                PrefabUtility.UnpackPrefabInstance(visual, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                visual.name = "Visual";
+                visual.transform.SetParent(go.transform, false);
+                visual.transform.localPosition = Vector3.zero;
+                foreach (var mb in visual.GetComponentsInChildren<MonoBehaviour>())
+                    if (mb.GetType().Name == "TopDownCharacterController") Object.DestroyImmediate(mb);
+                foreach (var c in visual.GetComponentsInChildren<Collider2D>()) Object.DestroyImmediate(c);
+                foreach (var rb in visual.GetComponentsInChildren<Rigidbody2D>()) Object.DestroyImmediate(rb);
+            }
+            float headroom = minifolk ? 1.2f : 1.7f;
 
             // Sickness timer bar.
             var barGo = new GameObject("Sick Bar");
             barGo.transform.SetParent(go.transform, false);
-            barGo.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+            barGo.transform.localPosition = new Vector3(0f, headroom, 0f);
             var bg = AddSprite(barGo.transform, "Background", square, new Color(0f, 0f, 0f, 0.7f), new Vector3(0.86f, 0.14f, 1f), 30);
             var fill = AddSprite(barGo.transform, "Fill", square, Color.green, new Vector3(0.8f, 0.08f, 1f), 31);
             var bar = barGo.AddComponent<WorldBar>();
@@ -607,7 +628,7 @@ namespace Komur.EditorTools
                 new[] { new GradientColorKey(Color.red, 0f), new GradientColorKey(Color.yellow, 0.5f), new GradientColorKey(Color.green, 1f) },
                 new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 1f) });
 
-            var icon = AddWorldText(go.transform, "Icon", "", 5f, new Vector3(0f, 2.1f, 0f), Color.white);
+            var icon = AddWorldText(go.transform, "Icon", "", 5f, new Vector3(0f, headroom + 0.4f, 0f), Color.white);
 
             var villager = go.AddComponent<Villager>();
             var villagerSr = visual.GetComponent<SpriteRenderer>();
@@ -615,6 +636,7 @@ namespace Komur.EditorTools
             if (charMat != null) villagerSr.sharedMaterial = charMat;
             AddHiddenOutline(go, villagerSr, new Color(0.95f, 0.95f, 0.85f));
             villager.animator = visual.GetComponent<Animator>();
+            villager.looks = minifolk ? looks : null;
             villager.sickBar = bar;
             villager.icon = icon;
             villager.visualRoot = visual;
@@ -699,6 +721,8 @@ namespace Komur.EditorTools
             SetFeedback(feedbacks, FeedbackId.RatKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 0.45f, 0.08f);
             SetFeedback(feedbacks, FeedbackId.RatHit, "Combat/Explosions (Misc)/HitDustExplosion.prefab", 0.3f, 0.06f);
             SetFeedback(feedbacks, FeedbackId.HoleOpened, "Environment/Dust/DustDirtyPoof.prefab", 0.7f, 0.12f);
+            SetFeedback(feedbacks, FeedbackId.RatDig, "Environment/Dust/DustDirtyPoofSoft.prefab", 0.3f, 0f);
+            SetFeedback(feedbacks, FeedbackId.BossKilled, "2D/Blood/Green/GreenBloodExplosion2D.prefab", 1.1f, 0.35f);
         }
 
         private static void SetFeedback(GameFeedbacks feedbacks, FeedbackId id, string etfxPath, float scale, float shake)

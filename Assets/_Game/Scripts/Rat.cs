@@ -216,7 +216,7 @@ namespace Komur
         {
             tunneling = true;
             body.linearVelocity = Vector2.zero;
-            GameFeedbacks.Play(FeedbackId.Pounce, transform.position);          // dust as it digs in
+            GameFeedbacks.Play(FeedbackId.RatDig, transform.position);          // dust as it digs in
             SetHidden(true);
             yield return new WaitForSeconds(0.9f);
 
@@ -239,7 +239,7 @@ namespace Komur
                 mover.Stop();
                 target = victim;
                 nextRetargetAt = Time.time + retargetInterval;
-                GameFeedbacks.Play(FeedbackId.Pounce, transform.position);      // dust as it pops up
+                GameFeedbacks.Play(FeedbackId.RatDig, transform.position);      // dust as it pops up
             }
             SetHidden(false);
             tunneling = false;
@@ -259,7 +259,7 @@ namespace Komur
 
         private void Burrow()
         {
-            GameFeedbacks.Play(FeedbackId.Pounce, transform.position);   // dust poof
+            GameFeedbacks.Play(FeedbackId.RatDig, transform.position);   // dust poof
             gameObject.SetActive(false);
             Destroy(gameObject);
         }
@@ -340,7 +340,7 @@ namespace Komur
             body.simulated = false;
             if (plagueEffect != null) plagueEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             if (flipbook != null) flipbook.Play("Death", true);
-            GameFeedbacks.Play(FeedbackId.RatKilled, transform.position);
+            GameFeedbacks.Play(isBoss ? FeedbackId.BossKilled : FeedbackId.RatKilled, transform.position);
             StartCoroutine(DeathSequence());
         }
 

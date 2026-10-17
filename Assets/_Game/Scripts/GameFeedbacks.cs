@@ -19,7 +19,10 @@ namespace Komur
         Won,
         Lost,
         HoleOpened,
-        RatHit
+        RatHit,
+        // Added later: keep new ids at the end (scenes store them as numbers).
+        RatDig,
+        BossKilled
     }
 
     // One place to hook juice to game events: drop an Epic Toon FX prefab into vfxPrefab,

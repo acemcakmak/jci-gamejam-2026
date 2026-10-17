@@ -12,10 +12,16 @@ namespace Komur
         public Color readyColor = new Color(0.3f, 1f, 0.4f);
         public Color brewingColor = new Color(1f, 0.85f, 0.3f);
 
+        [Header("Potion")]
+        [Tooltip("One is picked at random for every dose (looks only; they all cure the same).")]
+        public Sprite[] potionSprites;
+        public float potionHeight = 1.1f;
+
         public bool IsReady => Time.time >= readyAt;
         public int Floor => FloorAgent.FloorOf(gameObject);
 
         private float readyAt;
+        private Potion potion;
 
         private void Awake()
         {
@@ -29,13 +35,15 @@ namespace Komur
         private void Update()
         {
             UpdateStatus();
+            if (IsReady && potion == null) SpawnPotion();
 
             var gm = GameManager.I;
             if (gm == null || !gm.IsSimulating || gm.komur == null) return;
             if (gm.komur.HasMedicine || !IsReady || gm.komur.Floor != Floor) return;
             if ((gm.komur.transform.position - transform.position).sqrMagnitude <= pickupRange * pickupRange)
             {
-                gm.komur.SetMedicine(true);
+                gm.komur.TakePotion(potion);
+                potion = null;
                 readyAt = Time.time + brewTime;
             }
         }
@@ -45,7 +53,7 @@ namespace Komur
             if (statusText == null) return;
             if (IsReady)
             {
-                statusText.text = "+";
+                statusText.text = potion != null ? "" : "+";      // the glowing potion is the sign
                 statusText.color = readyColor;
             }
             else
@@ -53,6 +61,24 @@ namespace Komur
                 statusText.text = Mathf.CeilToInt(readyAt - Time.time).ToString();
                 statusText.color = brewingColor;
             }
+        }
+
+        private void SpawnPotion()
+        {
+            if (potionSprites == null || potionSprites.Length == 0) return;
+            var sprite = potionSprites[Random.Range(0, potionSprites.Length)];
+            if (sprite == null) return;
+            // Sort with the altar, just in front of it.
+            int layer = SortingLayer.NameToID(FloorAgent.LayerName(Floor)), order = 0;
+            foreach (var sr in GetComponentsInChildren<SpriteRenderer>())
+            {
+                layer = sr.sortingLayerID;
+                order = Mathf.Max(order, sr.sortingOrder);
+            }
+            var gm = GameManager.I;
+            Material material = gm != null && gm.komur != null && gm.komur.visual != null ? gm.komur.visual.sharedMaterial : null;
+            potion = Potion.Create(sprite, material, transform.position + Vector3.down * 0.05f, layer, order);
+            potion.altarHeight = potionHeight;
         }
 
         private void OnDrawGizmosSelected()
