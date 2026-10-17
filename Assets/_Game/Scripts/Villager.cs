@@ -39,9 +39,9 @@ namespace Komur
         public bool CanBeBitten => State == VillagerState.Healthy;
 
         private Rigidbody2D body;
+        private PathMover mover;
         private readonly List<SpriteRenderer> tintables = new List<SpriteRenderer>();
         private Vector3 home;
-        private Vector3 wanderGoal;
         private float idleUntil;
         private float sickTimeLeft;
         private float fear;
@@ -52,8 +52,9 @@ namespace Komur
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
+            if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
+            if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
             home = transform.position;
-            wanderGoal = home;
             foreach (var sr in GetComponentsInChildren<SpriteRenderer>(true))
             {
                 if (sickBar != null && sr.transform.IsChildOf(sickBar.transform)) continue;
@@ -62,6 +63,16 @@ namespace Komur
             }
             if (sickBar != null) sickBar.SetVisible(false);
             SetIcon("", Color.white);
+        }
+
+        private void Start()
+        {
+            // Make sure we start on reachable ground (NavGrid builds in its Start, which runs first).
+            if (NavGrid.I != null && NavGrid.I.IsReady && !NavGrid.I.IsWalkable(transform.position))
+            {
+                transform.position = NavGrid.I.SnapToWalkable(transform.position);
+                home = transform.position;
+            }
         }
 
         private void OnEnable()
@@ -100,8 +111,11 @@ namespace Komur
         private void UpdateFear(GameManager gm)
         {
             if (gm == null || gm.komur == null) return;
-            Vector3 toCat = gm.komur.transform.position - transform.position;
-            bool near = toCat.sqrMagnitude < fearRadius * fearRadius;
+            Vector3 catPos = gm.komur.transform.position;
+            Vector3 eyes = transform.position + Vector3.up * 0.5f;
+            bool near = (catPos - transform.position).sqrMagnitude < fearRadius * fearRadius
+                        && gm.komur.OnGroundFloor
+                        && Sight.Clear(eyes, catPos);
 
             fear = Mathf.Clamp(fear + (near ? Time.deltaTime : -Time.deltaTime), 0f, fearBuildTime);
             if (Time.time >= fleeUntil && iconHideAt <= 0f)
@@ -111,12 +125,16 @@ namespace Komur
             {
                 fear = 0f;
                 fleeUntil = Time.time + fleeDuration;
+                Vector2 away = (transform.position - catPos).normalized;
+                Vector2 fleeTo = (Vector2)transform.position + away * 4f;
+                if (NavGrid.I != null && NavGrid.I.TryNearestWalkable(fleeTo, 6, out var safe)) fleeTo = safe;
+                mover.SetDestination(fleeTo, true);
                 GameFeedbacks.Play(FeedbackId.VillagerScared, transform.position);
                 ShowIconFor("!", Color.red, fleeDuration);
                 if (stonePrefab != null && Time.time >= nextThrowAt)
                 {
                     nextThrowAt = Time.time + throwCooldown;
-                    var stone = Instantiate(stonePrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
+                    var stone = Instantiate(stonePrefab, eyes, Quaternion.identity);
                     stone.Launch(gm.komur, stunDuration);
                 }
             }
@@ -130,24 +148,25 @@ namespace Komur
 
             if (playing && State == VillagerState.Healthy)
             {
-                if (Time.time < fleeUntil && gm != null && gm.komur != null)
+                bool fleeingNow = Time.time < fleeUntil;
+                if (!fleeingNow && Time.time >= idleUntil && (!mover.HasDestination || mover.Arrived))
                 {
-                    Vector2 away = (transform.position - gm.komur.transform.position).normalized;
-                    velocity = away * fleeSpeed;
-                }
-                else if (Time.time >= idleUntil)
-                {
-                    Vector2 toGoal = wanderGoal - transform.position;
-                    if (toGoal.sqrMagnitude < 0.04f)
+                    if (mover.HasDestination)
                     {
+                        mover.Stop();
                         idleUntil = Time.time + Random.Range(1f, 3f);
-                        wanderGoal = home + (Vector3)(Random.insideUnitCircle * wanderRadius);
                     }
-                    else
+                    else if (NavGrid.I != null && NavGrid.I.TryRandomWalkableNear(home, wanderRadius, out var goal))
                     {
-                        velocity = toGoal.normalized * walkSpeed;
+                        if (!mover.SetDestination(goal, true)) mover.Stop();
                     }
                 }
+                if (fleeingNow || Time.time >= idleUntil)
+                    velocity = mover.NextDirection() * (fleeingNow ? fleeSpeed : walkSpeed);
+            }
+            else
+            {
+                mover.Stop();
             }
 
             body.linearVelocity = velocity;

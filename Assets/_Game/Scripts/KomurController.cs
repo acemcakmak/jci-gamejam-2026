@@ -25,6 +25,16 @@ namespace Komur
         public bool HasMedicine { get; private set; }
         public bool IsStunned => Time.time < stunnedUntil;
 
+        // Cainos stairs move Kömür between the "Layer 1/2/3" physics layers. Rats and villagers live on the ground.
+        public bool OnGroundFloor
+        {
+            get
+            {
+                int ground = LayerMask.NameToLayer("Layer 1");
+                return ground < 0 || gameObject.layer == ground;
+            }
+        }
+
         private Rigidbody2D body;
         private Vector2 input;
         private Vector2 facing = Vector2.right;
@@ -37,12 +47,22 @@ namespace Komur
         {
             body = GetComponent<Rigidbody2D>();
             if (medicineIcon != null) medicineIcon.SetActive(false);
+
+            // Start on the ground floor so Cainos stairs can move us between floors.
+            int ground = LayerMask.NameToLayer("Layer 1");
+            if (ground >= 0) gameObject.layer = ground;
+            // Walk through rats and villagers.
+            int characters = LayerMask.NameToLayer("Characters");
+            if (characters >= 0)
+                foreach (var col in GetComponents<Collider2D>()) col.excludeLayers |= 1 << characters;
+            // Cainos StairsLayerTrigger expects a SpriteRenderer on the root.
+            if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
         }
 
         private void Update()
         {
             var gm = GameManager.I;
-            bool playing = gm == null || gm.State == GameState.Playing;
+            bool playing = gm == null || gm.AcceptsGameplayInput;
 
             input = playing && !IsStunned
                 ? new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized
@@ -56,7 +76,7 @@ namespace Komur
                 GameFeedbacks.Play(FeedbackId.Pounce, transform.position);
             }
 
-            if (gm != null && playing && HasMedicine) TryDeliverMedicine();
+            if (gm != null && playing && HasMedicine && OnGroundFloor) TryDeliverMedicine();
             UpdateVisuals();
         }
 
@@ -76,7 +96,7 @@ namespace Komur
         private void KillRatsInRange()
         {
             var gm = GameManager.I;
-            if (gm == null) return;
+            if (gm == null || !OnGroundFloor) return;
             float r2 = pounceKillRadius * pounceKillRadius;
             for (int i = gm.rats.Count - 1; i >= 0; i--)
             {
@@ -111,6 +131,13 @@ namespace Komur
             stunnedUntil = Time.time + duration;
             pounceEndsAt = 0f;
             GameFeedbacks.Play(FeedbackId.Stunned, transform.position);
+        }
+
+        private void LateUpdate()
+        {
+            // Keep the medicine icon on the same sorting layer as the cat when the stairs change it.
+            if (medicineIcon != null && visual != null && medicineIcon.TryGetComponent(out Renderer iconRenderer))
+                iconRenderer.sortingLayerID = visual.sortingLayerID;
         }
 
         private void UpdateVisuals()

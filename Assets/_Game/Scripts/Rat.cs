@@ -8,24 +8,21 @@ namespace Komur
         public float speed = 1.6f;
         public float biteRange = 0.45f;
         public float fleeSpeedMultiplier = 1.4f;
-        public float retargetInterval = 0.5f;
+        public float retargetInterval = 1f;
         public SpriteRenderer visual;
 
         private Rigidbody2D body;
+        private PathMover mover;
         private Villager target;
         private Vector3 home;
         private bool fleeing;
         private float nextRetargetAt;
 
-        // Simple unstuck: if the rat barely moves, sidestep for a moment.
-        private Vector3 lastCheckPos;
-        private float nextStuckCheckAt;
-        private float sidestepUntil;
-        private float sidestepSign = 1f;
-
         private void Awake()
         {
             body = GetComponent<Rigidbody2D>();
+            if (!TryGetComponent(out mover)) mover = gameObject.AddComponent<PathMover>();
+            if (!TryGetComponent<SpriteRenderer>(out _)) gameObject.AddComponent<SpriteRenderer>();
             home = transform.position;
         }
 
@@ -54,14 +51,13 @@ namespace Komur
                 return;
             }
 
-            Vector3 goal;
             float currentSpeed = speed;
 
             if (fleeing)
             {
-                goal = home;
                 currentSpeed *= fleeSpeedMultiplier;
-                if ((home - transform.position).sqrMagnitude < 0.09f)
+                mover.SetDestination(home);
+                if ((home - transform.position).sqrMagnitude < 0.09f || mover.Arrived)
                 {
                     Destroy(gameObject);
                     return;
@@ -71,17 +67,21 @@ namespace Komur
             {
                 if (target == null || !target.CanBeBitten || Time.time >= nextRetargetAt)
                 {
-                    target = gm.NearestBiteable(transform.position);
+                    target = gm.FindReachableTarget(this, mover);
                     nextRetargetAt = Time.time + retargetInterval;
+                    if (target == null)
+                    {
+                        StartFleeing(gm);
+                        return;
+                    }
                 }
-                if (target == null)
+                else
                 {
-                    StartFleeing(gm);
-                    return;
+                    mover.SetDestination(target.transform.position);
                 }
 
-                goal = target.transform.position;
-                if ((goal - transform.position).sqrMagnitude <= biteRange * biteRange)
+                Vector3 toTarget = target.transform.position - transform.position;
+                if (toTarget.sqrMagnitude <= biteRange * biteRange && Sight.Clear(transform.position, target.transform.position))
                 {
                     target.Infect();
                     GameFeedbacks.Play(FeedbackId.Bite, target.transform.position);
@@ -90,10 +90,7 @@ namespace Komur
                 }
             }
 
-            Vector2 dir = ((Vector2)(goal - transform.position)).normalized;
-            UpdateStuck(dir);
-            if (Time.time < sidestepUntil) dir = (dir + new Vector2(-dir.y, dir.x) * sidestepSign * 1.5f).normalized;
-
+            Vector2 dir = mover.NextDirection();
             body.linearVelocity = dir * currentSpeed;
             if (visual != null && Mathf.Abs(dir.x) > 0.05f) visual.flipX = dir.x < 0f;
         }
@@ -101,19 +98,9 @@ namespace Komur
         private void StartFleeing(GameManager gm)
         {
             fleeing = true;
+            target = null;
             home = gm.NearestRatSpawn(transform.position);
-        }
-
-        private void UpdateStuck(Vector2 dir)
-        {
-            if (Time.time < nextStuckCheckAt) return;
-            if ((transform.position - lastCheckPos).sqrMagnitude < 0.01f)
-            {
-                sidestepUntil = Time.time + 0.6f;
-                sidestepSign = Random.value < 0.5f ? -1f : 1f;
-            }
-            lastCheckPos = transform.position;
-            nextStuckCheckAt = Time.time + 0.4f;
+            mover.SetDestination(home, true);
         }
 
         public void Kill()

@@ -24,11 +24,11 @@ namespace Komur
         [Header("Waves")]
         public List<Wave> waves = new List<Wave>
         {
-            new Wave { rats = 3, spawnInterval = 2.5f, ratSpeed = 1.4f },
-            new Wave { rats = 5, spawnInterval = 2.0f, ratSpeed = 1.6f },
-            new Wave { rats = 7, spawnInterval = 1.6f, ratSpeed = 1.8f },
-            new Wave { rats = 9, spawnInterval = 1.3f, ratSpeed = 2.0f },
-            new Wave { rats = 12, spawnInterval = 1.0f, ratSpeed = 2.2f },
+            new Wave { rats = 4, spawnInterval = 2.0f, ratSpeed = 1.5f },
+            new Wave { rats = 7, spawnInterval = 1.5f, ratSpeed = 1.7f },
+            new Wave { rats = 10, spawnInterval = 1.2f, ratSpeed = 1.9f },
+            new Wave { rats = 14, spawnInterval = 1.0f, ratSpeed = 2.1f },
+            new Wave { rats = 18, spawnInterval = 0.8f, ratSpeed = 2.3f },
         };
         public float timeBetweenWaves = 4f;
         public int maxDeaths = 3;
@@ -39,7 +39,13 @@ namespace Komur
         public KomurController komur;
         public Hud hud;
 
+        public float maxWaveDuration = 30f;
+
         public GameState State { get; private set; } = GameState.Intro;
+        private int playingSinceFrame = int.MaxValue;
+
+        // False on the frame the intro is dismissed, so that Space press doesn't also pounce.
+        public bool AcceptsGameplayInput => State == GameState.Playing && Time.frameCount > playingSinceFrame;
         public int WaveNumber { get; private set; }
         public int WaveCount => waves.Count;
         public int Dead { get; private set; }
@@ -71,8 +77,21 @@ namespace Komur
         private void Awake()
         {
             I = this;
+            ConfigurePhysicsLayers();
+            if (NavGrid.I == null && FindFirstObjectByType<NavGrid>() == null) gameObject.AddComponent<NavGrid>();
+        }
+
+        public static void ConfigurePhysicsLayers()
+        {
+            // Rats and villagers ("Characters") ignore each other and the upper floors; they collide with ground walls/props.
             int characters = LayerMask.NameToLayer("Characters");
-            if (characters >= 0) Physics2D.IgnoreLayerCollision(characters, characters, true);
+            if (characters < 0) return;
+            Physics2D.IgnoreLayerCollision(characters, characters, true);
+            foreach (var upper in new[] { "Layer 2", "Layer 3" })
+            {
+                int layer = LayerMask.NameToLayer(upper);
+                if (layer >= 0) Physics2D.IgnoreLayerCollision(characters, layer, true);
+            }
         }
 
         private void Start()
@@ -89,6 +108,7 @@ namespace Komur
                     {
                         if (hud != null) hud.ShowIntro(false);
                         State = GameState.Playing;
+                        playingSinceFrame = Time.frameCount;
                         StartCoroutine(RunWaves());
                     }
                     break;
@@ -117,7 +137,9 @@ namespace Komur
                     yield return new WaitForSeconds(wave.spawnInterval);
                 }
 
-                while (rats.Count > 0)
+                // Next wave comes when this one is cleared, or after a time limit so the pressure keeps building.
+                float waveEndsAt = Time.time + maxWaveDuration;
+                while (rats.Count > 0 && (Time.time < waveEndsAt || i == waves.Count - 1))
                 {
                     if (State != GameState.Playing) yield break;
                     yield return null;
@@ -144,8 +166,9 @@ namespace Komur
         {
             if (ratPrefab == null || ratSpawns == null || ratSpawns.Length == 0) return;
             var spawn = ratSpawns[UnityEngine.Random.Range(0, ratSpawns.Length)];
-            var rat = Instantiate(ratPrefab, spawn.position, Quaternion.identity);
-            rat.Init(spawn.position, speed);
+            Vector3 pos = NavGrid.I != null ? (Vector3)NavGrid.I.SnapToWalkable(spawn.position) : spawn.position;
+            var rat = Instantiate(ratPrefab, pos, Quaternion.identity);
+            rat.Init(pos, speed);
         }
 
         public Vector3 NearestRatSpawn(Vector3 from)
@@ -157,7 +180,7 @@ namespace Komur
                 float d = (s.position - from).sqrMagnitude;
                 if (d < bestDist) { bestDist = d; best = s.position; }
             }
-            return best;
+            return NavGrid.I != null ? (Vector3)NavGrid.I.SnapToWalkable(best) : best;
         }
 
         public Villager NearestBiteable(Vector3 from)
@@ -171,6 +194,20 @@ namespace Komur
                 if (d < bestDist) { bestDist = d; best = v; }
             }
             return best;
+        }
+
+        private readonly List<Villager> candidateBuffer = new List<Villager>();
+
+        // Nearest healthy villager the rat can actually path to (tries the closest few).
+        public Villager FindReachableTarget(Rat rat, PathMover mover)
+        {
+            candidateBuffer.Clear();
+            foreach (var v in villagers) if (v.CanBeBitten) candidateBuffer.Add(v);
+            Vector3 from = rat.transform.position;
+            candidateBuffer.Sort((a, b) => (a.transform.position - from).sqrMagnitude.CompareTo((b.transform.position - from).sqrMagnitude));
+            for (int i = 0; i < candidateBuffer.Count && i < 3; i++)
+                if (mover.SetDestination(candidateBuffer[i].transform.position, true)) return candidateBuffer[i];
+            return null;
         }
 
         public void OnVillagerCured()

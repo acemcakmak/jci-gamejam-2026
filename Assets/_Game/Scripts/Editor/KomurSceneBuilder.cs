@@ -33,18 +33,11 @@ namespace Komur.EditorTools
                 !EditorUtility.DisplayDialog("Kömür", "Game.unity already exists. Rebuild it from scratch?", "Rebuild", "Cancel"))
                 return;
 
-            EnsureFolders();
-            int charactersLayer = EnsureLayer("Characters");
-            Physics2D.IgnoreLayerCollision(charactersLayer, charactersLayer, true);
-            ConfigureProjectSettings();
-
-            var square = EnsurePlaceholderSprite("square", false);
-            var circle = EnsurePlaceholderSprite("circle", true);
-
-            var stonePrefab = BuildStonePrefab(circle);
-            var ratPrefab = BuildRatPrefab(circle, charactersLayer);
-            var villagerPrefab = BuildVillagerPrefab(square, stonePrefab, charactersLayer);
-            var komurPrefab = BuildKomurPrefab(charactersLayer);
+            var prefabs = BuildPrefabsAndSettings();
+            var circle = prefabs.circle;
+            var ratPrefab = prefabs.rat;
+            var villagerPrefab = prefabs.villager;
+            var komurPrefab = prefabs.komur;
 
             if (File.Exists(ScenePath)) AssetDatabase.DeleteAsset(ScenePath);
             AssetDatabase.CopyAsset(CainosRoot + "/Scene/SC Demo.unity", ScenePath);
@@ -109,6 +102,7 @@ namespace Komur.EditorTools
 
             var gmGo = new GameObject("Game Manager");
             var gm = gmGo.AddComponent<GameManager>();
+            gmGo.AddComponent<NavGrid>();
             gm.ratPrefab = ratPrefab;
             gm.ratSpawns = spawns.ToArray();
             gm.komur = komur.GetComponent<KomurController>();
@@ -120,6 +114,58 @@ namespace Komur.EditorTools
             Selection.activeObject = apothecary;
 
             Debug.Log("[Kömür] Game scene built. Move villagers, rat holes and the apothecary to taste, then press Play.");
+        }
+
+        [MenuItem("Kömür/Update Prefabs and Settings (keeps scene)")]
+        public static void UpdatePrefabsAndSettings()
+        {
+            BuildPrefabsAndSettings();
+
+            // Patch the open game scene: nav grid and fresh wave defaults.
+            var gm = Object.FindFirstObjectByType<GameManager>();
+            if (gm != null)
+            {
+                if (gm.GetComponent<NavGrid>() == null && Object.FindFirstObjectByType<NavGrid>() == null)
+                    gm.gameObject.AddComponent<NavGrid>();
+                var fresh = new GameObject("tmp").AddComponent<GameManager>();
+                gm.waves = fresh.waves;
+                Object.DestroyImmediate(fresh.gameObject);
+                EditorUtility.SetDirty(gm);
+                EditorSceneManager.MarkSceneDirty(gm.gameObject.scene);
+                EditorSceneManager.SaveScene(gm.gameObject.scene);
+            }
+            Debug.Log("[Kömür] Prefabs and project settings updated.");
+        }
+
+        private struct PrefabSet
+        {
+            public Sprite circle;
+            public Rat rat;
+            public GameObject villager;
+            public GameObject komur;
+        }
+
+        private static PrefabSet BuildPrefabsAndSettings()
+        {
+            EnsureFolders();
+            int charactersLayer = EnsureLayer("Characters");
+            // Cainos floors use physics layers 20-22; name them so StairsLayerTrigger can find them.
+            EnsureLayerAt(20, "Layer 1");
+            EnsureLayerAt(21, "Layer 2");
+            EnsureLayerAt(22, "Layer 3");
+            GameManager.ConfigurePhysicsLayers();
+            ConfigureProjectSettings();
+
+            var square = EnsurePlaceholderSprite("square", false);
+            var circle = EnsurePlaceholderSprite("circle", true);
+            var stonePrefab = BuildStonePrefab(circle);
+            return new PrefabSet
+            {
+                circle = circle,
+                rat = BuildRatPrefab(circle, charactersLayer),
+                villager = BuildVillagerPrefab(square, stonePrefab, charactersLayer),
+                komur = BuildKomurPrefab(LayerMask.NameToLayer("Layer 1"), charactersLayer),
+            };
         }
 
         // ---------- Prefabs ----------
@@ -142,6 +188,8 @@ namespace Komur.EditorTools
             var go = new GameObject("Rat") { layer = layer };
             var body = AddBody(go, 0.12f);
             body.mass = 0.2f;
+            go.AddComponent<SpriteRenderer>();
+            go.AddComponent<PathMover>();
 
             var visual = new GameObject("Visual");
             visual.transform.SetParent(go.transform, false);
@@ -161,6 +209,8 @@ namespace Komur.EditorTools
         {
             var go = new GameObject("Villager") { layer = layer };
             AddBody(go, 0.2f);
+            go.AddComponent<SpriteRenderer>();
+            go.AddComponent<PathMover>();
 
             var pfPlayer = AssetDatabase.LoadAssetAtPath<GameObject>(CainosRoot + "/Prefab/Player/PF Player.prefab");
             var visual = (GameObject)PrefabUtility.InstantiatePrefab(pfPlayer);
@@ -200,10 +250,12 @@ namespace Komur.EditorTools
             return SavePrefab(go, "Villager");
         }
 
-        private static GameObject BuildKomurPrefab(int layer)
+        private static GameObject BuildKomurPrefab(int layer, int charactersLayer)
         {
-            var go = new GameObject("Komur") { layer = layer };
+            var go = new GameObject("Komur") { layer = Mathf.Max(0, layer) };
             AddBody(go, 0.22f);
+            go.GetComponent<Collider2D>().excludeLayers = 1 << charactersLayer;
+            go.AddComponent<SpriteRenderer>(); // Cainos StairsLayerTrigger needs one on the root
 
             var visual = new GameObject("Visual");
             visual.transform.SetParent(go.transform, false);
@@ -490,6 +542,20 @@ namespace Komur.EditorTools
             }
             Debug.LogError("[Kömür] No free layer slot for " + layerName);
             return 0;
+        }
+
+        private static void EnsureLayerAt(int index, string layerName)
+        {
+            var tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var layer = tagManager.FindProperty("layers").GetArrayElementAtIndex(index);
+            if (layer.stringValue == layerName) return;
+            if (!string.IsNullOrEmpty(layer.stringValue))
+            {
+                Debug.LogWarning($"[Kömür] Layer {index} is '{layer.stringValue}', expected '{layerName}'. Leaving it.");
+                return;
+            }
+            layer.stringValue = layerName;
+            tagManager.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void ConfigureProjectSettings()
