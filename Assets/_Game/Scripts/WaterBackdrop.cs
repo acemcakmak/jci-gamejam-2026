@@ -23,8 +23,19 @@ namespace Komur
         private SpriteRenderer water;
         private Sprite[] frames;
 
+        // Runs once at startup, then again for every loaded scene: Main Menu / Restart reload the scene,
+        // which brings a fresh camera without the water.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Install()
+        {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+            AddToMainCamera();
+        }
+
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) => AddToMainCamera();
+
+        private static void AddToMainCamera()
         {
             var main = Camera.main;
             if (main != null && main.GetComponent<WaterBackdrop>() == null) main.gameObject.AddComponent<WaterBackdrop>();
