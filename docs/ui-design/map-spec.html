@@ -37,20 +37,20 @@
 
   <h2>Quarters</h2>
   <div class="quarters">
-    <div><b>Centre · Apothecary square</b>The apothecary altar sits at the exact centre of the map. Around it are four stone lanterns, benches facing it from three sides, and pillars on the plaza corners. Road stubs lead out to every quarter, and Kömür starts just south of the altar.</div>
-    <div><b>NW · Chapel Hill (upper floor)</b>A ruined church on the hill. An archway at the top of the main stairs leads into a nave with stone-bench pews. A stone coffin lies before the statue, flanked by rune pillars, with pillars along the walls and lanterns at the entrance. The churchyard graves sit on the edges. West stairs too. Rat hole 4 is on the hill.</div>
-    <div><b>NE · Market</b>A stone market with stall rows (crates, barrels, pots), a well, a bench and lanterns. An archway marks the entrance from the east road. There's a merchant terrace (upper floor) with goods and stairs, plus a shop, a warehouse and a gatehouse. Rat hole 2 is on the east side.</div>
-    <div><b>SW · Farmstead</b>A barn with supplies, a walled garden behind a brick fence with an open wooden gate, a cottage with a bench, and crop rows lined with hedges along the farm lane. Rat hole 1 is by the west fence.</div>
-    <div><b>SE · Sunken graveyard</b>A walled pit with rows of graves and stone coffins, lanterns on the corners, and a mausoleum with a statue on top. You enter through an archway over the north ramp, or down the west ramp from the graveyard path. Mourners' benches stand outside. Rat hole 3 is in the pit.</div>
-    <div><b>Outline and readability</b>The town wall follows an irregular outline with bays and stepped corners, and the darkness beyond it is outside the town. Trees stay near the wall and between quarters, never over roads, plazas or just south of a cliff.</div>
+    <div><b>Centre · Apothecary green</b>The altar stands at the exact centre of the map on a studded stone slab, inside a cobbled ring. Four lanterns sit on the ring's diagonals, with benches facing the altar from the north, east and west. Hedges frame the green, and four roads lead out to the quarters.</div>
+    <div><b>NW · Chapel Hill</b>The stairs climb straight up the church axis to an archway door. Inside the stone nave are three rows of pews, pillars along both walls, then a coffin, the statue and rune pillars at the far end. A churchyard with aligned graves lies to the east and a small garden with a bench to the west. The hill's brick front has windows, and lanterns light the foot of the stairs. Rat hole 4 is in the garden.</div>
+    <div><b>NE · Market</b>The cobbled market lane is lined with stalls on both sides, with the well at the crossing. The merchant house is a windowed terrace: stairs between two lanterns lead up to its crates, barrels and chest. Rat hole 2 is beside the house.</div>
+    <div><b>SW · Farmstead</b>The farmhouse terrace has a windowed front and stairs onto a yard of crates and barrels. East of the lane, crop rows separated by hedges are reached through an open wooden gate between stone posts. Rat hole 1 is behind the yard.</div>
+    <div><b>SE · Sunken graveyard</b>You enter through an archway down a ramp, with mourners' benches outside. The statue stands on the gate's axis with mirrored rows of graves either side, coffins along the back wall and lanterns in all four corners. Rat hole 3 is inside.</div>
+    <div><b>Rules</b>Every raised area has stairs and a use, and props follow axes, rows and entrances. Trees only grow along the town edge and between quarters. The only random detail is sparse grass tufts.</div>
   </div>
 </main>
 
 <script>
 const T = 32; // pixels per tile
 const QUARTERS = [
-  { name: 'CHAPEL HILL', x: 13, y: 38.2 }, { name: 'MARKET', x: 40, y: 38.2 },
-  { name: 'FARMSTEAD', x: 12, y: 2.4 }, { name: 'GRAVEYARD', x: 42, y: 2.4 }, { name: 'SQUARE', x: 28, y: 13.6 },
+  { name: 'CHAPEL HILL', x: 13, y: 38.6 }, { name: 'MARKET', x: 44, y: 38.6 },
+  { name: 'FARMSTEAD', x: 12, y: 2.6 }, { name: 'GRAVEYARD', x: 43, y: 2.6 }, { name: 'APOTHECARY', x: 28.5, y: 14.6 },
 ];
 const imgs = {};
 const loadImg = src => imgs[src] ? Promise.resolve(imgs[src]) : new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[src] = i); i.onerror = () => rej(src); i.src = '../../' + src; });
@@ -60,7 +60,7 @@ function hash(x, y) { return (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >
 function makeMap(m) {
   const at = (x, y) => (x < 0 || y < 0 || x >= m.width || y >= m.height) ? ' ' : m.rows[m.height - 1 - y][x];
   const room = (x, y) => at(x, y) !== ' ';
-  const raised = (x, y) => '^B'.includes(at(x, y));
+  const raised = (x, y) => '^B%'.includes(at(x, y));
   const pit = (x, y) => 'sr'.includes(at(x, y));
   const solidPit = (x, y) => at(x, y) === 's';
   return { at, raised, pit, solidPit, room };
@@ -109,8 +109,8 @@ function shadowTile(M, x, y) {
   if (M.raised(x - 1, y - 1) && !M.raised(x, y - 1)) return 1;
   return 0;
 }
-function stoneIndex(M, x, y) {
-  const is = (a, b) => M.at(a, b) === '#';
+function stoneIndex(M, x, y, ch = '#') {
+  const is = (a, b) => M.at(a, b) === ch;
   const col = !is(x - 1, y) ? 0 : !is(x + 1, y) ? 2 : 1;
   const row = !is(x, y + 1) ? 0 : !is(x, y - 1) ? 2 : 1;
   return row * 8 + col;
@@ -153,6 +153,7 @@ async function main() {
   const g = canvas.getContext('2d'); g.imageSmoothingEnabled = false;
   const tile = k => cat.tiles[k];
   const gaps = new Set(m.stairs.flatMap(s => [`${s.x - 1},${s.capY}`, `${s.x},${s.capY}`]));
+  const win = new Set((m.windows || []).map(w => `${w.x},${w.y}`));
 
 
   function render() {
@@ -164,12 +165,15 @@ async function main() {
       drawTile(g, m, c === '=' ? tile('pavement_' + h % 8) : c === ',' ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
       if (c === '#') drawTile(g, m, tile('stone_' + stoneIndex(M, x, y)), x, y);
     }
+    (m.stamps || []).filter(s => s.f !== 2).forEach(s => drawTile(g, m, tile(s.t), s.x, s.y));
     // Layer 1 shadows + walls
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
       const sh = shadowTile(M, x, y); if (sh) drawTile(g, m, tile('shadow_' + sh), x, y);
     }
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
-      const o = roomTile(M, x, y), w = o >= 0 ? o : wall1Tile(M, x, y);
+      const o = roomTile(M, x, y);
+      let w = o >= 0 ? o : wall1Tile(M, x, y);
+      if (win.has(`${x},${y}`)) w = 56; else if (win.has(`${x},${y - 1}`)) w = 55;
       if (w >= 0) drawTile(g, m, tile('wall_' + w), x, y);
     }
     // Layer 1 objects (stairs, props, characters), y-sorted
@@ -201,12 +205,14 @@ async function main() {
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
       if (!M.raised(x, y)) continue;
       const h = hash(x, y);
-      drawTile(g, m, h % 7 === 0 ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
+      if (M.at(x, y) === '%') drawTile(g, m, tile('stone_' + stoneIndex(M, x, y, '%')), x, y);
+      else drawTile(g, m, h % 7 === 0 ? tile('flower_' + h % 16) : tile('grass_' + h % 16), x, y);
     }
     for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
       if (!M.raised(x, y)) continue;
       let w = raisedTile(M, x, y);
       if (w >= 15 && w <= 17 && gaps.has(`${x},${y}`)) w = -1;
+      if (w >= 0 && win.has(`${x},${y - 1}`)) w = 55;
       if (w >= 0) drawTile(g, m, tile('wall_' + w), x, y);
     }
     drawObjs(objs2);

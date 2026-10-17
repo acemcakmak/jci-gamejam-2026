@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cainos Reference</title>
+<style>
+  @font-face { font-family: Sprout; src: url('../../Assets/ThirdPartyAssets/Sprout Lands - UI Pack - Basic pack/fonts/pixelFont-7-8x14-sproutLands.ttf'); }
+  :root { --bg: #1d1a17; --fg: #f3ead7; --muted: #b8ab93; --line: #3d372f; --accent: #e9c46a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font: 400 36px Sprout, monospace; margin: 8px 0 4px; }
+  h2 { font: 400 24px Sprout, monospace; margin: 32px 0 6px; color: var(--accent); }
+  p { color: var(--muted); margin: 0 0 10px; max-width: 900px; }
+  .scroller { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #000; max-height: 85vh; }
+  canvas { display: block; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<main>
+  <h1>CAINOS REFERENCE</h1>
+  <p>The Cainos demo scene rendered from its own tilemaps and prop placements, plus every tile sheet labelled with the keys the town map uses. Hand-designed quarters borrow these patterns.</p>
+  <h2>Demo scene</h2>
+  <div class="scroller"><canvas id="demo"></canvas></div>
+  <h2>Stone ground tiles</h2>
+  <div class="scroller"><canvas id="stone"></canvas></div>
+  <h2>Wall tiles</h2>
+  <div class="scroller"><canvas id="wall"></canvas></div>
+  <h2>Grass tiles</h2>
+  <div class="scroller"><canvas id="grass"></canvas></div>
+</main>
+<script>
+const T = 32;
+const imgs = {};
+const loadImg = src => imgs[src] ? Promise.resolve(imgs[src]) : new Promise((res, rej) => { const i = new Image(); i.onload = () => res(imgs[src] = i); i.onerror = () => rej(src); i.src = '../../' + src; });
+
+function drawSprite(g, sp, px, py, scale, alpha = 1) {
+  const img = imgs[sp.sheet]; if (!img) return;
+  const sy = img.naturalHeight - sp.y - sp.h, w = sp.w * scale, h = sp.h * scale;
+  g.globalAlpha = alpha;
+  g.drawImage(img, sp.x, sy, sp.w, sp.h, Math.round(px - sp.px * w), Math.round(py - (1 - sp.py) * h), Math.round(w), Math.round(h));
+  g.globalAlpha = 1;
+}
+
+async function main() {
+  const [cat, demo] = await Promise.all([fetch('cainos-catalog.json').then(r => r.json()), fetch('demo-scene.json').then(r => r.json())]);
+  const sheets = new Set();
+  Object.values(cat.tiles).forEach(t => sheets.add(t.sheet));
+  Object.values(cat.prefabs).forEach(ps => ps.forEach(p => sheets.add(p.sheet)));
+  await Promise.all([...sheets].map(loadImg));
+  await document.fonts.load('16px Sprout');
+
+  // ---- demo scene
+  let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+  Object.values(demo.tilemaps).forEach(cells => cells.forEach(([x, y]) => { minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); }));
+  minX -= 1; minY -= 2; maxX += 2; maxY += 4;
+  const c = document.getElementById('demo'); c.width = (maxX - minX) * T; c.height = (maxY - minY) * T;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.fillStyle = '#111'; g.fillRect(0, 0, c.width, c.height);
+  const X = x => (x - minX) * T, Y = y => (maxY - y) * T;
+  const tiles = name => (demo.tilemaps[name] || []).forEach(([x, y, k]) => { const sp = cat.tiles[k]; if (sp) { const img = imgs[sp.sheet]; g.drawImage(img, sp.x, img.naturalHeight - sp.y - sp.h, sp.w, sp.h, X(x), Y(y + 1), T, T); } });
+  const props = layer => demo.props.filter(p => (p.layer || 1) === layer).sort((a, b) => b.y - a.y).forEach(p => {
+    (cat.prefabs[p.p] || []).slice().sort((a, b) => a.order - b.order).forEach(part => drawSprite(g, part, X(p.x + part.ox), Y(p.y + part.oy), T / part.ppu, part.part === 'Shadow' ? 0.6 : 1));
+  });
+  for (const L of [1, 2, 3]) {
+    tiles(`Layer ${L} - Grass`); tiles(`Layer ${L} - Stone Ground`); tiles(`Layer ${L} - Wall Shadow`); tiles(`Layer ${L} - Wall`);
+    props(L);
+  }
+
+  // ---- tile sheets with labels
+  const sheetView = (id, prefix) => {
+    const list = Object.entries(cat.tiles).filter(([k]) => k.startsWith(prefix));
+    if (!list.length) return;
+    const img = imgs[list[0][1].sheet], s = 3;
+    const cv = document.getElementById(id); cv.width = img.naturalWidth * s; cv.height = img.naturalHeight * s;
+    const gg = cv.getContext('2d'); gg.imageSmoothingEnabled = false;
+    gg.fillStyle = '#556b2f'; gg.fillRect(0, 0, cv.width, cv.height);
+    gg.drawImage(img, 0, 0, cv.width, cv.height);
+    gg.font = '13px monospace'; gg.textAlign = 'center';
+    list.forEach(([k, sp]) => {
+      const x = sp.x * s, y = (img.naturalHeight - sp.y - sp.h) * s;
+      gg.strokeStyle = 'rgba(255,223,138,.6)'; gg.strokeRect(x + .5, y + .5, sp.w * s - 1, sp.h * s - 1);
+      const label = k.replace(/^[a-z]+_/, '');
+      gg.fillStyle = 'rgba(0,0,0,.65)'; gg.fillRect(x + 2, y + 2, 26, 15);
+      gg.fillStyle = '#ffdf8a'; gg.fillText(label, x + 15, y + 14);
+    });
+  };
+  sheetView('stone', 'stone_'); sheetView('wall', 'wall_'); sheetView('grass', 'grass_');
+}
+main().catch(e => document.querySelector('main').insertAdjacentHTML('beforeend', `<p style="color:#f88">${e}</p>`));
+</script>
+</body>
+</html>

@@ -24,10 +24,14 @@ namespace Komur.EditorTools
             [Serializable] public class Stair { public int x; public int capY; }
             [Serializable] public class Marker { public float x; public float y; public int f = 1; public int wave = 1; }
             [Serializable] public class Prop { public string p; public float x; public float y; public int f = 1; }
+            [Serializable] public class Cell { public int x; public int y; }
+            [Serializable] public class Stamp { public int x; public int y; public string t; public int f = 1; }
 
             public int width, height;
             public string[] rows;
             public Stair[] stairs;
+            public Cell[] windows;
+            public Stamp[] stamps;
             public float[] komur, apothecary;
             public Marker[] villagers, holes;
             public Prop[] props;
@@ -35,7 +39,7 @@ namespace Komur.EditorTools
             // rows are stored top to bottom
             public char At(int x, int y) => x < 0 || y < 0 || x >= width || y >= height ? ' ' : rows[height - 1 - y][x];
             public bool Room(int x, int y) => At(x, y) != ' ';
-            public bool Raised(int x, int y) { char c = At(x, y); return c == '^' || c == 'B'; }
+            public bool Raised(int x, int y) { char c = At(x, y); return c == '^' || c == 'B' || c == '%'; }
             public bool Pit(int x, int y) { char c = At(x, y); return c == 's' || c == 'r'; }
             public bool Ramp(int x, int y) => At(x, y) == 'r';
             public bool SolidPit(int x, int y) => At(x, y) == 's';
@@ -124,10 +128,11 @@ namespace Komur.EditorTools
                 if (c == '=') grass1.SetTile(cell, LoadTile("TP Grass", "TX Tileset Grass Pavement " + h % 8));
                 else if (c == ',') grass1.SetTile(cell, LoadTile("TP Grass", "TX Tileset Grass Flower " + h % 16));
                 else grass1.SetTile(cell, LoadTile("TP Grass", "TX Tileset Grass " + h % 16));
-                if (c == '#') stone1.SetTile(cell, Stone(StoneIndex(m, x, y)));
+                if (c == '#') stone1.SetTile(cell, Stone(SliceIndex(m, x, y, '#')));
 
                 // Upper floor grass on raised ground.
-                if (m.Raised(x, y))
+                if (c == '%') grass2.SetTile(cell, Stone(SliceIndex(m, x, y, '%')));
+                else if (m.Raised(x, y))
                     grass2.SetTile(cell, LoadTile("TP Grass", h % 7 == 0 ? "TX Tileset Grass Flower " + h % 16 : "TX Tileset Grass " + h % 16));
 
                 int room = RoomTile(m, x, y);
@@ -144,6 +149,21 @@ namespace Komur.EditorTools
                 }
             }
 
+
+            // Decorative stone stamps and windowed brick faces.
+            if (m.stamps != null)
+                foreach (var st in m.stamps)
+                {
+                    var tm = st.f == 2 ? grass2 : stone1;
+                    if (st.t.StartsWith("stone_")) tm.SetTile(new Vector3Int(st.x, st.y, 0), Stone(int.Parse(st.t.Substring(6))));
+                }
+            if (m.windows != null)
+                foreach (var wnd in m.windows)
+                {
+                    wall1.SetTile(new Vector3Int(wnd.x, wnd.y, 0), Wall(56));
+                    wall1.SetTile(new Vector3Int(wnd.x, wnd.y + 1, 0), Wall(55));
+                    if (m.Raised(wnd.x, wnd.y + 1)) wall2.SetTile(new Vector3Int(wnd.x, wnd.y + 1, 0), Wall(55));
+                }
         }
 
         // Town wall following the outline: rim on top, rims on the sides, cap + brick face along the bottom.
@@ -161,9 +181,9 @@ namespace Komur.EditorTools
             return -1;
         }
 
-        private static int StoneIndex(TownMap m, int x, int y)
+        private static int SliceIndex(TownMap m, int x, int y, char ch)
         {
-            bool n = m.At(x, y + 1) == '#', s = m.At(x, y - 1) == '#', w = m.At(x - 1, y) == '#', e = m.At(x + 1, y) == '#';
+            bool n = m.At(x, y + 1) == ch, s = m.At(x, y - 1) == ch, w = m.At(x - 1, y) == ch, e = m.At(x + 1, y) == ch;
             int col = !w ? 0 : !e ? 2 : 1;
             int row = !n ? 0 : !s ? 2 : 1;
             return row * 8 + col;
