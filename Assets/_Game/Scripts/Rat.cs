@@ -12,6 +12,11 @@ namespace Komur
         public float fleeSpeedMultiplier = 1.4f;
         public float retargetInterval = 1f;
         public SpriteRenderer visual;
+        public SpriteFlipbook flipbook;
+        [Tooltip("Prefab is the dedicated boss (Plague Slime): its look comes from the prefab, not from tinting.")]
+        public bool isBoss;
+        [Tooltip("Seconds a rat waits for a reachable target before giving up and leaving.")]
+        public float giveUpAfter = 4f;
 
         [Header("Variants")]
         public Color fastTint = new Color(0.75f, 0.25f, 0.2f);
@@ -31,6 +36,8 @@ namespace Komur
         private float nextRetargetAt;
         private int health = 1;
         private float invulnerableUntil;
+        private float noTargetSince = -1f;
+        private float bitingUntil;
 
         private void Awake()
         {
@@ -71,7 +78,7 @@ namespace Komur
                 case RatKind.King:
                     speed *= 0.75f;
                     health = kingHealth;
-                    if (visual != null)
+                    if (visual != null && !isBoss)
                     {
                         visual.color = kingTint;
                         visual.transform.localScale *= 2.2f;
@@ -103,15 +110,28 @@ namespace Komur
             }
             else
             {
+                bool waiting = target == null && noTargetSince >= 0f && Time.time < nextRetargetAt;
+                if (waiting)
+                {
+                    body.linearVelocity = Vector2.zero;
+                    Animate(Vector2.zero);
+                    if (Time.time - noTargetSince > giveUpAfter) StartFleeing(gm);
+                    return;
+                }
                 if (target == null || !target.CanBeBitten || Time.time >= nextRetargetAt)
                 {
                     target = gm.FindReachableTarget(this, mover);
                     nextRetargetAt = Time.time + retargetInterval;
                     if (target == null)
                     {
-                        StartFleeing(gm);
+                        // Nobody reachable right now: wait a bit (someone may get cured or come into reach), then leave.
+                        if (noTargetSince < 0f) noTargetSince = Time.time;
+                        body.linearVelocity = Vector2.zero;
+                        Animate(Vector2.zero);
+                        if (Time.time - noTargetSince > giveUpAfter) StartFleeing(gm);
                         return;
                     }
+                    noTargetSince = -1f;
                 }
                 else
                 {
@@ -126,13 +146,27 @@ namespace Komur
                 }
             }
 
-            Vector2 dir = mover.NextDirection();
+            Vector2 dir = Time.time < bitingUntil ? Vector2.zero : mover.NextDirection();
             body.linearVelocity = dir * currentSpeed;
+            Animate(dir);
+        }
+
+        private void Animate(Vector2 dir)
+        {
             if (visual != null && Mathf.Abs(dir.x) > 0.05f) visual.flipX = dir.x < 0f;
+            if (flipbook == null || Time.time < bitingUntil) return;
+            flipbook.Play(dir.sqrMagnitude > 0.01f ? "Run" : "Idle");
+        }
+
+        private void PlayBite()
+        {
+            bitingUntil = Time.time + 0.35f;
+            if (flipbook != null) flipbook.Play("Bite", true);
         }
 
         private void Bite(GameManager gm)
         {
+            PlayBite();
             if (Kind == RatKind.King)
             {
                 // The Rat King spreads plague to everyone nearby and keeps going.

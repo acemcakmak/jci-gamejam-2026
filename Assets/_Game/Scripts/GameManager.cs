@@ -36,6 +36,8 @@ namespace Komur
 
         [Header("References")]
         public Rat ratPrefab;
+        [Tooltip("Final-wave boss. If empty, a big tinted rat is used.")]
+        public Rat bossPrefab;
         [Tooltip("Legacy: plain transforms here are turned into rat holes opening one per wave.")]
         public Transform[] ratSpawns;
         public KomurController komur;
@@ -161,7 +163,7 @@ namespace Komur
 
                 if (wave.ratKing)
                 {
-                    if (hud != null) hud.ShowBanner("The Rat King is here!");
+                    if (hud != null) hud.ShowBanner(bossPrefab != null ? "The Plague Slime is here!" : "The Rat King is here!");
                     SpawnRat(wave.ratSpeed, RatKind.King);
                     yield return new WaitForSeconds(1.5f);
                 }
@@ -222,12 +224,13 @@ namespace Komur
 
         private void SpawnRat(float speed, RatKind kind)
         {
-            if (ratPrefab == null) return;
+            var prefab = kind == RatKind.King && bossPrefab != null ? bossPrefab : ratPrefab;
+            if (prefab == null) return;
             var open = RatHole.All.Where(h => h.IsOpen).ToList();
             if (open.Count == 0) return;
             var hole = open[UnityEngine.Random.Range(0, open.Count)];
             Vector3 pos = hole.SpawnPosition;
-            var rat = Instantiate(ratPrefab, pos, Quaternion.identity);
+            var rat = Instantiate(prefab, pos, Quaternion.identity);
             rat.Init(pos, speed, kind, hole.Floor);
         }
 

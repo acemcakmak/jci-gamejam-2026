@@ -9,16 +9,23 @@ using UnityEngine.Tilemaps;
 namespace Komur.EditorTools
 {
     // Paints the drafted 48x32 town with Cainos tiles: outer wall, cobbled roads, stone square,
-    // a raised Chapel Hill (upper floor) with two south stairs, district props, villagers and rat holes.
+    // raised platforms (upper floor) with stairs, wall shadows, district props, villagers and rat holes.
     // Coordinates are tile cells, (0,0) bottom-left, y up.
     public static partial class KomurSceneBuilder
     {
         private const string TownScenePath = GameRoot + "/Scenes/Town.unity";
         private const int MapW = 48, MapH = 32;
 
-        // Chapel Hill outline: x 3..17, face row y=20, cap row y=21, top rim y=29.
-        private static readonly RectInt Hill = new RectInt(3, 20, 15, 10);
-        private static readonly int[] HillStairsX = { 8, 14 };
+        // Raised areas (upper floor). Rect y is the brick face row; stairs are cut into the south side.
+        private static readonly (RectInt rect, int[] stairsX, string name)[] Platforms =
+        {
+            (new RectInt(3, 20, 15, 10), new[] { 8, 14 }, "Chapel Hill"),
+            (new RectInt(38, 25, 8, 6), new[] { 41 }, "Market Terrace"),
+            (new RectInt(9, 8, 4, 4), new int[0], "Farm Plinth"),
+            (new RectInt(40, 8, 5, 4), new int[0], "Mausoleum"),
+            (new RectInt(28, 22, 4, 4), new int[0], "Garden Plinth"),
+            (new RectInt(17, 3, 4, 4), new int[0], "South Plinth"),
+        };
 
         private static readonly Vector2Int KomurStart = new Vector2Int(24, 13);
         private static readonly Vector2Int ApothecaryCell = new Vector2Int(24, 16);
@@ -72,7 +79,8 @@ namespace Komur.EditorTools
             PaintGround(grass1);
             PaintRoads(grass1, stone1);
             PaintRoom(wall1, new RectInt(0, 0, MapW, MapH), true);   // outer town wall
-            PaintHill(grass2, wall1, wall2);
+            maps.TryGetValue("Layer 1 - Wall Shadow", out var shadow1);
+            foreach (var platform in Platforms) PaintPlatform(platform.rect, platform.stairsX, grass2, wall1, wall2, shadow1);
             foreach (var tm in maps.Values) tm.CompressBounds();
             Physics2D.SyncTransforms();
 
@@ -211,18 +219,29 @@ namespace Komur.EditorTools
             }
         }
 
-        private static void PaintHill(Tilemap grass2, Tilemap wall1, Tilemap wall2)
+        private static void PaintPlatform(RectInt r, int[] stairsX, Tilemap grass2, Tilemap wall1, Tilemap wall2, Tilemap shadow)
         {
             // Upper-floor grass covers the rim and interior.
-            for (int y = Hill.yMin + 1; y < Hill.yMax; y++)
-            for (int x = Hill.xMin; x < Hill.xMax; x++)
+            for (int y = r.yMin + 1; y < r.yMax; y++)
+            for (int x = r.xMin; x < r.xMax; x++)
                 grass2.SetTile(new Vector3Int(x, y, 0), Random.value < 0.15f ? GrassFlower() : GrassPlain());
 
             // Ground floor sees the full cliff; the upper floor gets the rim with gaps where the stairs are.
-            PaintRoom(wall1, Hill, true);
+            PaintRoom(wall1, r, true);
             var gaps = new HashSet<int>();
-            foreach (int sx in HillStairsX) { gaps.Add(sx - 1); gaps.Add(sx); }
-            PaintRoom(wall2, Hill, false, gaps);
+            foreach (int sx in stairsX) { gaps.Add(sx - 1); gaps.Add(sx); }
+            PaintRoom(wall2, r, false, gaps);
+            PaintShadowColumn(shadow, r);
+        }
+
+        // Drop shadow on the east side of a wall block, as in the Cainos demo.
+        private static void PaintShadowColumn(Tilemap shadow, RectInt r)
+        {
+            if (shadow == null || r.xMax >= MapW) return;
+            int x = r.xMax, top = r.yMax - 1;
+            if (top + 1 < MapH) shadow.SetTile(new Vector3Int(x, top + 1, 0), LoadTile("TP Wall", "TX Shadow Tileset Wall 1"));
+            for (int y = r.yMin + 1; y <= top; y++) shadow.SetTile(new Vector3Int(x, y, 0), LoadTile("TP Wall", "TX Shadow Tileset Wall 2"));
+            shadow.SetTile(new Vector3Int(x, r.yMin, 0), LoadTile("TP Wall", "TX Shadow Tileset Wall 3"));
         }
 
         // ---------- Objects ----------
@@ -232,8 +251,22 @@ namespace Komur.EditorTools
             return tm.GetCellCenterWorld(new Vector3Int(cell.x, cell.y, 0));
         }
 
+        // True if a ground-floor object at this cell would sit inside a raised block or on stairs.
+        private static bool BlockedForGround(int x, int y)
+        {
+            foreach (var p in Platforms)
+            {
+                var r = p.rect;
+                if (x >= r.xMin - 1 && x <= r.xMax && y >= r.yMin - 1 && y < r.yMax) return true;
+                foreach (int sx in p.stairsX)
+                    if (x >= sx - 2 && x <= sx + 1 && y >= r.yMin - 3 && y <= r.yMin + 1) return true;
+            }
+            return false;
+        }
+
         private static GameObject PlacePrefab(string relativePath, Vector3 position, Transform parent, int floor = 1)
         {
+            if (floor == 1 && BlockedForGround(Mathf.FloorToInt(position.x), Mathf.FloorToInt(position.y))) return null;
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{CainosRoot}/Prefab/{relativePath}.prefab");
             if (prefab == null)
             {
@@ -253,79 +286,127 @@ namespace Komur.EditorTools
             int ground = LayerMask.NameToLayer(FloorAgent.LayerName(1));
             foreach (var r in go.GetComponentsInChildren<Renderer>(true)) r.sortingLayerName = name;
             foreach (var t in go.GetComponentsInChildren<Transform>(true))
-                if (layer >= 0 && t.gameObject.layer == ground) t.gameObject.layer = layer;
+                if (layer >= 0 && (t.gameObject.layer == ground || t.gameObject.layer == 0)) t.gameObject.layer = layer;
         }
 
         private static void PlaceStairs(Tilemap tm, Transform parent)
         {
-            foreach (int sx in HillStairsX)
+            foreach (var p in Platforms)
+            foreach (int sx in p.stairsX)
             {
                 // Stairs pivot sits on the first interior row above the cap (matches the Cainos demo).
-                Vector3 pos = tm.CellToWorld(new Vector3Int(sx, Hill.yMin + 2, 0));
-                PlacePrefab("Props/PF Struct - Stairs S 01 M", pos, parent);
+                Vector3 pos = tm.CellToWorld(new Vector3Int(sx, p.rect.yMin + 2, 0));
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{CainosRoot}/Prefab/Props/PF Struct - Stairs S 01 M.prefab");
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
+                go.transform.position = pos;
             }
         }
 
         private static void PlaceDistrictProps(Tilemap tm, Transform parent)
         {
             Vector3 C(int x, int y) => CellCenter(tm, new Vector2Int(x, y));
+            string Crate() => "Props/PF Props - Crate 0" + Random.Range(1, 3);
+            string Pot() => "Props/PF Props - Pot 0" + Random.Range(1, 4);
+            string Bush() => "Plant/PF Plant - Bush 0" + Random.Range(1, 7);
+            string Tree() => "Plant/PF Plant - Tree 0" + Random.Range(1, 4);
 
-            // Town square
+            // Town square: well, pillars at the corners, a few supplies
             PlacePrefab("Props/PF Props - Well 01", C(27, 18), parent);
+            foreach (var (x, y) in new[] { (18, 11), (29, 11), (18, 20), (29, 20) }) PlacePrefab("Props/PF Props - Pillar 0" + Random.Range(1, 3), C(x, y), parent);
             PlacePrefab("Props/PF Props - Barrel 01", C(20, 13), parent);
-            PlacePrefab("Props/PF Props - Crate 01", C(28, 13), parent);
+            PlacePrefab(Crate(), C(28, 13), parent);
+            PlacePrefab(Pot(), C(20, 18), parent);
+            PlacePrefab("Props/PF Props - Road Sign 01 E", C(30, 17), parent);
+            PlacePrefab("Props/PF Props - Road Sign 01 W", C(17, 13), parent);
 
-            // Market (north-east): crates, barrels, pots, a chest
-            foreach (var (x, y) in new[] { (33, 21), (34, 21), (43, 26), (32, 27) }) PlacePrefab("Props/PF Props - Crate 01", C(x, y), parent);
-            foreach (var (x, y) in new[] { (37, 28), (39, 20), (44, 20) }) PlacePrefab("Props/PF Props - Barrel 01", C(x, y), parent);
-            foreach (var (x, y) in new[] { (31, 24), (38, 23), (42, 28) }) PlacePrefab("Props/PF Props - Pot 0" + Random.Range(1, 4), C(x, y), parent);
+            // Market (north-east): stalls of crates and barrels, goods up on the terrace
+            foreach (var (x, y) in new[] { (32, 21), (33, 21), (34, 21), (32, 27), (33, 27), (36, 29) }) PlacePrefab(Crate(), C(x, y), parent);
+            foreach (var (x, y) in new[] { (36, 26), (39, 20), (44, 20), (45, 21) }) PlacePrefab("Props/PF Props - Barrel 01", C(x, y), parent);
+            foreach (var (x, y) in new[] { (31, 24), (37, 23), (34, 24), (43, 19) }) PlacePrefab(Pot(), C(x, y), parent);
             PlacePrefab("Props/PF Props - Chest 01", C(36, 21), parent);
-            PlacePrefab("Props/PF Props - Road Sign 01 E", C(29, 17), parent);
+            foreach (var (x, y) in new[] { (43, 28), (44, 28), (39, 29) }) PlacePrefab(Crate(), C(x, y), parent, 2);
+            PlacePrefab("Props/PF Props - Barrel 01", C(44, 27), parent, 2);
+            PlacePrefab(Pot(), C(40, 29), parent, 2);
+            PlacePrefab(Bush(), C(39, 27), parent, 2);
 
-            // Farmstead (south-west): crates, barrels, bushes
-            foreach (var (x, y) in new[] { (10, 9), (15, 6), (16, 7) }) PlacePrefab("Props/PF Props - Crate 0" + Random.Range(1, 3), C(x, y), parent);
-            foreach (var (x, y) in new[] { (11, 3), (4, 4) }) PlacePrefab("Props/PF Props - Barrel 01", C(x, y), parent);
-            foreach (var (x, y) in new[] { (5, 11), (17, 3), (9, 12), (16, 11) }) PlacePrefab("Plant/PF Plant - Bush 0" + Random.Range(1, 7), C(x, y), parent);
-            PlacePrefab("Props/PF Props - Road Sign 01 W", C(18, 13), parent);
+            // Farmstead (south-west): supplies, hedges, a garden plinth with a tree
+            foreach (var (x, y) in new[] { (15, 6), (16, 7), (14, 8), (3, 5) }) PlacePrefab(Crate(), C(x, y), parent);
+            foreach (var (x, y) in new[] { (11, 3), (4, 4), (5, 3) }) PlacePrefab("Props/PF Props - Barrel 01", C(x, y), parent);
+            foreach (var (x, y) in new[] { (5, 11), (3, 12), (16, 11), (15, 12), (7, 3), (2, 6) }) PlacePrefab(Bush(), C(x, y), parent);
+            PlacePrefab(Tree(), C(10, 10), parent, 2);
+            PlacePrefab(Bush(), C(11, 10), parent, 2);
 
-            // Graveyard (south-east): rows of gravestones, a statue and broken rune pillars
-            for (int x = 33; x <= 43; x += 3)
+            // Graveyard (south-east): rows of gravestones around a raised mausoleum
+            for (int x = 32; x <= 44; x += 2)
             for (int y = 4; y <= 10; y += 3)
             {
                 if (Mathf.Abs(x - 38) <= 1 && Mathf.Abs(y - 6) <= 1) continue; // keep the villager's spot clear
+                if (x >= 44 && y <= 4) continue;                                // rat hole corner
                 PlacePrefab("Props/PF Props - Gravestone 0" + Random.Range(1, 4), C(x, y), parent);
             }
-            PlacePrefab("Props/PF Props - Statue 01", C(44, 10), parent);
+            PlacePrefab("Props/PF Props - Statue 01", C(42, 10), parent, 2);
+            PlacePrefab("Props/PF Props - Rune Pillar X2", C(41, 10), parent, 2);
             PlacePrefab("Props/PF Props - Rune Pillar Broken", C(31, 3), parent);
+            PlacePrefab("Props/PF Props - Rune Pillar Broken", C(31, 10), parent);
 
-            // Chapel Hill (upper floor)
+            // Garden and south plinths
+            PlacePrefab(Tree(), C(29, 24), parent, 2);
+            PlacePrefab(Bush(), C(30, 24), parent, 2);
+            PlacePrefab(Tree(), C(18, 5), parent, 2);
+            PlacePrefab(Bush(), C(19, 5), parent, 2);
+
+            // Chapel Hill (upper floor): chapel ruins, trees and hedges
             PlacePrefab("Props/PF Props - Statue 01", C(10, 28), parent, 2);
-            PlacePrefab("Props/PF Props - Pillar 01", C(5, 24), parent, 2);
-            PlacePrefab("Props/PF Props - Pillar 01", C(16, 27), parent, 2);
+            PlacePrefab("Props/PF Props - Altar 01", C(11, 27), parent, 2);
+            foreach (var (x, y) in new[] { (5, 24), (16, 27), (8, 28), (12, 28) }) PlacePrefab("Props/PF Props - Pillar 0" + Random.Range(1, 3), C(x, y), parent, 2);
             PlacePrefab("Props/PF Props - Rune Pillar X2", C(15, 23), parent, 2);
+            foreach (var (x, y) in new[] { (4, 22), (16, 22) }) PlacePrefab(Tree(), C(x, y), parent, 2);
+            foreach (var (x, y) in new[] { (10, 23), (6, 23), (14, 26) }) PlacePrefab(Bush(), C(x, y), parent, 2);
+            foreach (var (x, y) in new[] { (9, 25), (12, 22) }) PlacePrefab("Props/PF Props - Gravestone 0" + Random.Range(1, 4), C(x, y), parent, 2);
         }
 
         private static void PlaceGreenery(Tilemap tm, Transform parent, List<Vector2> markers)
         {
             Vector3 C(int x, int y) => CellCenter(tm, new Vector2Int(x, y));
+            bool OnRoad(int x, int y) => (x >= 22 && x <= 26) || (y >= 13 && y <= 17) || (x >= 18 && x <= 29 && y >= 11 && y <= 20);
 
             // Trees along the edges and between districts.
-            foreach (var (x, y) in new[] { (2, 18), (2, 12), (20, 27), (29, 27), (30, 8), (20, 6), (45, 12), (45, 18), (28, 23), (19, 21), (21, 3), (27, 3) })
-                PlacePrefab("Plant/PF Plant - Tree 0" + Random.Range(1, 4), C(x, y), parent);
-
-            // Grass tufts and flowers anywhere off the roads, away from gameplay markers.
-            int placed = 0;
-            for (int attempt = 0; attempt < 400 && placed < 45; attempt++)
+            foreach (var (x, y) in new[] { (2, 18), (2, 12), (20, 27), (29, 29), (30, 7), (21, 7), (45, 12), (45, 18),
+                                           (19, 22), (21, 3), (27, 3), (10, 18), (15, 18), (35, 18), (41, 18), (33, 12),
+                                           (2, 2), (36, 2), (27, 9), (29, 19), (20, 29), (34, 29) })
             {
-                int x = Random.Range(2, MapW - 2), y = Random.Range(3, MapH - 2);
-                bool road = (x >= 22 && x <= 26) || (y >= 13 && y <= 17) || (x >= 18 && x <= 29 && y >= 11 && y <= 20);
-                bool hill = x >= Hill.xMin - 1 && x <= Hill.xMax && y >= Hill.yMin - 1 && y <= Hill.yMax;
-                if (road || hill) continue;
+                if (OnRoad(x, y)) continue;
+                PlacePrefab("Plant/PF Plant - Tree 0" + Random.Range(1, 4), C(x, y), parent);
+            }
+
+            // Bushes, rocks, grass tufts and flowers anywhere off the roads, away from gameplay markers.
+            int placed = 0;
+            for (int attempt = 0; attempt < 1200 && placed < 110; attempt++)
+            {
+                int x = Random.Range(1, MapW - 1), y = Random.Range(2, MapH - 1);
+                if (OnRoad(x, y) || BlockedForGround(x, y)) continue;
                 Vector2 p = C(x, y);
                 if (markers.Any(m => (m - p).sqrMagnitude < 2.25f)) continue;
-                string plant = Random.value < 0.15f ? "Plant/PF Plant - Flower 01" : $"Plant/PF Plant - Grass {Random.Range(1, 16):00}";
-                PlacePrefab(plant, p, parent);
-                placed++;
+                float roll = Random.value;
+                string prefab =
+                    roll < 0.12f ? "Plant/PF Plant - Bush 0" + Random.Range(1, 7) :
+                    roll < 0.22f ? "Props/PF Props - Stone 0" + Random.Range(1, 6) :
+                    roll < 0.32f ? "Plant/PF Plant - Flower 01" :
+                    $"Plant/PF Plant - Grass {Random.Range(1, 16):00}";
+                if (PlacePrefab(prefab, p, parent) != null) placed++;
+            }
+
+            // A few tufts on the raised areas too.
+            foreach (var platform in Platforms)
+            {
+                var r = platform.rect;
+                for (int i = 0; i < r.width * r.height / 8; i++)
+                {
+                    int x = Random.Range(r.xMin + 1, r.xMax - 1), y = Random.Range(r.yMin + 2, r.yMax - 1);
+                    Vector2 p = C(x, y);
+                    if (markers.Any(m => (m - p).sqrMagnitude < 2.25f)) continue;
+                    PlacePrefab($"Plant/PF Plant - Grass {Random.Range(1, 16):00}", p, parent, 2);
+                }
             }
         }
     }

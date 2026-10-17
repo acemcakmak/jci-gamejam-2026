@@ -80,6 +80,7 @@ namespace Komur.EditorTools
             if (gm != null)
             {
                 gm.ratPrefab = prefabs.rat;
+                gm.bossPrefab = prefabs.boss;
                 gm.waves = GameManager.DefaultWaves();
                 EnsureNavGrids(gm);
                 EditorUtility.SetDirty(gm);
@@ -148,9 +149,11 @@ namespace Komur.EditorTools
             return h;
         }
 
+        // Only looks at scene roots: the HUD has a text object called "Villagers" too.
         private static Transform FindOrCreateRoot(string name)
         {
-            var go = GameObject.Find(name);
+            var scene = EditorSceneManager.GetActiveScene();
+            var go = scene.GetRootGameObjects().FirstOrDefault(r => r.name == name && r.GetComponent<RectTransform>() == null);
             return go != null ? go.transform : new GameObject(name).transform;
         }
 
@@ -211,6 +214,7 @@ namespace Komur.EditorTools
                 gm.waves = GameManager.DefaultWaves();
             }
             gm.ratPrefab = prefabs.rat;
+            gm.bossPrefab = prefabs.boss;
             gm.komur = komurController;
             gm.hud = hud;
             EnsureNavGrids(gm);
@@ -233,6 +237,7 @@ namespace Komur.EditorTools
         private struct PrefabSet
         {
             public Rat rat;
+            public Rat boss;
             public GameObject villager;
             public GameObject komur;
             public GameObject ratHole;
@@ -255,6 +260,7 @@ namespace Komur.EditorTools
             return new PrefabSet
             {
                 rat = BuildRatPrefab(circle, charactersLayer),
+                boss = BuildBossPrefab(charactersLayer),
                 villager = BuildVillagerPrefab(square, stonePrefab, charactersLayer),
                 komur = BuildKomurPrefab(LayerMask.NameToLayer("Layer 1"), charactersLayer),
                 ratHole = BuildRatHolePrefab(circle),
@@ -290,27 +296,91 @@ namespace Komur.EditorTools
             return SavePrefab(go, "Stone").GetComponent<ThrownStone>();
         }
 
+        private const string MonstersRoot = "Assets/ThirdPartyAssets/Monsters Creatures Fantasy 2/Sprites";
+
         private static Rat BuildRatPrefab(Sprite circle, int layer)
         {
-            var go = new GameObject("Rat") { layer = layer };
-            var body = AddBody(go, 0.12f);
+            var run = SheetFrames(MonstersRoot + "/Rat/run.png");
+            var go = BuildEnemyBase("Rat", layer, 0.12f);
+            var visual = go.transform.Find("Visual");
+            var sr = visual.GetComponent<SpriteRenderer>();
+
+            if (run.Length > 0)
+            {
+                // Monsters Creatures Fantasy 2 rat: 70px frames at 100 PPU, faces right.
+                visual.localPosition = new Vector3(0f, 0.15f, 0f);
+                visual.localScale = Vector3.one * 1.3f;
+                var flipbook = visual.gameObject.AddComponent<SpriteFlipbook>();
+                flipbook.defaultClip = "Run";
+                flipbook.clips = new[]
+                {
+                    new SpriteFlipbook.Clip { name = "Run", frames = run, fps = 14f },
+                    new SpriteFlipbook.Clip { name = "Idle", frames = SheetFrames(MonstersRoot + "/Rat/idle.png"), fps = 10f },
+                    new SpriteFlipbook.Clip { name = "Bite", frames = SheetFrames(MonstersRoot + "/Rat/attack_bite.png"), fps = 24f, loop = false },
+                };
+                sr.sprite = run[0];
+            }
+            else
+            {
+                visual.localScale = new Vector3(0.45f, 0.28f, 1f);
+                sr.sprite = circle;
+                sr.color = new Color(0.36f, 0.27f, 0.22f);
+            }
+
+            var rat = go.AddComponent<Rat>();
+            rat.visual = sr;
+            rat.flipbook = visual.GetComponent<SpriteFlipbook>();
+            return SavePrefab(go, "Rat").GetComponent<Rat>();
+        }
+
+        // Final-wave boss: the Plague Slime from Monsters Creatures Fantasy 2.
+        private static Rat BuildBossPrefab(int layer)
+        {
+            var walk = SheetFrames(MonstersRoot + "/Slime/walk.png");
+            if (walk.Length == 0) return null;
+            var go = BuildEnemyBase("Plague Slime", layer, 0.35f);
+            var visual = go.transform.Find("Visual");
+            visual.localPosition = new Vector3(0f, 0.6f, 0f);
+            visual.localScale = Vector3.one * 4f;
+            var sr = visual.GetComponent<SpriteRenderer>();
+            sr.sprite = walk[0];
+            var flipbook = visual.gameObject.AddComponent<SpriteFlipbook>();
+            flipbook.defaultClip = "Run";
+            flipbook.clips = new[]
+            {
+                new SpriteFlipbook.Clip { name = "Run", frames = walk, fps = 8f },
+                new SpriteFlipbook.Clip { name = "Idle", frames = SheetFrames(MonstersRoot + "/Slime/idle.png"), fps = 10f },
+                new SpriteFlipbook.Clip { name = "Bite", frames = SheetFrames(MonstersRoot + "/Slime/attack.png"), fps = 24f, loop = false },
+            };
+            var boss = go.AddComponent<Rat>();
+            boss.visual = sr;
+            boss.flipbook = flipbook;
+            boss.isBoss = true;
+            return SavePrefab(go, "Plague Slime").GetComponent<Rat>();
+        }
+
+        private static GameObject BuildEnemyBase(string name, int layer, float radius)
+        {
+            var go = new GameObject(name) { layer = layer };
+            var body = AddBody(go, radius);
             body.mass = 0.2f;
             go.AddComponent<SpriteRenderer>();
             go.AddComponent<PathMover>();
             go.AddComponent<FloorAgent>();
-
             var visual = new GameObject("Visual");
             visual.transform.SetParent(go.transform, false);
-            visual.transform.localScale = new Vector3(0.45f, 0.28f, 1f);
             var sr = visual.AddComponent<SpriteRenderer>();
-            sr.sprite = circle;
-            sr.color = new Color(0.36f, 0.27f, 0.22f);
             sr.sortingLayerName = CharacterSortingLayer;
             sr.sortingOrder = 2;
+            return go;
+        }
 
-            var rat = go.AddComponent<Rat>();
-            rat.visual = sr;
-            return SavePrefab(go, "Rat").GetComponent<Rat>();
+        private static Sprite[] SheetFrames(string path)
+        {
+            return AssetDatabase.LoadAllAssetsAtPath(path)
+                .OfType<Sprite>()
+                .OrderBy(s => int.TryParse(s.name.Substring(s.name.LastIndexOf('_') + 1), out int n) ? n : 0)
+                .ToArray();
         }
 
         private static GameObject BuildVillagerPrefab(Sprite square, ThrownStone stone, int layer)
