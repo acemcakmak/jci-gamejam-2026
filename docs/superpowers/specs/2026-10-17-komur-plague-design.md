@@ -94,7 +94,7 @@ DOTween stays available for simple UI tweens. Use Feel for anything the player s
 
 ## 7. Theme adaptation (13:00–13:30)
 
-Don't throw the concept away. Bend it to fit the theme. When the theme drops, write down 3 ways it could change **one** of these: the map, the rat behaviour, the cure, or the night structure. Then pick the cheapest one. Example mappings:
+Don't throw the concept away. Bend it to fit the theme. When the theme drops, write down 3 ways it could change **one** of these: the map, the rat behaviour, the cure, or the wave structure. Then pick the cheapest one. Example mappings:
 - **"Light/Dark":** Kömür can hide from villagers in building shadows or bushes. These are sprite-based shadow zones, not real lighting.
 - **"Cycles/Loop":** multiple outbreak days, and the town remembers who you saved.
 - **"Chaos/Balance":** a town panic meter that rises with every bite.
