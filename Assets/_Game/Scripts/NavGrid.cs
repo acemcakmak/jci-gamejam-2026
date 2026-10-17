@@ -115,8 +115,10 @@ namespace Komur
 
             for (int y = 0; y < height; y++) RefreshRow(y);
 
-            var gm = GameManager.I;
-            ComputeReachable(gm != null && gm.komur != null ? (Vector2)gm.komur.transform.position : (Vector2)transform.position);
+            var komur = GameManager.I != null && GameManager.I.komur != null
+                ? GameManager.I.komur
+                : FindFirstObjectByType<KomurController>();
+            ComputeReachable(komur != null ? (Vector2)komur.transform.position : (Vector2)transform.position);
         }
 
         // Flood fill from the seed so spawns never land in walled-off areas such as raised platforms.
@@ -368,15 +370,27 @@ namespace Komur
             }
         }
 
-        private void OnDrawGizmosSelected()
+        [ContextMenu("Rebuild Grid Preview")]
+        private void RebuildPreview()
         {
-            if (!drawGizmos || !IsReady) return;
+            Build();
+        }
+
+        // Green = walkable and reachable, yellow = walkable but cut off from Kömür, red = blocked.
+        // In edit mode the grid is built once when gizmos are enabled; use the context menu to refresh it.
+        private void OnDrawGizmos()
+        {
+            if (!drawGizmos) return;
+            if (!IsReady && !Application.isPlaying) Build();
+            if (!IsReady) return;
             for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
                 int i = x + y * width;
                 if (!ground[i]) continue;
-                Gizmos.color = walkable[i] ? new Color(0f, 1f, 0f, 0.25f) : new Color(1f, 0f, 0f, 0.35f);
+                Gizmos.color = !walkable[i] ? new Color(1f, 0f, 0f, 0.35f)
+                    : reachable[i] ? new Color(0f, 1f, 0f, 0.25f)
+                    : new Color(1f, 0.9f, 0f, 0.35f);
                 Gizmos.DrawCube(CellCenter(x, y), Vector3.one * cellSize * 0.9f);
             }
         }
