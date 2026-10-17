@@ -13240,6 +13240,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pickupRange: 1.3
+  brewTime: 3
+  statusText: {fileID: 0}
+  readyColor: {r: 0.3, g: 1, b: 0.4, a: 1}
+  brewingColor: {r: 1, g: 0.85, b: 0.3, a: 1}
 --- !u!4 &518621582
 Transform:
   m_ObjectHideFlags: 0
@@ -15488,20 +15492,37 @@ MonoBehaviour:
   - rats: 4
     spawnInterval: 2
     ratSpeed: 1.5
+    sickDuration: 30
+    fastRatChance: 0
+    ratKing: 0
   - rats: 7
     spawnInterval: 1.5
     ratSpeed: 1.7
+    sickDuration: 26
+    fastRatChance: 0
+    ratKing: 0
   - rats: 10
     spawnInterval: 1.2
     ratSpeed: 1.9
+    sickDuration: 22
+    fastRatChance: 0.25
+    ratKing: 0
   - rats: 14
     spawnInterval: 1
     ratSpeed: 2.1
+    sickDuration: 18
+    fastRatChance: 0.35
+    ratKing: 0
   - rats: 18
     spawnInterval: 0.8
     ratSpeed: 2.3
+    sickDuration: 15
+    fastRatChance: 0.4
+    ratKing: 1
   timeBetweenWaves: 4
+  maxWaveDuration: 30
   maxDeaths: 3
+  panicPerDeath: 0.2
   ratPrefab: {fileID: 2080948871816872066, guid: 0d1aa7440604e484fa1b7190434f1566,
     type: 3}
   ratSpawns:
@@ -15511,7 +15532,6 @@ MonoBehaviour:
   - {fileID: 1829446698}
   komur: {fileID: 525453052}
   hud: {fileID: 990789986}
-  maxWaveDuration: 30
 --- !u!4 &689295131
 Transform:
   m_ObjectHideFlags: 0
@@ -15524,7 +15544,9 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2075767673}
+  - {fileID: 1412608490}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &689295132
@@ -15539,12 +15561,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1898a4628d171480991e4423b5598132, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  floor: 1
   cellSize: 0.5
   clearance: 0.3
-  groundSortingLayer: Layer 1
-  obstacleLayers:
-  - Default
-  - Layer 1
   rowsRefreshedPerFrame: 6
   maxSearchNodes: 8000
   drawGizmos: 0
@@ -29757,6 +29776,56 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1410562136}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1412608489
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1412608490}
+  - component: {fileID: 1412608491}
+  m_Layer: 0
+  m_Name: NavGrid Floor 3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1412608490
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1412608489}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 689295131}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1412608491
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1412608489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1898a4628d171480991e4423b5598132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: 3
+  cellSize: 0.5
+  clearance: 0.3
+  rowsRefreshedPerFrame: 6
+  maxSearchNodes: 8000
+  drawGizmos: 0
 --- !u!1001 &1416270226
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -37557,6 +37626,56 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2072298875}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2075767672
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2075767673}
+  - component: {fileID: 2075767674}
+  m_Layer: 0
+  m_Name: NavGrid Floor 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2075767673
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075767672}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 689295131}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2075767674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2075767672}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1898a4628d171480991e4423b5598132, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: 2
+  cellSize: 0.5
+  clearance: 0.3
+  rowsRefreshedPerFrame: 6
+  maxSearchNodes: 8000
+  drawGizmos: 0
 --- !u!1001 &2077392834
 PrefabInstance:
   m_ObjectHideFlags: 0

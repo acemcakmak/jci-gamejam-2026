@@ -554,6 +554,7 @@ GameObject:
   - component: {fileID: 2670769385184091412}
   - component: {fileID: 2411140584121291668}
   - component: {fileID: 2986807277167601525}
+  - component: {fileID: 9144298249405984885}
   - component: {fileID: 1465300522303455369}
   m_Layer: 8
   m_Name: Villager
@@ -684,8 +685,8 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1869315837
+  m_SortingLayer: 1
   m_SortingOrder: 0
   m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -712,6 +713,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   repathInterval: 0.5
   waypointReachedDistance: 0.15
+--- !u!114 &9144298249405984885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9099213068759902947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abbb28ad7849c424380986f8b58f72bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  floor: 1
 --- !u!114 &1465300522303455369
 MonoBehaviour:
   m_ObjectHideFlags: 0

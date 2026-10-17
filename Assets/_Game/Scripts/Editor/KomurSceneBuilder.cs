@@ -12,7 +12,7 @@ namespace Komur.EditorTools
 {
     // One-click setup: copies the Cainos demo map into Assets/_Game/Scenes/Game.unity and
     // adds Kömür, villagers, rat holes, the apothecary, HUD and feedback hooks.
-    public static class KomurSceneBuilder
+    public static partial class KomurSceneBuilder
     {
         private const string GameRoot = "Assets/_Game";
         private const string ScenePath = GameRoot + "/Scenes/Game.unity";
