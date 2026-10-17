@@ -73,3 +73,9 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Paid / EULA-restricted third-party assets (import locally from the Asset Store, never commit)
+/[Aa]ssets/[Pp]lugins/
+/[Aa]ssets/[Pp]lugins.meta
+/[Aa]ssets/[Tt]hird[Pp]arty[Aa]ssets/
+/[Aa]ssets/[Tt]hird[Pp]arty[Aa]ssets.meta
