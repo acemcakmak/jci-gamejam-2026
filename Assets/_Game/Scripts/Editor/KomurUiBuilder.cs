@@ -229,49 +229,65 @@ namespace Komur.EditorTools
             row.childControlWidth = row.childControlHeight = true;
             row.childForceExpandWidth = row.childForceExpandHeight = false;
 
-            float k = e.iconSize, fs = e.fontSize;
+            float fs = e.fontSize;
+            // Key art is 9x11 px inside each 16x16 cell (the spacebar 14x11): crop to it so keys sit close.
+            var keyArt = new RectInt(3, 2, 9, 11);
+            var spaceArt = new RectInt(1, 2, 14, 11);
+            float kh = Mathf.Min(e.iconSize, (e.Size.y - e.padding * 2f - 3f) / 2f);
             if (letters != null)
+                KeyCluster(keys, "WASD", letters, letters, 'W' - 'A', 'A' - 'A', 'S' - 'A', 'D' - 'A', keyArt, kh, 0f);
+            if (symbols != null)
             {
-                // W on top, A S D underneath, as on a keyboard (sized to fit the strip).
-                float gap = 4f, kk = Mathf.Min(k, (e.Size.y - e.padding * 2f - gap) / 2f);
-                var cluster = NewRect("WASD", keys);
-                var cle = cluster.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-                cle.preferredWidth = kk * 3f + gap * 2f;
-                cle.preferredHeight = kk * 2f + gap;
-                foreach (var (letter, i, col, line) in new[] { ('W', 0, 1, 0), ('A', 1, 0, 1), ('S', 2, 1, 1), ('D', 3, 2, 1) })
-                {
-                    var key = Key(cluster, letters, letter - 'A', kk, i * 0.22f, 1.6f);
-                    key.anchorMin = key.anchorMax = key.pivot = new Vector2(0f, 1f);
-                    key.anchoredPosition = new Vector2(col * (kk + gap), -line * (kk + gap));
-                    key.sizeDelta = new Vector2(kk, kk);
-                }
+                KeyLabel(keys, "OR", fs * 0.8f);
+                KeyCluster(keys, "Arrows", symbols, symbols, 12, 13, 14, 15, keyArt, kh, 0.9f, column: 4);
             }
             KeyLabel(keys, "MOVE", fs);
             KeyGap(keys, 56f);
-            if (symbols != null) Key(keys, symbols, 8, k, 0.3f, 1.1f);          // spacebar
+            if (symbols != null) Key(keys, symbols, 0, 8, spaceArt, kh, 0.3f, 1.1f);          // spacebar
             KeyLabel(keys, "POUNCE", fs);
             KeyGap(keys, 56f);
-            if (letters != null) Key(keys, letters, 'P' - 'A', k, 0.9f, 2.4f);
+            if (letters != null) Key(keys, letters, 0, 'P' - 'A', keyArt, kh, 0.9f, 2.4f);
             KeyLabel(keys, "PAUSE", fs);
-
         }
 
-        private static RectTransform Key(Transform row, Texture2D sheet, int sheetRow, float size, float phase, float period)
+        // Up key on top, left / down / right underneath, packed like on a keyboard.
+        private static void KeyCluster(Transform row, string name, Texture2D sheetUp, Texture2D sheet, int up, int left, int down, int right,
+            RectInt art, float height, float phase, int column = 0)
+        {
+            const float gap = 3f;
+            float width = height * art.width / art.height;
+            var cluster = NewRect(name, row);
+            var le = cluster.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
+            le.preferredWidth = width * 3f + gap * 2f;
+            le.preferredHeight = height * 2f + gap;
+            foreach (var (sheetRow, i, col, line) in new[] { (up, 0, 1, 0), (left, 1, 0, 1), (down, 2, 1, 1), (right, 3, 2, 1) })
+            {
+                var key = Key(cluster, line == 0 ? sheetUp : sheet, column, sheetRow, art, height, phase + i * 0.22f, 1.6f);
+                key.anchorMin = key.anchorMax = key.pivot = new Vector2(0f, 1f);
+                key.anchoredPosition = new Vector2(col * (width + gap), -line * (height + gap));
+                key.sizeDelta = new Vector2(width, height);
+            }
+        }
+
+        // One key: the art cropped out of its cell (normal = this column, pressed = two columns right).
+        private static RectTransform Key(Transform row, Texture2D sheet, int column, int sheetRow, RectInt art, float height, float phase, float period)
         {
             var rt = NewRect("Key", row);
             var raw = rt.gameObject.AddComponent<UnityEngine.UI.RawImage>();
             raw.texture = sheet;
             raw.raycastTarget = false;
-            Rect Cell(int col) => new Rect(col * KeyCell / (float)sheet.width, 1f - (sheetRow + 1) * KeyCell / (float)sheet.height,
-                KeyCell / (float)sheet.width, KeyCell / (float)sheet.height);
+            Rect Uv(int col) => new Rect((col * KeyCell + art.x) / (float)sheet.width,
+                1f - (sheetRow * KeyCell + art.y + art.height) / (float)sheet.height,
+                art.width / (float)sheet.width, art.height / (float)sheet.height);
             var press = rt.gameObject.AddComponent<KeyPress>();
-            press.normalUv = Cell(0);
-            press.pressedUv = Cell(2);
+            press.normalUv = Uv(column);
+            press.pressedUv = Uv(column + 2);
             press.phase = phase;
             press.period = period;
             raw.uvRect = press.normalUv;
             var le = rt.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-            le.preferredWidth = le.preferredHeight = size;
+            le.preferredHeight = height;
+            le.preferredWidth = height * art.width / art.height;
             return rt;
         }
 
