@@ -1,0 +1,256 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c3b67ed3684c48cd9927fad9f7c53dd, type: 3}
+  m_Name: VillagerLooks
+  m_EditorClassIdentifier: 
+  looks:
+  - character: MiniBlacksmith
+    sheet: {fileID: 2800000, guid: 7081585ce2329408190a84e6740f379c, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 5
+  - character: MiniGatherer
+    sheet: {fileID: 2800000, guid: 29578a30f5bf04c82bbffc30e2e4b163, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 5
+    hurtFrames: 2
+    deathRow: 6
+    deathFrames: 3
+  - character: MiniGraveDigger
+    sheet: {fileID: 2800000, guid: 66c9c0706b5174b44bf48b44c7f5e614, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 6
+  - character: MiniHunter
+    sheet: {fileID: 2800000, guid: ff087faeaf59240fdafb1e5957a07733, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 1
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniLumberjack
+    sheet: {fileID: 2800000, guid: 6807fc734ce9d433286b8143e1b5bcaf, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniMerchant
+    sheet: {fileID: 2800000, guid: 92f265c06945140a7bc41ad2044e31a1, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 5
+    hurtFrames: 2
+    deathRow: 6
+    deathFrames: 4
+  - character: MiniMiner
+    sheet: {fileID: 2800000, guid: f6a0c1c2825bc486b9190c97315240c3, type: 3}
+    cell: 32
+    pivot: {x: 0.5625, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniNun
+    sheet: {fileID: 2800000, guid: 2054aa251137040f9b86b4baf52c4c67, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 4
+    hurtFrames: 2
+    deathRow: 5
+    deathFrames: 3
+  - character: MiniSuspiciousMerchant
+    sheet: {fileID: 2800000, guid: 8ba6c92a4ffba4e4d9ca4dbd79591e2d, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 4
+    hurtFrames: 2
+    deathRow: 5
+    deathFrames: 5
+  - character: MiniThief
+    sheet: {fileID: 2800000, guid: 0590d895401ba466cafb965831e75563, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 5
+  - character: MiniBlacksmith
+    sheet: {fileID: 2800000, guid: 0446e3ee2f65145618628e81480bfeb2, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 5
+  - character: MiniGatherer
+    sheet: {fileID: 2800000, guid: 779bcac42e1e641ae879e64d1906c75c, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 5
+    hurtFrames: 2
+    deathRow: 6
+    deathFrames: 3
+  - character: MiniGraveDigger
+    sheet: {fileID: 2800000, guid: 9579d213dfece447a83ad3ec0a097d2d, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 6
+  - character: MiniHunter
+    sheet: {fileID: 2800000, guid: 0468c387141cf4f4d92d25448eb8a21c, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 1
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniLumberjack
+    sheet: {fileID: 2800000, guid: 87e708bf4a02b43ea917f7a4135e128a, type: 3}
+    cell: 32
+    pivot: {x: 0.4375, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniMerchant
+    sheet: {fileID: 2800000, guid: 16b0f230e77bf4d57a44579d49cf8162, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 5
+    hurtFrames: 2
+    deathRow: 6
+    deathFrames: 4
+  - character: MiniMiner
+    sheet: {fileID: 2800000, guid: 17ffaee6f0e8841f48e03c71f2946552, type: 3}
+    cell: 32
+    pivot: {x: 0.5625, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 3
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 4
+  - character: MiniNun
+    sheet: {fileID: 2800000, guid: b4e1503b8cb2e44c7b806ea9bf980117, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 4
+    hurtFrames: 2
+    deathRow: 5
+    deathFrames: 3
+  - character: MiniSuspiciousMerchant
+    sheet: {fileID: 2800000, guid: be0a935b0a31142d8922bb7ff6c40bc8, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 4
+    hurtFrames: 2
+    deathRow: 5
+    deathFrames: 5
+  - character: MiniThief
+    sheet: {fileID: 2800000, guid: ef47ff4cbf6264fc39a33c90c2126f4f, type: 3}
+    cell: 32
+    pivot: {x: 0.5, y: 0}
+    idleRow: 0
+    idleFrames: 4
+    walkRow: 2
+    walkFrames: 6
+    hurtRow: 6
+    hurtFrames: 2
+    deathRow: 7
+    deathFrames: 5
+  pixelsPerUnit: 16

@@ -38,6 +38,7 @@ Material:
     - _FadeBurnWidth: 0.08
     - _GreyBlend: 0
     - _HitEffectBlend: 0
+    - _OutlineWidth: 1
     - _Silhouette: 1
     - _StencilComp: 6
     - _StencilOp: 0

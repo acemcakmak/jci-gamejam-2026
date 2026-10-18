@@ -205,6 +205,13 @@ MonoBehaviour:
   visual: {fileID: 2059992543873173198}
   flipbook: {fileID: 8237348548765669969}
   isBoss: 0
+  stonePrefab: {fileID: 0}
+  throwInterval: 3
+  throwMinRange: 2.5
+  throwMaxRange: 9
+  throwStun: 1.3
+  plagueStoneTint: {r: 0.55, g: 1, b: 0.35, a: 1}
+  plagueStoneRim: {r: 0.08, g: 0.25, b: 0.04, a: 1}
   giveUpAfter: 4
   fastTint: {r: 0.75, g: 0.25, b: 0.2, a: 1}
   kingTint: {r: 0.3, g: 0.1, b: 0.35, a: 1}

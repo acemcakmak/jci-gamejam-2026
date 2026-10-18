@@ -133,12 +133,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd27a617d23794f40b5c403b8646f056, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 6
+  speed: 3.6
   hitRadius: 0.45
   spinSpeed: 540
-  arcHeight: 0.9
+  arcHeight: 1.4
   visual: {fileID: 555330792690786651}
   shadow: {fileID: 8255469265365804336}
+  rockSize: 1.9
+  shadowSize: {x: 0.6, y: 0.26}
+  settleTime: 0.7
+  rim: {r: 0.12, g: 0.09, b: 0.07, a: 1}
 --- !u!1 &8942368014071097282
 GameObject:
   m_ObjectHideFlags: 0
