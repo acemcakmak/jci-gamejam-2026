@@ -33,19 +33,46 @@ namespace Komur
 
         private void Build(Canvas canvas)
         {
-            // PLAY moves left, HOW TO PLAY sits to its right, same style.
+            // Sprout Lands' "?" button to the right of PLAY (a text button if the sprite is missing).
             var play = (RectTransform)hud.playButton.transform;
-            play.anchoredPosition += new Vector2(-200f, 0f);
-            openButton = Instantiate(hud.againButton.gameObject, play.parent, false);
-            openButton.name = "How To Play Button";
-            openButton.SetActive(true);
-            var ort = (RectTransform)openButton.transform;
-            ort.anchorMin = play.anchorMin;
-            ort.anchorMax = play.anchorMax;
-            ort.pivot = play.pivot;
-            ort.anchoredPosition = play.anchoredPosition + new Vector2(400f, 0f);
-            ort.sizeDelta = new Vector2(Mathf.Max(play.sizeDelta.x, 340f), play.sizeDelta.y);
-            SetButton(openButton, "HOW TO PLAY", () => Show(true));
+            if (hud.helpButtonSprite != null)
+            {
+                openButton = new GameObject("Help Button", typeof(RectTransform), typeof(Image), typeof(Button));
+                var ort = (RectTransform)openButton.transform;
+                ort.SetParent(play.parent, false);
+                float h = play.sizeDelta.y;
+                var size = hud.helpButtonSprite.rect.size;
+                float w = h * size.x / Mathf.Max(1f, size.y);
+                ort.anchorMin = play.anchorMin;
+                ort.anchorMax = play.anchorMax;
+                ort.pivot = play.pivot;
+                ort.sizeDelta = new Vector2(w, h);
+                ort.anchoredPosition = play.anchoredPosition + new Vector2(play.sizeDelta.x * 0.5f + 28f + w * 0.5f, 0f);
+                var img = openButton.GetComponent<Image>();
+                img.sprite = hud.helpButtonSprite;
+                img.preserveAspect = true;
+                var b = openButton.GetComponent<Button>();
+                b.targetGraphic = img;
+                if (hud.helpButtonPressed != null)
+                {
+                    b.transition = Selectable.Transition.SpriteSwap;
+                    b.spriteState = new SpriteState { pressedSprite = hud.helpButtonPressed, highlightedSprite = hud.helpButtonSprite, selectedSprite = hud.helpButtonSprite };
+                }
+                b.onClick.AddListener(() => Show(true));
+            }
+            else
+            {
+                openButton = Instantiate(hud.againButton.gameObject, play.parent, false);
+                openButton.name = "How To Play Button";
+                openButton.SetActive(true);
+                var ort = (RectTransform)openButton.transform;
+                ort.anchorMin = play.anchorMin;
+                ort.anchorMax = play.anchorMax;
+                ort.pivot = play.pivot;
+                ort.sizeDelta = new Vector2(340f, play.sizeDelta.y);
+                ort.anchoredPosition = play.anchoredPosition + new Vector2(play.sizeDelta.x * 0.5f + 28f + 170f, 0f);
+                SetButton(openButton, "HOW TO PLAY", () => Show(true));
+            }
 
             // The panel.
             panel = new GameObject("How To Play", typeof(RectTransform), typeof(Image));
@@ -54,7 +81,7 @@ namespace Komur
             prt.anchorMin = Vector2.zero;
             prt.anchorMax = Vector2.one;
             prt.offsetMin = prt.offsetMax = Vector2.zero;
-            panel.GetComponent<Image>().color = new Color(0.02f, 0.02f, 0.03f, 0.82f);
+            panel.GetComponent<Image>().color = new Color(0.03f, 0.03f, 0.04f, 0.9f);
 
             var font = hud.waveText != null ? hud.waveText.font : null;
             var title = NewText(prt, "HOW TO PLAY", font, 72f, Color.white, TextAlignmentOptions.Center);
@@ -72,9 +99,9 @@ namespace Komur
             rows.anchorMax = new Vector2(0.5f, 0.5f);
             rows.pivot = new Vector2(0.5f, 0.5f);
             rows.anchoredPosition = new Vector2(0f, 10f);
-            rows.sizeDelta = new Vector2(1300f, 760f);
+            rows.sizeDelta = new Vector2(1440f, 780f);
             var layout = rowsGo.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 14f;
+            layout.spacing = 10f;
             layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childControlWidth = layout.childControlHeight = true;
             layout.childForceExpandWidth = true;
@@ -112,6 +139,8 @@ namespace Komur
             if (open && !filled) Fill();
             IsOpen = open;
             panel.SetActive(open);
+            // The title screen hides behind the panel so nothing shows through the text.
+            if (hud.introPanel != null && GameManager.I != null && GameManager.I.State == GameState.Intro) hud.introPanel.SetActive(!open);
             if (open) panel.transform.SetAsLastSibling();
         }
 
@@ -168,7 +197,7 @@ namespace Komur
             h.childForceExpandWidth = false;
             h.childForceExpandHeight = false;
             var le = row.AddComponent<LayoutElement>();
-            le.preferredHeight = 78f;
+            le.preferredHeight = 86f;
 
             var iconGo = new GameObject("Icon", typeof(RectTransform));
             iconGo.transform.SetParent(row.transform, false);
@@ -186,11 +215,11 @@ namespace Komur
                 outline.effectDistance = new Vector2(2f, -2f);
             }
             var ile = iconGo.AddComponent<LayoutElement>();
-            ile.preferredWidth = ile.preferredHeight = 72f;
-            ile.minWidth = 72f;
+            ile.preferredWidth = ile.preferredHeight = 86f;
+            ile.minWidth = 86f;
             animated.Add((image, frames));
 
-            var text = NewText(row.transform, line, font, 32f, Color.white, TextAlignmentOptions.Left);
+            var text = NewText(row.transform, line, font, 36f, new Color(0.98f, 0.96f, 0.9f, 1f), TextAlignmentOptions.Left);
             text.textWrappingMode = TextWrappingModes.Normal;
             var tle = text.gameObject.AddComponent<LayoutElement>();
             tle.flexibleWidth = 1f;

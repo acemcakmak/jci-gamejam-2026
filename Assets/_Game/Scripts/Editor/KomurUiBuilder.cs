@@ -155,6 +155,7 @@ namespace Komur.EditorTools
             storyText.fontSizeMin = L.storyPanel.fontSize * 0.7f;
             ControlsStrip(title, L.controlsPanel);
             hud.playButton = UIButton(title, "Play Button", playSprite, playPressed, L.playButton.Anchor, L.playButton.Pos, L.playButton.Size, null, ink);
+            AssignHelpButton(hud);
 
             // --- End screen: laid out like the title screen (the ending scene plays behind it) ---
             var end = Stretch(NewRect("End Screen", root));

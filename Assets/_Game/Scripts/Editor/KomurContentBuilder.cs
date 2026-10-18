@@ -71,6 +71,9 @@ namespace Komur.EditorTools
                 EditorUtility.SetDirty(apothecary);
             }
 
+            var hud = Object.FindFirstObjectByType<Hud>();
+            if (hud != null) AssignHelpButton(hud);
+
             var feedbacks = Object.FindFirstObjectByType<GameFeedbacks>();
             if (feedbacks != null)
             {
@@ -93,6 +96,16 @@ namespace Komur.EditorTools
             source.playOnAwake = false;
             source.spatialBlend = 0f;
             EditorUtility.SetDirty(music);
+        }
+
+        // Sprout Lands' square "?" button (and its pressed frame) for HOW TO PLAY on the title screen.
+        private static void AssignHelpButton(Hud hud)
+        {
+            const string sheet = "Assets/ThirdPartyAssets/Sprout Lands - UI Pack - Basic pack/Sprite sheets/Sprite sheet for Basic Pack.png";
+            var sprites = AssetDatabase.LoadAllAssetsAtPath(sheet).OfType<Sprite>().ToArray();
+            hud.helpButtonSprite = sprites.FirstOrDefault(s => s.name == "Sprite sheet for Basic Pack_189");
+            hud.helpButtonPressed = sprites.FirstOrDefault(s => s.name == "Sprite sheet for Basic Pack_190");
+            EditorUtility.SetDirty(hud);
         }
 
         // ---------- Spirits ----------

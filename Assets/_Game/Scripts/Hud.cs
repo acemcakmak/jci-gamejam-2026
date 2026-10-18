@@ -27,6 +27,9 @@ namespace Komur
         public TextMeshProUGUI endBody;
         public UnityEngine.UI.Button playButton;
         public UnityEngine.UI.Button againButton;
+        [Tooltip("Sprout Lands '?' button for How to Play (normal, pressed).")]
+        public Sprite helpButtonSprite;
+        public Sprite helpButtonPressed;
         [Tooltip("Optional frame behind the banner text; shown and hidden with it.")]
         public GameObject bannerRoot;
         [Tooltip("Status panel, minimap, hint and arrows; faded out while the title screen is up.")]
