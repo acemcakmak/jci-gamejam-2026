@@ -56,7 +56,8 @@ namespace Komur
                 if (hud.helpButtonPressed != null)
                 {
                     b.transition = Selectable.Transition.SpriteSwap;
-                    b.spriteState = new SpriteState { pressedSprite = hud.helpButtonPressed, highlightedSprite = hud.helpButtonSprite, selectedSprite = hud.helpButtonSprite };
+                    // Same as PLAY: the darker pressed frame also shows on hover.
+                    b.spriteState = new SpriteState { pressedSprite = hud.helpButtonPressed, highlightedSprite = hud.helpButtonPressed, selectedSprite = hud.helpButtonSprite };
                 }
                 b.onClick.AddListener(() => Show(true));
             }
