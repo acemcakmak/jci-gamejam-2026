@@ -43,6 +43,8 @@ namespace Komur
             if (bannerText != null) BannerObject.SetActive(false);
             if (endPanel != null) endPanel.SetActive(false);
             BuildPauseUi();
+            var rootCanvas = GetComponentInParent<Canvas>();
+            if (rootCanvas != null) HowToPlay.Install(this, rootCanvas);
             // The town panel shows a portrait per villager instead of the three counters.
             // (the counters sit in "Counter N" cells inside the "Town Panel": take over the panel itself)
             RectTransform townPanel = null;

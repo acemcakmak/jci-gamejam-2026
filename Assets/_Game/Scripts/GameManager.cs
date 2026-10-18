@@ -228,7 +228,7 @@ namespace Komur
             switch (State)
             {
                 case GameState.Intro:
-                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) StartGame();
+                    if (!HowToPlay.IsOpen && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))) StartGame();
                     break;
                 case GameState.Playing:
                     if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P)) TogglePause();
